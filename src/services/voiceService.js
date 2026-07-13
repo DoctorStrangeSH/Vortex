@@ -6,55 +6,43 @@ class VoiceService {
         this.stream = null;
     }
 
+    async requestPermission() {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            stream.getTracks().forEach(track => track.stop());
+            return true;
+        } catch (error) {
+            return false;
+        }
+    }
+
     async startRecording() {
         try {
-            // Проверка поддержки
-            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                throw new Error('Микрофон не поддерживается');
+            if (!navigator.mediaDevices?.getUserMedia) {
+                alert('Микрофон не поддерживается');
+                return false;
             }
-
-            this.stream = await navigator.mediaDevices.getUserMedia({ 
-                audio: {
-                    echoCancellation: true,
-                    noiseSuppression: true,
-                    sampleRate: 44100
-                } 
-            });
-            
-            // Проверяем поддержку кодеков
-            const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') 
-                ? 'audio/webm;codecs=opus' 
-                : MediaRecorder.isTypeSupported('audio/webm')
-                ? 'audio/webm'
-                : 'audio/mp4';
-            
+            this.stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+            let mimeType = 'audio/webm';
+            if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) mimeType = 'audio/webm;codecs=opus';
+            else if (MediaRecorder.isTypeSupported('audio/mp4')) mimeType = 'audio/mp4';
             this.mediaRecorder = new MediaRecorder(this.stream, { mimeType });
             this.audioChunks = [];
-
-            this.mediaRecorder.ondataavailable = (event) => {
-                if (event.data.size > 0) {
-                    this.audioChunks.push(event.data);
-                }
-            };
-
-            this.mediaRecorder.start(100); // Собираем данные каждые 100мс
+            this.mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) this.audioChunks.push(e.data); };
+            this.mediaRecorder.start(100);
             this.isRecording = true;
             return true;
         } catch (error) {
-            console.error('Ошибка записи:', error);
-            // Для мобильных — пробуем без ограничений
             try {
                 this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 this.mediaRecorder = new MediaRecorder(this.stream);
                 this.audioChunks = [];
-                this.mediaRecorder.ondataavailable = (event) => {
-                    if (event.data.size > 0) this.audioChunks.push(event.data);
-                };
+                this.mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) this.audioChunks.push(e.data); };
                 this.mediaRecorder.start(100);
                 this.isRecording = true;
                 return true;
-            } catch (fallbackError) {
-                console.error('Фолбэк ошибка:', fallbackError);
+            } catch (e) {
+                alert('Нет доступа к микрофону');
                 return false;
             }
         }
@@ -62,39 +50,18 @@ class VoiceService {
 
     stopRecording() {
         return new Promise((resolve, reject) => {
-            if (!this.mediaRecorder || !this.isRecording) {
-                reject(new Error('Нет активной записи'));
-                return;
-            }
-
+            if (!this.mediaRecorder || !this.isRecording) return reject('Нет записи');
             this.mediaRecorder.onstop = () => {
-                const audioBlob = new Blob(this.audioChunks, { 
-                    type: this.mediaRecorder.mimeType || 'audio/webm' 
-                });
-                
-                if (this.stream) {
-                    this.stream.getTracks().forEach(track => track.stop());
-                }
-
+                const blob = new Blob(this.audioChunks, { type: this.mediaRecorder.mimeType || 'audio/webm' });
+                if (this.stream) this.stream.getTracks().forEach(t => t.stop());
                 const reader = new FileReader();
                 reader.onloadend = () => resolve(reader.result);
                 reader.onerror = reject;
-                reader.readAsDataURL(audioBlob);
+                reader.readAsDataURL(blob);
             };
-
             this.mediaRecorder.stop();
             this.isRecording = false;
         });
-    }
-
-    cancelRecording() {
-        if (this.mediaRecorder && this.isRecording) {
-            this.mediaRecorder.stop();
-            this.isRecording = false;
-            if (this.stream) {
-                this.stream.getTracks().forEach(track => track.stop());
-            }
-        }
     }
 }
 
