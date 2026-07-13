@@ -1,0 +1,12 @@
+[data-theme="light"] {
+    --bg-primary: #F8F9FC;
+    --bg-secondary: #FFFFFF;
+    --bg-tertiary: #F0F2F5;
+    --bg-hover: rgba(124, 58, 237, 0.06);
+    --bg-active: rgba(124, 58, 237, 0.1);
+    --text-primary: #1A1A2E;
+    --text-secondary: #6B7280;
+    --text-tertiary: #9CA3AF;
+    --border-subtle: rgba(0, 0, 0, 0.04);
+    --border-default: rgba(0, 0, 0, 0.08);
+}
