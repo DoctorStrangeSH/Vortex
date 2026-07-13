@@ -1,12 +1,21 @@
-import { useState, useEffect } from 'preact/hooks';
+import { useState, useEffect, useRef } from 'preact/hooks';
 import { chatService } from '../../services/chatService';
 import { authService } from '../../services/authService';
+import { userService } from '../../services/userService';
 import { BurgerMenu } from '../Burger/BurgerMenu';
 import { NewChatFAB } from '../NewChat/NewChatFAB';
+import { NewChatModal } from '../NewChat/NewChatModal';
+import { ProfileModal } from '../Profile/ProfileModal';
 
 export function Sidebar({ user, activeChat, onSelectChat }) {
     const [chats, setChats] = useState([]);
     const [search, setSearch] = useState('');
+    const [showNewChatModal, setShowNewChatModal] = useState(false);
+    const [showProfile, setShowProfile] = useState(false);
+    const [globalSearch, setGlobalSearch] = useState('');
+    const [globalResults, setGlobalResults] = useState([]);
+    const [showGlobalResults, setShowGlobalResults] = useState(false);
+    const searchTimeoutRef = useRef(null);
 
     useEffect(() => {
         return chatService.subscribeToChats(user.uid, setChats);
@@ -29,7 +38,7 @@ export function Sidebar({ user, activeChat, onSelectChat }) {
             'linear-gradient(135deg, #EC4899, #DB2777)',
         ];
         let hash = 0;
-        for (let i = 0; i < name.length; i++) {
+        for (let i = 0; i < (name || '').length; i++) {
             hash = name.charCodeAt(i) + ((hash << 5) - hash);
         }
         return colors[Math.abs(hash) % colors.length];
@@ -57,6 +66,41 @@ export function Sidebar({ user, activeChat, onSelectChat }) {
         await authService.logout();
     };
 
+    const handleGlobalSearch = (value) => {
+        setGlobalSearch(value);
+        
+        if (searchTimeoutRef.current) {
+            clearTimeout(searchTimeoutRef.current);
+        }
+        
+        if (value.trim().length < 2) {
+            setGlobalResults([]);
+            setShowGlobalResults(false);
+            return;
+        }
+        
+        searchTimeoutRef.current = setTimeout(async () => {
+            try {
+                const results = await userService.searchUsers(value);
+                setGlobalResults(results.filter(u => u.uid !== user.uid));
+                setShowGlobalResults(true);
+            } catch (err) {
+                setGlobalResults([]);
+            }
+        }, 300);
+    };
+
+    const handleStartChat = async (foundUser) => {
+        try {
+            const chatId = await chatService.createChat(user, foundUser);
+            setShowGlobalResults(false);
+            setGlobalSearch('');
+            onSelectChat?.({ id: chatId });
+        } catch (err) {
+            console.error('Ошибка создания чата:', err);
+        }
+    };
+
     const filteredChats = chats.filter(chat => {
         if (!search) return true;
         const { name } = getChatData(chat);
@@ -68,10 +112,67 @@ export function Sidebar({ user, activeChat, onSelectChat }) {
             {/* Шапка */}
             <div style={styles.header}>
                 <h2 style={styles.logo}>🌪️ Vortex</h2>
-                <BurgerMenu user={user} onLogout={handleLogout} />
+                <BurgerMenu 
+                    user={user} 
+                    onLogout={handleLogout}
+                    onProfile={() => setShowProfile(true)}
+                />
             </div>
 
-            {/* Поиск */}
+            {/* Глобальный поиск пользователей */}
+            <div style={styles.searchContainer}>
+                <div style={styles.searchWrapper}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style={styles.searchIcon}>
+                        <circle cx="11" cy="11" r="8"/>
+                        <path d="m21 21-4.35-4.35"/>
+                    </svg>
+                    <input
+                        type="text"
+                        value={globalSearch}
+                        onInput={(e) => handleGlobalSearch(e.target.value)}
+                        onFocus={() => globalResults.length > 0 && setShowGlobalResults(true)}
+                        placeholder="Поиск пользователей..."
+                        style={styles.searchInput}
+                    />
+                </div>
+                
+                {/* Результаты глобального поиска */}
+                {showGlobalResults && globalResults.length > 0 && (
+                    <div style={styles.globalResults}>
+                        {globalResults.map(foundUser => (
+                            <div
+                                key={foundUser.uid}
+                                onClick={() => handleStartChat(foundUser)}
+                                style={styles.globalResultItem}
+                            >
+                                <div style={{
+                                    ...styles.globalAvatar,
+                                    background: getAvatarColor(foundUser.displayName || foundUser.email)
+                                }}>
+                                    {(foundUser.displayName || foundUser.email).charAt(0).toUpperCase()}
+                                </div>
+                                <div style={styles.globalInfo}>
+                                    <div style={styles.globalName}>
+                                        {foundUser.displayName || 'Без имени'}
+                                    </div>
+                                    <div style={styles.globalEmail}>
+                                        {foundUser.email}
+                                        {foundUser.username && ` • @${foundUser.username}`}
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+                
+                {showGlobalResults && globalSearch.trim().length >= 2 && globalResults.length === 0 && (
+                    <div style={styles.noResults}>
+                        Пользователи не найдены
+                    </div>
+                )}
+            </div>
+
+            {/* Поиск по чатам */}
             <div style={styles.searchContainer}>
                 <div style={styles.searchWrapper}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style={styles.searchIcon}>
@@ -118,7 +219,6 @@ export function Sidebar({ user, activeChat, onSelectChat }) {
                                     border: isActive ? '1px solid rgba(124, 58, 237, 0.2)' : '1px solid transparent'
                                 }}
                             >
-                                {/* Аватарка */}
                                 <div style={{
                                     ...styles.chatAvatar,
                                     background: avatarColor
@@ -126,7 +226,6 @@ export function Sidebar({ user, activeChat, onSelectChat }) {
                                     {name.charAt(0).toUpperCase()}
                                 </div>
 
-                                {/* Инфо */}
                                 <div style={styles.chatInfo}>
                                     <div style={styles.chatName}>{name}</div>
                                     <div style={styles.chatLastMsg}>
@@ -134,7 +233,6 @@ export function Sidebar({ user, activeChat, onSelectChat }) {
                                     </div>
                                 </div>
 
-                                {/* Время */}
                                 <div style={styles.chatMeta}>
                                     <div style={styles.chatTime}>
                                         {formatChatTime(chat.lastMessageTime)}
@@ -146,8 +244,29 @@ export function Sidebar({ user, activeChat, onSelectChat }) {
                 )}
             </div>
 
-            {/* FAB кнопка */}
-            <NewChatFAB />
+            {/* FAB кнопка "+" */}
+            <NewChatFAB
+                onPersonalChat={() => setShowNewChatModal(true)}
+                onGroupChat={() => alert('Группы скоро! 🚀')}
+                onChannel={() => alert('Каналы скоро! 📢')}
+            />
+
+            {/* Модалка нового чата */}
+            {showNewChatModal && (
+                <NewChatModal
+                    user={user}
+                    onClose={() => setShowNewChatModal(false)}
+                    onChatCreated={(chatId) => {
+                        setShowNewChatModal(false);
+                        onSelectChat?.({ id: chatId });
+                    }}
+                />
+            )}
+
+            {/* Модалка профиля */}
+            {showProfile && (
+                <ProfileModal onClose={() => setShowProfile(false)} />
+            )}
         </div>
     );
 }
@@ -178,7 +297,8 @@ const styles = {
         margin: 0
     },
     searchContainer: {
-        padding: '0.5rem 1rem'
+        padding: '0.25rem 1rem',
+        position: 'relative'
     },
     searchWrapper: {
         position: 'relative',
@@ -200,6 +320,66 @@ const styles = {
         color: 'var(--text-primary)',
         fontSize: '0.85rem',
         outline: 'none'
+    },
+    globalResults: {
+        background: 'var(--bg-tertiary)',
+        border: '1px solid var(--border-default)',
+        borderRadius: '12px',
+        marginTop: '4px',
+        maxHeight: '300px',
+        overflowY: 'auto',
+        boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
+        position: 'absolute',
+        left: '1rem',
+        right: '1rem',
+        zIndex: 50
+    },
+    globalResultItem: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.75rem',
+        padding: '0.75rem 1rem',
+        cursor: 'pointer',
+        transition: 'background 0.15s',
+        borderBottom: '1px solid var(--border-subtle)'
+    },
+    globalAvatar: {
+        width: '42px',
+        height: '42px',
+        borderRadius: '50%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: 'white',
+        fontWeight: 700,
+        fontSize: '1rem',
+        flexShrink: 0
+    },
+    globalInfo: {
+        flex: 1,
+        minWidth: 0
+    },
+    globalName: {
+        fontWeight: 600,
+        fontSize: '0.9rem'
+    },
+    globalEmail: {
+        fontSize: '0.8rem',
+        color: 'var(--text-secondary)',
+        marginTop: '2px'
+    },
+    noResults: {
+        padding: '1rem',
+        textAlign: 'center',
+        color: 'var(--text-tertiary)',
+        fontSize: '0.85rem',
+        background: 'var(--bg-tertiary)',
+        borderRadius: '12px',
+        marginTop: '4px',
+        position: 'absolute',
+        left: '1rem',
+        right: '1rem',
+        zIndex: 50
     },
     chatList: {
         flex: 1,

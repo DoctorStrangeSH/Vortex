@@ -6,6 +6,7 @@ import {
     updateProfile,
     onAuthStateChanged
 } from 'firebase/auth';
+import { userService } from './userService';
 
 class AuthService {
     constructor() {
@@ -32,9 +33,17 @@ class AuthService {
         await signInWithEmailAndPassword(auth, email, password);
     }
 
-    async register(email, password, name) {
+    async register(email, password, name, username = '') {
         const result = await createUserWithEmailAndPassword(auth, email, password);
         await updateProfile(result.user, { displayName: name });
+        
+        // Сохраняем в Firestore
+        await userService.createUser({
+            uid: result.user.uid,
+            email,
+            displayName: name,
+            username
+        });
     }
 
     async logout() {

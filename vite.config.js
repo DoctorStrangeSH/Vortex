@@ -3,8 +3,8 @@ import preact from '@preact/preset-vite';
 
 export default defineConfig({
     plugins: [preact()],
+    base: '/Vortex/',
     server: {
-        port: 3000,
-        open: true
+        port: 3000
     }
 });
