@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Vortex Messenger</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌪️</text></svg>">
+    
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#7C3AED">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Vortex">
+    <link rel="apple-touch-icon" href="/icons/icon-192.png">
+    
+    <!-- Блокировка мигания темы -->
+    <script>
+        (() => {
+            const theme = localStorage.getItem('vortex-theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+    </script>
+  <script type="module" crossorigin src="/assets/index-CMVUVtRw.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/vendor-CdSpb-8T.js">
+  <link rel="modulepreload" crossorigin href="/assets/firebase-T5CxPURF.js">
+  <link rel="modulepreload" crossorigin href="/assets/ai-DWfOfaSQ.js">
+  <link rel="modulepreload" crossorigin href="/assets/crypto-w_DxIKRh.js">
+  <link rel="stylesheet" crossorigin href="/assets/index-DdqOT4zD.css">
+</head>
+<body>
+    <div id="app"></div>
+</body>
+</html>
