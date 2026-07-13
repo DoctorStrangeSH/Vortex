@@ -10,23 +10,21 @@ import { userService } from './userService';
 
 class AuthService {
     constructor() {
-        this.currentUser = null;
+        this.currentUser = undefined;
         this.listeners = [];
+        this.initialized = false;
 
         onAuthStateChanged(auth, (user) => {
             this.currentUser = user;
+            this.initialized = true;
             this.listeners.forEach(fn => fn(user));
         });
     }
 
     onAuthChange(callback) {
         this.listeners.push(callback);
-        if (this.currentUser !== undefined) {
-            callback(this.currentUser);
-        }
-        return () => {
-            this.listeners = this.listeners.filter(fn => fn !== callback);
-        };
+        if (this.initialized) callback(this.currentUser);
+        return () => { this.listeners = this.listeners.filter(fn => fn !== callback); };
     }
 
     async login(email, password) {
@@ -36,23 +34,15 @@ class AuthService {
     async register(email, password, name, username = '') {
         const result = await createUserWithEmailAndPassword(auth, email, password);
         await updateProfile(result.user, { displayName: name });
-        
-        // Сохраняем в Firestore
-        await userService.createUser({
-            uid: result.user.uid,
-            email,
-            displayName: name,
-            username
-        });
+        await userService.createUser({ uid: result.user.uid, email, displayName: name, username });
     }
 
     async logout() {
         await firebaseSignOut(auth);
     }
 
-    getCurrentUser() {
-        return this.currentUser;
-    }
+    getCurrentUser() { return this.currentUser; }
+    isInitialized() { return this.initialized; }
 }
 
 export const authService = new AuthService();

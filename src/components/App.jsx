@@ -5,44 +5,54 @@ import { LoadingScreen } from './UI/LoadingScreen';
 import { authService } from '../services/authService';
 import { presenceService } from '../services/presenceService';
 import { encryptionService } from '../services/encryptionService';
+import { typingService } from '../services/typingService';
 
 export function App() {
     const [user, setUser] = useState(undefined);
-    const [ready, setReady] = useState(false);
 
     useEffect(() => {
-        // Сразу проверяем localStorage чтобы не показывать вход
-        const hasSession = localStorage.getItem('vortex-user') === 'true';
-        if (hasSession) {
-            setUser(null); // Показываем загрузку, ждём Firebase
-        }
-        
+        let mounted = true;
+
         const unsubscribe = authService.onAuthChange(async (firebaseUser) => {
+            if (!mounted) return;
+
             if (firebaseUser) {
                 setUser(firebaseUser);
                 localStorage.setItem('vortex-user', 'true');
-                
-                const hasKeys = await encryptionService.loadKeys();
-                if (!hasKeys) {
-                    await encryptionService.generateKeys();
-                    await encryptionService.saveKeys();
+                typingService.setUser(firebaseUser.uid);
+
+                try {
+                    const hasKeys = await encryptionService.loadKeys();
+                    if (!hasKeys) {
+                        await encryptionService.generateKeys();
+                        await encryptionService.saveKeys();
+                    }
+                    presenceService.startTracking();
+                } catch (e) {
+                    console.error('Init error:', e);
                 }
-                presenceService.startTracking();
             } else {
                 setUser(null);
                 localStorage.removeItem('vortex-user');
             }
-            
-            // Мгновенно показываем интерфейс
-            requestAnimationFrame(() => setReady(true));
         });
 
-        return () => unsubscribe?.();
+        const handleBeforeUnload = () => {
+            const currentUser = authService.getCurrentUser();
+            if (currentUser) typingService.stopAllTypingSync(currentUser.uid);
+        };
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        window.addEventListener('pagehide', handleBeforeUnload);
+
+        return () => {
+            mounted = false;
+            unsubscribe?.();
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+            window.removeEventListener('pagehide', handleBeforeUnload);
+        };
     }, []);
 
-    // Первый рендер — ничего не показываем (предотвращает мерцание)
-    if (!ready) return null;
-    if (user === undefined) return null;
+    if (user === undefined) return <LoadingScreen />;
     if (!user) return <AuthScreen />;
     return <ChatScreen user={user} />;
 }

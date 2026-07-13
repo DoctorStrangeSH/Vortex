@@ -4,12 +4,16 @@ import {
     addDoc,
     query,
     orderBy,
+    limit,
     onSnapshot,
     serverTimestamp,
     doc,
     updateDoc,
     deleteDoc,
-    setDoc
+    setDoc,
+    getDocs,
+    getDoc,
+    arrayUnion
 } from 'firebase/firestore';
 
 class MessageService {
@@ -33,18 +37,24 @@ class MessageService {
             senderName: user.displayName || user.email,
             createdAt: serverTimestamp(),
             type: attachment ? attachment.type : 'text',
-            text: text || ''
+            text: text || '',
+            readBy: []
         };
 
         if (attachment) {
             messageData.fileData = attachment.fileData;
             messageData.fileName = attachment.fileName;
+            messageData.fileSize = attachment.fileSize || 0;
         }
 
         await addDoc(collection(db, 'chats', chatId, 'messages'), messageData);
 
-        const lastMsg = attachment
-            ? (attachment.type === 'image' ? '📷 Фото' : attachment.type === 'voice' ? '🎙️ Голосовое' : '📎 Файл')
+        const lastMsg = attachment 
+            ? (attachment.type === 'image' ? '📷 Фото' : 
+               attachment.type === 'video' ? '🎬 Видео' : 
+               attachment.type === 'voice' ? '🎙️ Голосовое' : 
+               attachment.type === 'audio' ? '🎵 Аудио' : 
+               '📎 Файл')
             : text;
 
         await setDoc(doc(db, 'chats', chatId), {
@@ -62,12 +72,18 @@ class MessageService {
     }
 
     async deleteMessage(chatId, messageId) {
-        const { doc, deleteDoc, getDocs, query, collection, orderBy, limit, setDoc, serverTimestamp } = await import('firebase/firestore');
+        // Открепляем если удаляем закреплённое
+        const chatRef = doc(db, 'chats', chatId);
+        const chatDoc = await getDoc(chatRef);
+        const chatData = chatDoc.data() || {};
+        const pinnedMessages = (chatData.pinnedMessages || []).filter(m => m.id !== messageId);
+        
+        if (pinnedMessages.length !== (chatData.pinnedMessages || []).length) {
+            await setDoc(chatRef, { pinnedMessages }, { merge: true });
+        }
 
-        // Удаляем сообщение
         await deleteDoc(doc(db, 'chats', chatId, 'messages', messageId));
 
-        // Обновляем lastMessage в чате
         const messagesQuery = query(
             collection(db, 'chats', chatId, 'messages'),
             orderBy('createdAt', 'desc'),
@@ -83,13 +99,23 @@ class MessageService {
         } else {
             const lastMsg = snapshot.docs[0].data();
             const msgText = lastMsg.type === 'image' ? '📷 Фото' :
-                lastMsg.type === 'voice' ? '🎙️ Голосовое' :
-                    lastMsg.text || '';
+                            lastMsg.type === 'video' ? '🎬 Видео' :
+                            lastMsg.type === 'voice' ? '🎙️ Голосовое' :
+                            lastMsg.type === 'audio' ? '🎵 Аудио' :
+                            lastMsg.type === 'file' ? '📎 Файл' :
+                            lastMsg.text || '';
             await setDoc(doc(db, 'chats', chatId), {
                 lastMessage: msgText,
                 lastMessageTime: lastMsg.createdAt
             }, { merge: true });
         }
+    }
+
+    async markAsRead(chatId, userId, messageId) {
+        const msgRef = doc(db, 'chats', chatId, 'messages', messageId);
+        await updateDoc(msgRef, {
+            readBy: arrayUnion(userId)
+        });
     }
 }
 

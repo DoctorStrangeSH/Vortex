@@ -57,8 +57,13 @@ class VoiceService {
 
     stopRecording() {
         return new Promise((resolve, reject) => {
-            if (!this.mediaRecorder || !this.isRecording) {
+            if (!this.mediaRecorder) {
                 reject(new Error('Нет активной записи'));
+                return;
+            }
+            
+            if (this.mediaRecorder.state === 'inactive') {
+                reject(new Error('Запись уже остановлена'));
                 return;
             }
 

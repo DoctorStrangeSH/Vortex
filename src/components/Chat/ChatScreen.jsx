@@ -13,7 +13,6 @@ export function ChatScreen({ user }) {
             setIsMobile(mobile);
             if (!mobile) setShowChat(false);
         };
-        
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, []);
@@ -23,60 +22,28 @@ export function ChatScreen({ user }) {
         if (isMobile) setShowChat(true);
     };
 
-    const handleBack = () => {
-        setShowChat(false);
-        // Не сбрасываем activeChat — возвращаемся в тот же чат
-    };
+    const handleBack = () => setShowChat(false);
+
+    if (!isMobile) {
+        return (
+            <div style={{ display: 'flex', height: '100%' }}>
+                <div style={{ width: '380px', minWidth: '380px', height: '100%' }}>
+                    <Sidebar user={user} activeChat={activeChat} onSelectChat={handleSelectChat} />
+                </div>
+                <div style={{ flex: 1, height: '100%' }}>
+                    <ChatWindow chat={activeChat} user={user} onBack={handleBack} isMobile={false} />
+                </div>
+            </div>
+        );
+    }
 
     return (
-        <div style={{ 
-            display: 'flex', 
-            height: '100%', 
-            background: 'var(--bg-primary)',
-            overflow: 'hidden'
-        }}>
-            {/* САЙДБАР */}
-            <div style={{
-                width: isMobile ? '100%' : '380px',
-                minWidth: isMobile ? '100%' : '380px',
-                height: '100%',
-                display: (isMobile && showChat) ? 'none' : 'flex',
-                transform: (isMobile && showChat) ? 'translateX(-100%)' : 'translateX(0)',
-                transition: isMobile ? 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)' : 'none',
-                position: isMobile ? 'absolute' : 'relative',
-                top: 0,
-                left: 0,
-                zIndex: isMobile ? 10 : 1
-            }}>
-                <Sidebar
-                    user={user}
-                    activeChat={activeChat}
-                    onSelectChat={handleSelectChat}
-                />
+        <div style={{ display: 'flex', height: '100%', overflow: 'hidden' }}>
+            <div style={{ width: '100%', height: '100%', display: showChat ? 'none' : 'flex', position: 'absolute', top: 0, left: 0, zIndex: 10 }}>
+                <Sidebar user={user} activeChat={activeChat} onSelectChat={handleSelectChat} />
             </div>
-
-            {/* ОКНО ЧАТА */}
-            <div style={{
-                flex: 1,
-                height: '100%',
-                display: (isMobile && !showChat) ? 'none' : 'flex',
-                flexDirection: 'column',
-                position: isMobile ? 'absolute' : 'relative',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                zIndex: isMobile ? 20 : 1,
-                background: 'var(--bg-primary)',
-                transform: (isMobile && showChat) ? 'translateX(0)' : 'translateX(100%)',
-                transition: isMobile ? 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)' : 'none'
-            }}>
-                <ChatWindow
-                    chat={activeChat}
-                    user={user}
-                    onBack={handleBack}
-                    isMobile={isMobile}
-                />
+            <div style={{ width: '100%', height: '100%', display: showChat ? 'flex' : 'none', position: 'absolute', top: 0, left: 0, zIndex: 20 }}>
+                <ChatWindow chat={activeChat} user={user} onBack={handleBack} isMobile={true} />
             </div>
         </div>
     );
