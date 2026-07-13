@@ -7,23 +7,57 @@ import { aiService } from '../../services/aiService';
 
 export function ChatWindow({ chat, user, onBack, isMobile }) {
     const [messages, setMessages] = useState([]);
+    const [messagesLoading, setMessagesLoading] = useState(true);
     const [text, setText] = useState('');
     const [editingMessage, setEditingMessage] = useState(null);
     const [otherStatus, setOtherStatus] = useState({ isOnline: false, lastSeen: null });
     const [contextMenu, setContextMenu] = useState(null);
     const [isRecording, setIsRecording] = useState(false);
     const [showAI, setShowAI] = useState(false);
+    const [micDenied, setMicDenied] = useState(false);
     const messagesEndRef = useRef(null);
+    const shouldAutoScroll = useRef(true);
+    const messagesContainerRef = useRef(null);
     const fileInputRef = useRef(null);
 
+    // Очистка при смене чата
     useEffect(() => {
-        if (!chat) return;
-        return chatService.subscribeToMessages(chat.id, setMessages);
+        if (!chat) {
+            setMessages([]);
+            setMessagesLoading(false);
+            return;
+        }
+        
+        setMessages([]);
+        setMessagesLoading(true);
+        setText('');
+        setEditingMessage(null);
+        setOtherStatus({ isOnline: false, lastSeen: null });
+        
+        const unsubscribe = chatService.subscribeToMessages(chat.id, (msgs) => {
+            setMessages(msgs);
+            setMessagesLoading(false);
+        });
+        
+        return () => {
+            unsubscribe?.();
+            setMessages([]);
+        };
     }, [chat?.id]);
 
+    // Умный автоскролл
+    const handleScroll = () => {
+        const el = messagesContainerRef.current;
+        if (!el) return;
+        const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 60;
+        shouldAutoScroll.current = atBottom;
+    };
+
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages]);
+        if (shouldAutoScroll.current && messagesEndRef.current && !messagesLoading) {
+            messagesEndRef.current.scrollIntoView({ behavior: 'auto' });
+        }
+    }, [messages, messagesLoading]);
 
     useEffect(() => {
         if (!chat) return;
@@ -89,24 +123,39 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
     };
 
     const startVoiceRecording = async () => {
-        const hasPermission = await voiceService.requestPermission();
-        if (!hasPermission) {
-            alert('Нужен доступ к микрофону');
-            return;
+        const result = await voiceService.startRecording();
+        
+        if (result === true) {
+            setIsRecording(true);
+            setMicDenied(false);
+        } else if (result?.error === 'denied') {
+            setMicDenied(true);
+        } else if (result?.error) {
+            alert(result.message);
         }
-        const started = await voiceService.startRecording();
-        if (started) setIsRecording(true);
+    };
+
+    const retryMicAccess = async () => {
+        setMicDenied(false);
+        const result = await voiceService.startRecording();
+        if (result === true) {
+            setIsRecording(true);
+        } else if (result?.error === 'denied') {
+            setMicDenied(true);
+        }
     };
 
     const stopVoiceRecording = async () => {
         if (!isRecording) return;
         try {
             const base64 = await voiceService.stopRecording();
-            await chatService.sendMessage(chat.id, '', user, {
-                type: 'voice',
-                fileData: base64,
-                fileName: 'voice.webm'
-            });
+            if (base64) {
+                await chatService.sendMessage(chat.id, '', user, {
+                    type: 'voice',
+                    fileData: base64,
+                    fileName: 'voice.webm'
+                });
+            }
         } catch (e) {
             console.error('Ошибка голосового:', e);
         }
@@ -221,24 +270,35 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
             </div>
 
             {/* СООБЩЕНИЯ */}
-            <div style={s.messagesContainer}>
-                {grouped.map((item, i) => {
-                    if (item.type === 'date') return <div key={`d${i}`} style={s.dateDivider}><span style={s.dateText}>{item.date}</span></div>;
-                    const msg = item.data;
-                    const own = msg.senderId === user.uid;
-                    return (
-                        <div key={msg.id} style={{...s.msgWrapper, justifyContent: own ? 'flex-end' : 'flex-start'}} onContextMenu={(e) => handleContextMenu(e, msg.id, own, msg.text)}>
-                            {!own && <div style={{...s.msgAvatar, background: avatarColor, marginRight: 6}}>{other.name.charAt(0).toUpperCase()}</div>}
-                            <div style={{...s.msgBubble, background: own ? 'var(--gradient-brand)' : 'var(--bg-tertiary)', borderBottomRightRadius: own ? '4px' : '16px', borderBottomLeftRadius: own ? '16px' : '4px', color: own ? '#fff' : 'var(--text-primary)', maxWidth: isMobile ? '82%' : '65%'}}>
-                                {msg.type === 'image' ? <img src={msg.fileData} alt="" style={s.msgImage}/> :
-                                 msg.type === 'voice' ? <audio controls src={msg.fileData} style={s.msgAudio}/> :
-                                 <div style={s.msgText}>{msg.isEdited && <span style={s.edited}>(изм.) </span>}{msg.text}</div>}
-                                <div style={s.msgMeta}>{formatMessageTime(msg.createdAt)}{own && ' ✓✓'}</div>
+            <div style={s.messagesContainer} ref={messagesContainerRef} onScroll={handleScroll}>
+                {messagesLoading ? (
+                    <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-tertiary)' }}>
+                        Загрузка сообщений...
+                    </div>
+                ) : grouped.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-tertiary)' }}>
+                        <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>💬</div>
+                        <p>Нет сообщений. Начните общение!</p>
+                    </div>
+                ) : (
+                    grouped.map((item, i) => {
+                        if (item.type === 'date') return <div key={`d${i}`} style={s.dateDivider}><span style={s.dateText}>{item.date}</span></div>;
+                        const msg = item.data;
+                        const own = msg.senderId === user.uid;
+                        return (
+                            <div key={msg.id} style={{...s.msgWrapper, justifyContent: own ? 'flex-end' : 'flex-start'}} onContextMenu={(e) => handleContextMenu(e, msg.id, own, msg.text)}>
+                                {!own && <div style={{...s.msgAvatar, background: avatarColor, marginRight: 6}}>{other.name.charAt(0).toUpperCase()}</div>}
+                                <div style={{...s.msgBubble, background: own ? 'var(--gradient-brand)' : 'var(--bg-tertiary)', borderBottomRightRadius: own ? '4px' : '16px', borderBottomLeftRadius: own ? '16px' : '4px', color: own ? '#fff' : 'var(--text-primary)', maxWidth: isMobile ? '82%' : '65%'}}>
+                                    {msg.type === 'image' ? <img src={msg.fileData} alt="" style={s.msgImage}/> :
+                                     msg.type === 'voice' ? <audio controls src={msg.fileData} style={s.msgAudio}/> :
+                                     <div style={s.msgText}>{msg.isEdited && <span style={s.edited}>(изм.) </span>}{msg.text}</div>}
+                                    <div style={s.msgMeta}>{formatMessageTime(msg.createdAt)}{own && ' ✓'}</div>
+                                </div>
+                                {own && <div style={{width:28, marginLeft:6}}/>}
                             </div>
-                            {own && <div style={{width:28, marginLeft:6}}/>}
-                        </div>
-                    );
-                })}
+                        );
+                    })
+                )}
                 <div ref={messagesEndRef}/>
             </div>
 
@@ -256,6 +316,32 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
                     <button onClick={handleSmartReply} style={s.aiItem}>💡 Умный ответ</button>
                     <button onClick={handleTranslate} style={s.aiItem}>🌍 Перевести</button>
                     <button onClick={handleSummarize} style={s.aiItem}>📊 Саммари</button>
+                </div>
+            )}
+
+            {/* МОДАЛКА: МИКРОФОН ЗАПРЕЩЁН */}
+            {micDenied && (
+                <div style={s.micOverlay} onClick={() => setMicDenied(false)}>
+                    <div style={s.micPrompt} onClick={e => e.stopPropagation()}>
+                        <div style={{fontSize:'3rem', marginBottom:'1rem'}}>🎙️</div>
+                        <h3 style={{marginBottom:'0.75rem'}}>Микрофон запрещён</h3>
+                        <p style={{color:'var(--text-secondary)', marginBottom:'1rem', fontSize:'0.85rem', lineHeight:1.5}}>
+                            Вы запретили доступ к микрофону.
+                            <br/><br/>
+                            <strong>Как включить:</strong><br/>
+                            📱 <strong>iPhone:</strong> Настройки → Safari → Микрофон<br/>
+                            📱 <strong>Android:</strong> Настройки → Приложения → Браузер → Разрешения<br/>
+                            💻 <strong>ПК:</strong> 🔒 в адресной строке → Разрешить микрофон
+                            <br/><br/>
+                            После включения нажмите кнопку ниже.
+                        </p>
+                        <button onClick={retryMicAccess} style={s.micAllowBtn}>
+                            🔄 Попробовать снова
+                        </button>
+                        <button onClick={() => setMicDenied(false)} style={{...s.micAllowBtn, background:'transparent', color:'var(--text-secondary)', marginTop:'0.5rem'}}>
+                            Закрыть
+                        </button>
+                    </div>
                 </div>
             )}
 
@@ -310,6 +396,9 @@ const s = {
     ctxItem: {display:'block', width:'100%', padding:'10px 14px', background:'transparent', border:'none', borderRadius:'8px', color:'var(--text-primary)', cursor:'pointer', textAlign:'left', fontSize:'0.85rem'},
     aiMenu: {position:'absolute', bottom:'70px', right:'16px', background:'var(--bg-secondary)', border:'1px solid var(--border-default)', borderRadius:'14px', boxShadow:'0 12px 40px rgba(0,0,0,0.5)', padding:'8px', zIndex:50, minWidth:'180px'},
     aiItem: {display:'block', width:'100%', padding:'10px 14px', background:'transparent', border:'none', borderRadius:'10px', color:'var(--text-primary)', cursor:'pointer', textAlign:'left', fontSize:'0.85rem'},
+    micOverlay: { position:'fixed', inset:0, background:'rgba(0,0,0,0.7)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:9999, backdropFilter:'blur(4px)' },
+    micPrompt: { background:'var(--bg-secondary)', borderRadius:'20px', padding:'2rem', maxWidth:'380px', textAlign:'center', border:'1px solid var(--border-default)', boxShadow:'0 20px 60px rgba(0,0,0,0.5)', margin:'0 1rem' },
+    micAllowBtn: { width:'100%', padding:'0.85rem', background:'var(--gradient-brand)', border:'none', borderRadius:'12px', color:'#fff', fontWeight:600, fontSize:'0.95rem', cursor:'pointer' },
     editBar: {display:'flex', justifyContent:'space-between', alignItems:'center', padding:'0.4rem 0.8rem', background:'rgba(124,58,237,0.1)', borderBottom:'1px solid var(--border-subtle)', fontSize:'0.75rem', color:'var(--vortex-primary-light)'},
     cancelEditBtn: {background:'none', border:'none', color:'var(--text-secondary)', cursor:'pointer'},
     inputContainer: {padding:'0.5rem 0.6rem', borderTop:'1px solid var(--border-subtle)', background:'rgba(10,10,20,0.9)', backdropFilter:'blur(20px)', WebkitBackdropFilter:'blur(20px)'},
