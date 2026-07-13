@@ -10,3 +10,29 @@
     --border-subtle: rgba(0, 0, 0, 0.04);
     --border-default: rgba(0, 0, 0, 0.08);
 }
+
+[data-theme="light"] .chat-header,
+[data-theme="light"] .input-container,
+[data-theme="light"] .input-area {
+    background: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+}
+
+[data-theme="light"] .messages-container {
+    background: #F8F9FC !important;
+}
+
+[data-theme="light"] .message-bubble[style*="var(--bg-tertiary)"] {
+    background: #FFFFFF !important;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .sidebar-container,
+[data-theme="light"] .chat-list {
+    background: #FFFFFF !important;
+}
+
+[data-theme="light"] .search-input {
+    background: #F0F2F5 !important;
+}

@@ -68,6 +68,7 @@ export function Sidebar({ user, activeChat, onSelectChat }) {
 
     const handleGlobalSearch = (value) => {
         setGlobalSearch(value);
+        setSearch(value); // Синхронизируем оба поиска
         
         if (searchTimeoutRef.current) {
             clearTimeout(searchTimeoutRef.current);
@@ -95,6 +96,7 @@ export function Sidebar({ user, activeChat, onSelectChat }) {
             const chatId = await chatService.createChat(user, foundUser);
             setShowGlobalResults(false);
             setGlobalSearch('');
+            setSearch('');
             onSelectChat?.({ id: chatId });
         } catch (err) {
             console.error('Ошибка создания чата:', err);
@@ -111,15 +113,16 @@ export function Sidebar({ user, activeChat, onSelectChat }) {
         <div style={styles.container}>
             {/* Шапка */}
             <div style={styles.header}>
-                <h2 style={styles.logo}>🌪️ Vortex</h2>
                 <BurgerMenu 
                     user={user} 
                     onLogout={handleLogout}
                     onProfile={() => setShowProfile(true)}
                 />
+                <h2 style={styles.logo}>🌪️ Vortex</h2>
+                <div style={{ width: '40px' }} />
             </div>
 
-            {/* Глобальный поиск пользователей */}
+            {/* Единый поиск: чаты + пользователи */}
             <div style={styles.searchContainer}>
                 <div style={styles.searchWrapper}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style={styles.searchIcon}>
@@ -130,63 +133,85 @@ export function Sidebar({ user, activeChat, onSelectChat }) {
                         type="text"
                         value={globalSearch}
                         onInput={(e) => handleGlobalSearch(e.target.value)}
-                        onFocus={() => globalResults.length > 0 && setShowGlobalResults(true)}
-                        placeholder="Поиск пользователей..."
+                        placeholder="Поиск чатов и пользователей..."
                         style={styles.searchInput}
                     />
                 </div>
                 
-                {/* Результаты глобального поиска */}
-                {showGlobalResults && globalResults.length > 0 && (
+                {/* Результаты поиска */}
+                {showGlobalResults && globalSearch && (
                     <div style={styles.globalResults}>
-                        {globalResults.map(foundUser => (
-                            <div
-                                key={foundUser.uid}
-                                onClick={() => handleStartChat(foundUser)}
-                                style={styles.globalResultItem}
-                            >
-                                <div style={{
-                                    ...styles.globalAvatar,
-                                    background: getAvatarColor(foundUser.displayName || foundUser.email)
-                                }}>
-                                    {(foundUser.displayName || foundUser.email).charAt(0).toUpperCase()}
-                                </div>
-                                <div style={styles.globalInfo}>
-                                    <div style={styles.globalName}>
-                                        {foundUser.displayName || 'Без имени'}
+                        {/* Пользователи */}
+                        {globalResults.length > 0 && (
+                            <>
+                                <div style={styles.resultSectionTitle}>Пользователи</div>
+                                {globalResults.map(foundUser => (
+                                    <div
+                                        key={foundUser.uid}
+                                        onClick={() => handleStartChat(foundUser)}
+                                        style={styles.globalResultItem}
+                                    >
+                                        <div style={{
+                                            ...styles.globalAvatar,
+                                            background: getAvatarColor(foundUser.displayName || foundUser.email)
+                                        }}>
+                                            {(foundUser.displayName || foundUser.email).charAt(0).toUpperCase()}
+                                        </div>
+                                        <div style={styles.globalInfo}>
+                                            <div style={styles.globalName}>
+                                                {foundUser.displayName || 'Без имени'}
+                                            </div>
+                                            <div style={styles.globalEmail}>
+                                                @{foundUser.username || foundUser.email.split('@')[0]}
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div style={styles.globalEmail}>
-                                        {foundUser.email}
-                                        {foundUser.username && ` • @${foundUser.username}`}
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
+                                ))}
+                            </>
+                        )}
+                        
+                        {/* Чаты */}
+                        {filteredChats.length > 0 && (
+                            <>
+                                <div style={styles.resultSectionTitle}>Чаты</div>
+                                {filteredChats.map(chat => {
+                                    const { name } = getChatData(chat);
+                                    return (
+                                        <div
+                                            key={chat.id}
+                                            onClick={() => {
+                                                onSelectChat(chat);
+                                                setGlobalSearch('');
+                                                setSearch('');
+                                                setShowGlobalResults(false);
+                                            }}
+                                            style={styles.globalResultItem}
+                                        >
+                                            <div style={{
+                                                ...styles.globalAvatar,
+                                                background: getAvatarColor(name)
+                                            }}>
+                                                {name.charAt(0).toUpperCase()}
+                                            </div>
+                                            <div style={styles.globalInfo}>
+                                                <div style={styles.globalName}>{name}</div>
+                                                <div style={styles.globalEmail}>
+                                                    {chat.lastMessage || 'Нет сообщений'}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </>
+                        )}
                     </div>
                 )}
                 
-                {showGlobalResults && globalSearch.trim().length >= 2 && globalResults.length === 0 && (
+                {showGlobalResults && globalSearch && globalResults.length === 0 && filteredChats.length === 0 && (
                     <div style={styles.noResults}>
-                        Пользователи не найдены
+                        Ничего не найдено
                     </div>
                 )}
-            </div>
-
-            {/* Поиск по чатам */}
-            <div style={styles.searchContainer}>
-                <div style={styles.searchWrapper}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style={styles.searchIcon}>
-                        <circle cx="11" cy="11" r="8"/>
-                        <path d="m21 21-4.35-4.35"/>
-                    </svg>
-                    <input
-                        type="text"
-                        value={search}
-                        onInput={(e) => setSearch(e.target.value)}
-                        placeholder="Поиск чатов"
-                        style={styles.searchInput}
-                    />
-                </div>
             </div>
 
             {/* Список чатов */}
@@ -333,6 +358,14 @@ const styles = {
         left: '1rem',
         right: '1rem',
         zIndex: 50
+    },
+    resultSectionTitle: {
+        padding: '0.5rem 1rem',
+        fontSize: '0.7rem',
+        fontWeight: 600,
+        color: 'var(--text-tertiary)',
+        textTransform: 'uppercase',
+        letterSpacing: '1px'
     },
     globalResultItem: {
         display: 'flex',

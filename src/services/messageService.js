@@ -43,7 +43,7 @@ class MessageService {
 
         await addDoc(collection(db, 'chats', chatId, 'messages'), messageData);
 
-        const lastMsg = attachment 
+        const lastMsg = attachment
             ? (attachment.type === 'image' ? '📷 Фото' : attachment.type === 'voice' ? '🎙️ Голосовое' : '📎 Файл')
             : text;
 
@@ -62,7 +62,34 @@ class MessageService {
     }
 
     async deleteMessage(chatId, messageId) {
+        const { doc, deleteDoc, getDocs, query, collection, orderBy, limit, setDoc, serverTimestamp } = await import('firebase/firestore');
+
+        // Удаляем сообщение
         await deleteDoc(doc(db, 'chats', chatId, 'messages', messageId));
+
+        // Обновляем lastMessage в чате
+        const messagesQuery = query(
+            collection(db, 'chats', chatId, 'messages'),
+            orderBy('createdAt', 'desc'),
+            limit(1)
+        );
+        const snapshot = await getDocs(messagesQuery);
+
+        if (snapshot.empty) {
+            await setDoc(doc(db, 'chats', chatId), {
+                lastMessage: 'Нет сообщений',
+                lastMessageTime: serverTimestamp()
+            }, { merge: true });
+        } else {
+            const lastMsg = snapshot.docs[0].data();
+            const msgText = lastMsg.type === 'image' ? '📷 Фото' :
+                lastMsg.type === 'voice' ? '🎙️ Голосовое' :
+                    lastMsg.text || '';
+            await setDoc(doc(db, 'chats', chatId), {
+                lastMessage: msgText,
+                lastMessageTime: lastMsg.createdAt
+            }, { merge: true });
+        }
     }
 }
 
