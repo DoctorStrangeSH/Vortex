@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { filterChats } from '../src/services/chatList.js';
+import { filterChats, orderPinnedChats } from '../src/services/chatList.js';
 
 const chats = [
     { id: 'one', name: 'Семья', lastMessage: 'Увидимся завтра' },
@@ -16,4 +16,11 @@ test('finds chats by title without changing their order', () => {
 test('finds chats by message preview and handles missing previews', () => {
     assert.deepEqual(filterChats(chats, 'отчЁТ', chat => chat.name).map(chat => chat.id), ['two']);
     assert.deepEqual(filterChats([{ id: 'empty' }], 'что-то', () => undefined), []);
+});
+
+test('pinned chats stay above recent chats while preserving relative order', () => {
+    const ordered = orderPinnedChats(chats, ['three', 'one']);
+    assert.deepEqual(ordered.map(chat => chat.id), ['one', 'three', 'two']);
+    assert.deepEqual(chats.map(chat => chat.id), ['one', 'two', 'three']);
+    assert.deepEqual(orderPinnedChats(chats, []), chats);
 });

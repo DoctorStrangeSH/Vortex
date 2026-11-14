@@ -7,7 +7,12 @@ import { NewChatFAB } from '../NewChat/NewChatFAB';
 import { NewChatModal } from '../NewChat/NewChatModal';
 import { ProfileModal } from '../Profile/ProfileModal';
 import { ThemeCustomizer } from '../Theme/ThemeCustomizer';
-import { filterChats } from '../../services/chatList.js';
+import { filterChats, orderPinnedChats } from '../../services/chatList.js';
+
+const readLocalIds = key => {
+    try { const saved = JSON.parse(localStorage.getItem(key) || '[]'); return Array.isArray(saved) ? saved.filter(id => typeof id === 'string') : []; }
+    catch { return []; }
+};
 
 export function Sidebar({ user, activeChat, onSelectChat }) {
     const [chats, setChats] = useState([]);
@@ -19,10 +24,11 @@ export function Sidebar({ user, activeChat, onSelectChat }) {
     const [globalResults, setGlobalResults] = useState([]);
     const [showGlobalResults, setShowGlobalResults] = useState(false);
     const hiddenChatsKey = `hiddenChats:${user.uid}`;
-    const [hiddenChats, setHiddenChats] = useState(() => {
-        try { const saved = JSON.parse(localStorage.getItem(hiddenChatsKey) || '[]'); return Array.isArray(saved) ? saved : []; }
-        catch { return []; }
-    });
+    const pinnedChatsKey = `pinnedChats:${user.uid}`;
+    const [hiddenChats, setHiddenChats] = useState(() => readLocalIds(hiddenChatsKey));
+    const [pinnedChats, setPinnedChats] = useState(() => readLocalIds(pinnedChatsKey));
+    const [showHiddenChats, setShowHiddenChats] = useState(false);
+    const [chatOptionsId, setChatOptionsId] = useState(null);
     const searchTimeoutRef = useRef(null);
 
     useEffect(() => {
@@ -30,9 +36,11 @@ export function Sidebar({ user, activeChat, onSelectChat }) {
     }, [user.uid]);
 
     useEffect(() => {
-        try { const saved = JSON.parse(localStorage.getItem(hiddenChatsKey) || '[]'); setHiddenChats(Array.isArray(saved) ? saved : []); }
-        catch { setHiddenChats([]); }
-    }, [hiddenChatsKey]);
+        setHiddenChats(readLocalIds(hiddenChatsKey));
+        setPinnedChats(readLocalIds(pinnedChatsKey));
+        setChatOptionsId(null);
+        setShowHiddenChats(false);
+    }, [hiddenChatsKey, pinnedChatsKey]);
 
     useEffect(() => () => { if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current); }, []);
 
@@ -92,9 +100,20 @@ export function Sidebar({ user, activeChat, onSelectChat }) {
             localStorage.setItem(hiddenChatsKey, JSON.stringify(updated));
             return updated;
         });
+        setChatOptionsId(null);
     };
 
-    const visibleChats = filterChats(chats.filter(c => !hiddenChats.includes(c.id)), globalSearch, chat => getChatData(chat).name);
+    const togglePinned = (chatId) => {
+        setPinnedChats(prev => {
+            const updated = prev.includes(chatId) ? prev.filter(id => id !== chatId) : [...prev, chatId];
+            localStorage.setItem(pinnedChatsKey, JSON.stringify(updated));
+            return updated;
+        });
+        setChatOptionsId(null);
+    };
+
+    const visibleChats = orderPinnedChats(filterChats(chats.filter(c => !hiddenChats.includes(c.id)), globalSearch, chat => getChatData(chat).name), pinnedChats);
+    const hiddenAvailable = chats.filter(c => hiddenChats.includes(c.id));
 
     return (
         <div style={st.container}>
@@ -122,17 +141,31 @@ export function Sidebar({ user, activeChat, onSelectChat }) {
                     const color = getAvatarColor(name);
                     const active = activeChat?.id === chat.id;
                     return (
-                        <div key={chat.id} role="button" tabIndex={0} aria-label={`Открыть чат ${name}`} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openChat(chat); } }} onClick={() => openChat(chat)} onContextMenu={(e) => { e.preventDefault(); toggleHidden(chat.id); }}
+                        <div key={chat.id} role="button" tabIndex={0} aria-label={`Открыть чат ${name}`} onKeyDown={e => { if (e.target !== e.currentTarget) return; if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openChat(chat); } }} onClick={() => openChat(chat)}
                             style={{...st.chatItem, background: active ? 'var(--bg-active)' : 'transparent', border: active ? '1px solid rgba(124,58,237,0.2)' : '1px solid transparent'}}>
                             <div style={{...st.chatAvatar, background: color}}>{name.charAt(0).toUpperCase()}</div>
                             <div style={st.chatInfo}>
-                                <div style={st.chatName}>{chat.isChannel ? '📢 ' : chat.type === 'group' ? '👥 ' : ''}{name}</div>
+                                <div style={st.chatName}>{pinnedChats.includes(chat.id) ? '📌 ' : ''}{chat.isChannel ? '📢 ' : chat.type === 'group' ? '👥 ' : ''}{name}</div>
                                 <div style={st.chatLast} title={chat.lastMessage || 'Нет сообщений'}>{chat.lastMessage || 'Нет сообщений'}</div>
                             </div>
                             <div style={st.chatTime}>{formatChatTime(chat.lastMessageTime)}</div>
+                            <div style={st.optionsWrapper}>
+                                <button type="button" style={st.optionsButton} aria-label={`Настройки чата ${name}`} aria-expanded={chatOptionsId === chat.id} onClick={e => { e.stopPropagation(); setChatOptionsId(prev => prev === chat.id ? null : chat.id); }}>⋮</button>
+                                {chatOptionsId === chat.id && <div style={st.optionsMenu}>
+                                    <button type="button" style={st.optionItem} onClick={e => { e.stopPropagation(); togglePinned(chat.id); }}>{pinnedChats.includes(chat.id) ? 'Открепить' : '📌 Закрепить'}</button>
+                                    <button type="button" style={st.optionItem} onClick={e => { e.stopPropagation(); toggleHidden(chat.id); }}>Скрыть из списка</button>
+                                </div>}
+                            </div>
                         </div>
                     );
                 })}
+                {hiddenAvailable.length > 0 && <div style={st.hiddenSection}>
+                    <button type="button" style={st.hiddenToggle} onClick={() => setShowHiddenChats(value => !value)} aria-expanded={showHiddenChats}>{showHiddenChats ? '▾' : '▸'} Скрытые переписки ({hiddenAvailable.length})</button>
+                    {showHiddenChats && hiddenAvailable.map(chat => <div key={chat.id} style={st.hiddenRow}>
+                        <span style={st.hiddenName}>{getChatData(chat).name}</span>
+                        <button type="button" style={st.restoreButton} onClick={() => toggleHidden(chat.id)}>Вернуть</button>
+                    </div>)}
+                </div>}
             </div>
 
             <NewChatFAB onPersonalChat={() => { setNewChatMode('personal'); setShowNewChatModal(true); }} onGroupChat={() => { setNewChatMode('group'); setShowNewChatModal(true); }} onChannel={() => { setNewChatMode('channel'); setShowNewChatModal(true); }} />
@@ -164,5 +197,14 @@ const st = {
     chatName: { fontWeight:600, fontSize:'0.85rem', marginBottom:'1px' },
     chatLast: { fontSize:'0.75rem', color:'var(--text-secondary)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' },
     chatTime: { fontSize:'0.7rem', color:'var(--text-tertiary)', marginLeft:'0.5rem', flexShrink:0 },
+    optionsWrapper: { position:'relative', marginLeft:'4px', flexShrink:0 },
+    optionsButton: { border:'none', background:'transparent', color:'var(--text-secondary)', fontSize:'1.1rem', cursor:'pointer', padding:'5px 8px', borderRadius:'8px' },
+    optionsMenu: { position:'absolute', zIndex:30, right:0, top:'100%', minWidth:'155px', background:'var(--bg-tertiary)', border:'1px solid var(--border-default)', borderRadius:'10px', boxShadow:'0 8px 20px rgba(0,0,0,0.3)', padding:'4px' },
+    optionItem: { display:'block', width:'100%', textAlign:'left', background:'transparent', border:0, padding:'9px 10px', cursor:'pointer', color:'var(--text-primary)', fontSize:'0.78rem' },
+    hiddenSection: { margin:'12px 4px 4px', borderTop:'1px solid var(--border-subtle)', paddingTop:'8px' },
+    hiddenToggle: { background:'transparent', border:0, color:'var(--text-secondary)', fontSize:'0.78rem', cursor:'pointer', padding:'7px' },
+    hiddenRow: { display:'flex', alignItems:'center', gap:'8px', padding:'5px 8px' },
+    hiddenName: { flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', color:'var(--text-secondary)', fontSize:'0.77rem' },
+    restoreButton: { background:'var(--bg-tertiary)', color:'var(--text-primary)', border:'1px solid var(--border-default)', borderRadius:'8px', padding:'5px 8px', cursor:'pointer', fontSize:'0.73rem' },
     empty: { textAlign:'center', padding:'2rem', color:'var(--text-tertiary)' }
 };
