@@ -101,3 +101,28 @@ test('queue subscribers receive sending, failure, and confirmed removal states',
     await service.addToQueue({ type: 'sendMessage', text: 'Другое' });
     assert.equal(states.length, 6);
 });
+
+test('two tabs share one queue and send each queued action only once with Web Locks', async () => {
+    const values = new Map();
+    const storage = { getItem: key => values.get(key) ?? null, setItem: (key, value) => values.set(key, value) };
+    let current = Promise.resolve();
+    const locks = { request: (_name, _options, callback) => {
+        const next = current.then(callback);
+        current = next.catch(() => {});
+        return next;
+    } };
+    const a = new OfflineService({ storage, network: { onLine: true }, locks, createId: () => 'a' });
+    const b = new OfflineService({ storage, network: { onLine: true }, locks, createId: () => 'b' });
+    await Promise.all([
+        a.addToQueue({ type: 'sendMessage', text: 'Первое' }),
+        b.addToQueue({ type: 'sendMessage', text: 'Второе' })
+    ]);
+    assert.deepEqual(JSON.parse(storage.getItem('offlineQueue')).map(x => x.id), ['a', 'b']);
+    const delivered = [];
+    a.executeAction = async action => { delivered.push(action.id); };
+    b.executeAction = async action => { delivered.push(action.id); };
+    await Promise.all([a.processQueue(), b.processQueue()]);
+    assert.deepEqual(delivered, ['a', 'b']);
+    assert.deepEqual(JSON.parse(storage.getItem('offlineQueue')), []);
+    assert.deepEqual(b.getQueue(), []);
+});

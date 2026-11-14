@@ -1,8 +1,9 @@
 export class OfflineService {
-    constructor({ storage = globalThis.localStorage, network = globalThis.navigator, eventTarget = globalThis.window, createId = () => globalThis.crypto.randomUUID() } = {}) {
+    constructor({ storage = globalThis.localStorage, network = globalThis.navigator, eventTarget = globalThis.window, createId = () => globalThis.crypto.randomUUID(), locks = network?.locks } = {}) {
         this.storage = storage;
         this.eventTarget = eventTarget;
         this.createId = createId;
+        this.locks = locks;
         this.isOnline = network?.onLine ?? false;
         this.queue = JSON.parse(this.storage?.getItem('offlineQueue') || '[]');
         this.listeners = [];
@@ -16,6 +17,10 @@ export class OfflineService {
         this.initialized = true;
         this.eventTarget?.addEventListener('online', () => this.goOnline());
         this.eventTarget?.addEventListener('offline', () => this.goOffline());
+        this.eventTarget?.addEventListener('storage', event => {
+            if (event.key !== 'offlineQueue') return;
+            this.refreshQueue();
+        });
         if (this.isOnline) this.processQueue();
     }
 
@@ -34,7 +39,34 @@ export class OfflineService {
 
     // Добавить в очередь на отправку
     async addToQueue(action) {
-        this.queue.push({ ...action, id: this.createId(), timestamp: Date.now() });
+        await this.withQueueLock(async () => {
+            this.refreshQueue();
+            this.queue.push({ ...action, id: this.createId(), timestamp: Date.now() });
+            this.saveQueue();
+        });
+    }
+
+    async withQueueLock(callback) {
+        // Web Locks serialize queue mutations across tabs of the same origin.
+        // Older browsers retain the single-tab fallback.
+        if (this.locks?.request) return this.locks.request('vortex-offline-queue', { mode: 'exclusive' }, callback);
+        return callback();
+    }
+
+    refreshQueue() {
+        try {
+            const stored = JSON.parse(this.storage?.getItem('offlineQueue') || '[]');
+            if (Array.isArray(stored)) {
+                const changed = JSON.stringify(stored) !== JSON.stringify(this.queue);
+                this.queue = stored;
+                if (changed) this.notifyQueue();
+            }
+        } catch (error) {
+            console.warn('Не удалось прочитать очередь сообщений', error);
+        }
+    }
+
+    saveQueue() {
         this.storage?.setItem('offlineQueue', JSON.stringify(this.queue));
         this.notifyQueue();
     }
@@ -42,8 +74,9 @@ export class OfflineService {
     // Обработать очередь когда онлайн
     async processQueue() {
         if (this.processingPromise) return this.processingPromise;
-        if (!this.isOnline || this.queue.length === 0) return;
-        this.processingPromise = (async () => {
+        if (!this.isOnline) return;
+        this.processingPromise = this.withQueueLock(async () => {
+            this.refreshQueue();
             for (const action of [...this.queue]) {
                 if (!this.isOnline) break;
                 try {
@@ -53,16 +86,14 @@ export class OfflineService {
                     // Remove only after the server confirms the write. A crash or
                     // disconnect keeps the action available for the next retry.
                     this.queue = this.queue.filter(item => item !== action);
-                    this.storage?.setItem('offlineQueue', JSON.stringify(this.queue));
-                    this.notifyQueue();
+                    this.saveQueue();
                 } catch (error) {
                     action.status = 'failed';
-                    this.storage?.setItem('offlineQueue', JSON.stringify(this.queue));
-                    this.notifyQueue();
+                    this.saveQueue();
                     console.warn('Сообщение осталось в очереди отправки', error);
                 }
             }
-        })().finally(() => { this.processingPromise = null; });
+        }).finally(() => { this.processingPromise = null; });
         return this.processingPromise;
     }
 
