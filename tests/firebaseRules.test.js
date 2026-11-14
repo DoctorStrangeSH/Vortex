@@ -1,7 +1,7 @@
 import test, { after } from 'node:test';
 import assert from 'node:assert/strict';
 import { initializeTestEnvironment, assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
-import { collection, doc, getDoc, getDocs, query, runTransaction, setDoc, updateDoc, where } from 'firebase/firestore';
+import { arrayRemove, arrayUnion, collection, doc, getDoc, getDocs, increment, query, runTransaction, setDoc, updateDoc, where } from 'firebase/firestore';
 import { ref, uploadString } from 'firebase/storage';
 
 const available = !!process.env.FIRESTORE_EMULATOR_HOST;
@@ -10,7 +10,14 @@ if (available) {
     // Emulator REST endpoint bypasses security rules for deterministic test fixtures.
     for (const [path, fields] of [
         ['chats/chat-a', { participants: { arrayValue: { values: [{ stringValue: 'alice' }, { stringValue: 'bob' }] } }, type: { stringValue: 'private' } }],
-        ['chats/chat-a/messages/m1', { senderId: { stringValue: 'alice' }, text: { stringValue: 'private' } }]
+        ['chats/chat-a/messages/m1', { senderId: { stringValue: 'alice' }, text: { stringValue: 'private' } }],
+        ['chats/channel-a', {
+            type: { stringValue: 'channel' }, createdBy: { stringValue: 'alice' }, ownerId: { stringValue: 'alice' },
+            participants: { arrayValue: { values: [{ stringValue: 'alice' }] } },
+            subscribers: { arrayValue: { values: [{ stringValue: 'alice' }] } },
+            admins: { arrayValue: { values: [{ stringValue: 'alice' }] } },
+            subscriberCount: { integerValue: '1' }
+        }]
     ]) {
         const response = await fetch(`http://${process.env.FIRESTORE_EMULATOR_HOST}/v1/projects/demo-vortex/databases/(default)/documents/${path}`, {
             method: 'PATCH', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer owner' }, body: JSON.stringify({ fields })
@@ -73,4 +80,44 @@ test('username and profile are claimed atomically; another user cannot take the 
     }));
     await assertFails(setDoc(doc(bob, 'usernames/sherlock'), { uid: 'bob', username: 'sherlock' }));
     await assertFails(setDoc(doc(bob, 'users/bob'), { uid: 'bob', username: 'sherlock' }));
+});
+
+test('channel join is atomic and may add only the current user', { skip: !available }, async () => {
+    const bob = environment.authenticatedContext('bob').firestore();
+    const channel = doc(bob, 'chats/channel-a');
+    await assertFails(updateDoc(channel, { participants: arrayUnion('bob') }));
+    await assertFails(updateDoc(channel, {
+        participants: arrayUnion('bob', 'eve'), subscribers: arrayUnion('bob', 'eve'), subscriberCount: increment(2)
+    }));
+    await assertSucceeds(updateDoc(channel, {
+        participants: arrayUnion('bob'), subscribers: arrayUnion('bob'), subscriberCount: increment(1)
+    }));
+    await assertFails(updateDoc(channel, { subscriberCount: increment(1) }));
+    await assertSucceeds(getDoc(channel));
+});
+
+test('subscribers cannot publish, impersonate admins, or alter membership', { skip: !available }, async () => {
+    const bob = environment.authenticatedContext('bob').firestore();
+    const alice = environment.authenticatedContext('alice').firestore();
+    const channel = doc(bob, 'chats/channel-a');
+    await assertFails(setDoc(doc(collection(bob, 'chats/channel-a/messages')), { senderId: 'bob', text: 'forbidden' }));
+    await assertFails(updateDoc(channel, { admins: arrayUnion('bob') }));
+    await assertFails(updateDoc(channel, { lastMessage: 'forged' }));
+    await assertSucceeds(setDoc(doc(collection(alice, 'chats/channel-a/messages')), { senderId: 'alice', text: 'announcement' }));
+});
+
+test('leaving a channel is atomic, cannot remove another member or owner', { skip: !available }, async () => {
+    const bob = environment.authenticatedContext('bob').firestore();
+    const alice = environment.authenticatedContext('alice').firestore();
+    const channel = doc(bob, 'chats/channel-a');
+    await assertFails(updateDoc(channel, {
+        participants: arrayRemove('alice'), subscribers: arrayRemove('alice'), subscriberCount: increment(-1)
+    }));
+    await assertFails(updateDoc(doc(alice, 'chats/channel-a'), {
+        participants: arrayRemove('alice'), subscribers: arrayRemove('alice'), subscriberCount: increment(-1)
+    }));
+    await assertSucceeds(updateDoc(channel, {
+        participants: arrayRemove('bob'), subscribers: arrayRemove('bob'), subscriberCount: increment(-1)
+    }));
+    await assertFails(getDoc(channel));
 });

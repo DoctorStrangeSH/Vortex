@@ -60,6 +60,7 @@ class ChatService {
 
         const chatData = {
             type: 'private',
+            createdBy: currentUser.uid,
             participants: [currentUser.uid, otherUser.uid],
             participantEmails: [currentUser.email, otherUser.email],
             participantNames: [

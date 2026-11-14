@@ -1,5 +1,5 @@
 import { db } from './firebase';
-import { collection, addDoc, query, where, onSnapshot, serverTimestamp, doc, setDoc, getDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, getDoc, updateDoc, arrayUnion, arrayRemove, increment } from 'firebase/firestore';
 
 class ChannelService {
     // Создать канал
@@ -28,10 +28,7 @@ class ChannelService {
         const ref = doc(db, 'chats', channelId);
         await updateDoc(ref, {
             subscribers: arrayUnion(userId),
-            subscriberCount: increment(1)
-        });
-        // Добавляем в participants для отображения в списке
-        await updateDoc(ref, {
+            subscriberCount: increment(1),
             participants: arrayUnion(userId)
         });
     }
@@ -61,5 +58,4 @@ class ChannelService {
     }
 }
 
-import { increment } from 'firebase/firestore';
 export const channelService = new ChannelService();

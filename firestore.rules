@@ -1,4 +1,8 @@
 rules_version = '2';
+// Assumed model: users/{uid} (uid, username), usernames/{name} (uid, username),
+// chats/{id} (type, participants, createdBy; channels additionally have ownerId,
+// admins, subscribers, subscriberCount), messages/{id} (senderId, text), typing/{uid}.
+// Membership lists are capped at 100; all identities are Firebase Auth UIDs.
 service cloud.firestore {
   match /databases/{database}/documents {
     function signedIn() { return request.auth != null; }
@@ -7,6 +11,46 @@ service cloud.firestore {
     }
     function chatMember(chatId) {
       return member(get(/databases/$(database)/documents/chats/$(chatId)).data);
+    }
+    function validChat(data) {
+      return data.keys().hasAll(['type', 'participants']) &&
+        data.type in ['private', 'group', 'channel', 'secret'] &&
+        (!('createdBy' in data) ||
+         (data.createdBy is string && data.createdBy.size() > 0)) &&
+        data.participants is list && data.participants.size() >= 1 &&
+        data.participants.size() <= 100 &&
+        (data.type != 'channel' || (
+          data.keys().hasAll(['ownerId', 'admins', 'subscribers', 'subscriberCount']) &&
+          data.ownerId == data.createdBy &&
+          data.admins is list && data.admins.size() == 1 &&
+          data.admins[0] == data.ownerId &&
+          data.subscribers is list && data.subscribers == data.participants &&
+          data.subscriberCount == data.subscribers.size()
+        ));
+    }
+    function validChannelMembershipChange() {
+      let before = resource.data;
+      let after = request.resource.data;
+      let uid = request.auth.uid;
+      let joining = !(uid in before.participants) &&
+        uid in after.participants && uid in after.subscribers &&
+        after.participants.size() == before.participants.size() + 1 &&
+        after.subscribers.size() == before.subscribers.size() + 1 &&
+        after.participants.hasAll(before.participants) &&
+        after.subscribers.hasAll(before.subscribers);
+      let leaving = uid in before.participants && uid in before.subscribers &&
+        uid != before.ownerId &&
+        !(uid in after.participants) && !(uid in after.subscribers) &&
+        before.participants.size() == after.participants.size() + 1 &&
+        before.subscribers.size() == after.subscribers.size() + 1 &&
+        before.participants.hasAll(after.participants) &&
+        before.subscribers.hasAll(after.subscribers);
+      return signedIn() && before.type == 'channel' &&
+        after.diff(before).affectedKeys().hasOnly([
+          'participants', 'subscribers', 'subscriberCount'
+        ]) &&
+        after.subscriberCount == before.subscriberCount + (joining ? 1 : -1) &&
+        (joining || leaving);
     }
 
     match /users/{userId} {
@@ -35,19 +79,22 @@ service cloud.firestore {
       // Read of an absent document reveals no contents; existing chats remain private.
       allow get: if (signedIn() && !exists(/databases/$(database)/documents/chats/$(chatId))) || member(resource.data);
       allow list: if member(resource.data);
-      allow create: if signedIn() && member(request.resource.data) &&
-        request.resource.data.participants.size() >= 1 &&
-        request.resource.data.participants.size() <= 100;
-      allow update: if member(resource.data) &&
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-          'lastMessage', 'lastMessageTime', 'pinnedMessages',
-          'subscribers', 'subscriberCount'
-        ]);
+      allow create: if signedIn() && validChat(request.resource.data) &&
+        member(request.resource.data) && request.resource.data.createdBy == request.auth.uid;
+      allow update: if validChat(request.resource.data) && (
+        (member(resource.data) &&
+          (resource.data.type != 'channel' || request.auth.uid in resource.data.admins) &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'lastMessage', 'lastMessageTime', 'pinnedMessages'
+          ])) || validChannelMembershipChange()
+        );
       allow delete: if signedIn() && resource.data.createdBy == request.auth.uid;
 
       match /messages/{messageId} {
         allow read: if chatMember(chatId);
         allow create: if chatMember(chatId) &&
+          (get(/databases/$(database)/documents/chats/$(chatId)).data.type != 'channel' ||
+           request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.admins) &&
           request.resource.data.senderId == request.auth.uid &&
           request.resource.data.text is string &&
           request.resource.data.text.size() <= 4096;
