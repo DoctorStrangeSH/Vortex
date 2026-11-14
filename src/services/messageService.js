@@ -15,23 +15,26 @@ import {
     getDoc,
     arrayUnion
 } from 'firebase/firestore';
+import { validateOutgoingMessage, MESSAGE_PAGE_SIZE } from './messageValidation.js';
 
 class MessageService {
     subscribeToMessages(chatId, callback) {
         const q = query(
             collection(db, 'chats', chatId, 'messages'),
-            orderBy('createdAt', 'asc')
+            orderBy('createdAt', 'desc'),
+            limit(MESSAGE_PAGE_SIZE)
         );
         return onSnapshot(q, (snapshot) => {
             const messages = [];
             snapshot.forEach((doc) => {
                 messages.push({ id: doc.id, ...doc.data() });
             });
-            callback(messages);
+            callback(messages.reverse());
         });
     }
 
     async sendMessage(chatId, user, text, attachment = null) {
+        validateOutgoingMessage({ chatId, user, text, attachment });
         const messageData = {
             senderId: user.uid,
             senderName: user.displayName || user.email,

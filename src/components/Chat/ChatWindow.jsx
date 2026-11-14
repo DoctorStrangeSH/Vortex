@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'preact/hooks';
 import { chatService } from '../../services/chatService';
 import { messageService } from '../../services/messageService';
+import { MAX_LEGACY_ATTACHMENT_BYTES } from '../../services/messageValidation';
 import { presenceService } from '../../services/presenceService';
 import { voiceService } from '../../services/voiceService';
 import { aiService } from '../../services/aiService';
@@ -144,13 +145,17 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
             return;
         }
 
-        if (editingMessage) {
-            await messageService.editMessage(chat.id, editingMessage.id, finalText);
-            setEditingMessage(null);
-        } else {
-            await chatService.sendMessage(chat.id, finalText, user);
+        try {
+            if (editingMessage) {
+                await messageService.editMessage(chat.id, editingMessage.id, finalText);
+                setEditingMessage(null);
+            } else {
+                await chatService.sendMessage(chat.id, finalText, user);
+            }
+            setText('');
+        } catch (error) {
+            alert(error.message || 'Не удалось отправить сообщение');
         }
-        setText('');
     };
 
     const handleTyping = () => { if (chat && user) typingService.startTyping(chat.id, user.uid); };
@@ -159,13 +164,20 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
     const handleFileSend = async (e) => {
         const file = e.target.files?.[0];
         if (!file || !chat) return;
+        if (file.size > MAX_LEGACY_ATTACHMENT_BYTES) {
+            alert('Вложение слишком большое. Поддержка больших файлов появится после перехода на файловое хранилище.');
+            e.target.value = '';
+            return;
+        }
         let type = 'file';
         if (file.type.startsWith('image/')) type = 'image';
         else if (file.type.startsWith('video/')) type = 'video';
         else if (file.type.startsWith('audio/')) type = 'audio';
         const reader = new FileReader();
         reader.onload = async (ev) => {
-            await chatService.sendMessage(chat.id, '', user, { type, fileData: ev.target.result, fileName: file.name, fileSize: file.size });
+            try {
+                await chatService.sendMessage(chat.id, '', user, { type, fileData: ev.target.result, fileName: file.name, fileSize: file.size });
+            } catch (error) { alert(error.message || 'Не удалось отправить файл'); }
         };
         reader.readAsDataURL(file);
         e.target.value = '';
@@ -177,13 +189,19 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
         e.preventDefault();
         setIsDragOver(false);
         for (const file of e.dataTransfer.files) {
+            if (file.size > MAX_LEGACY_ATTACHMENT_BYTES) {
+                alert(`Файл «${file.name}» слишком большой для текущего хранилища`);
+                continue;
+            }
             let type = 'file';
             if (file.type.startsWith('image/')) type = 'image';
             else if (file.type.startsWith('video/')) type = 'video';
             else if (file.type.startsWith('audio/')) type = 'audio';
             const reader = new FileReader();
             reader.onload = async (ev) => {
-                await chatService.sendMessage(chat.id, '', user, { type, fileData: ev.target.result, fileName: file.name, fileSize: file.size });
+                try {
+                    await chatService.sendMessage(chat.id, '', user, { type, fileData: ev.target.result, fileName: file.name, fileSize: file.size });
+                } catch (error) { alert(error.message || 'Не удалось отправить файл'); }
             };
             reader.readAsDataURL(file);
         }
