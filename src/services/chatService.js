@@ -1,5 +1,6 @@
 import { db } from './firebase';
 import { messageService } from './messageService';
+import { privateChatId } from './privateChatId.js';
 import {
     collection,
     addDoc,
@@ -10,7 +11,8 @@ import {
     getDocs,
     doc,
     setDoc,
-    getDoc
+    getDoc,
+    runTransaction
 } from 'firebase/firestore';
 
 class ChatService {
@@ -35,6 +37,12 @@ class ChatService {
     }
 
     async createChat(currentUser, otherUser) {
+        const stableId = privateChatId(currentUser?.uid, otherUser?.uid);
+        const stableRef = doc(db, 'chats', stableId);
+        const stableChat = await getDoc(stableRef);
+        if (stableChat.exists()) return stableId;
+
+        // Preserve pre-existing chats created before deterministic IDs were introduced.
         const existingQuery = query(
             collection(db, 'chats'),
             where('participants', 'array-contains', currentUser.uid)
@@ -64,8 +72,11 @@ class ChatService {
             pinnedMessages: []
         };
 
-        const ref = await addDoc(collection(db, 'chats'), chatData);
-        return ref.id;
+        await runTransaction(db, async transaction => {
+            const existing = await transaction.get(stableRef);
+            if (!existing.exists()) transaction.set(stableRef, chatData);
+        });
+        return stableId;
     }
 
     async createGroupChat(currentUser, participantIds, groupName = 'Группа') {

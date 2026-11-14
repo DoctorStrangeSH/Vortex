@@ -1,7 +1,6 @@
 import { db } from './firebase';
 import {
     collection,
-    addDoc,
     query,
     orderBy,
     limit,
@@ -13,7 +12,8 @@ import {
     setDoc,
     getDocs,
     getDoc,
-    arrayUnion
+    arrayUnion,
+    writeBatch
 } from 'firebase/firestore';
 import { validateOutgoingMessage, MESSAGE_PAGE_SIZE } from './messageValidation.js';
 
@@ -50,8 +50,6 @@ class MessageService {
             messageData.fileSize = attachment.fileSize || 0;
         }
 
-        await addDoc(collection(db, 'chats', chatId, 'messages'), messageData);
-
         const lastMsg = attachment 
             ? (attachment.type === 'image' ? '📷 Фото' : 
                attachment.type === 'video' ? '🎬 Видео' : 
@@ -60,10 +58,16 @@ class MessageService {
                '📎 Файл')
             : text;
 
-        await setDoc(doc(db, 'chats', chatId), {
+        // Message and preview are committed together, so a failed write cannot
+        // leave the chat preview behind the newest message.
+        const batch = writeBatch(db);
+        const messageRef = doc(collection(db, 'chats', chatId, 'messages'));
+        batch.set(messageRef, messageData);
+        batch.update(doc(db, 'chats', chatId), {
             lastMessage: lastMsg,
             lastMessageTime: serverTimestamp()
-        }, { merge: true });
+        });
+        await batch.commit();
     }
 
     async editMessage(chatId, messageId, newText) {
