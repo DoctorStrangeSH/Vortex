@@ -5,6 +5,12 @@ import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 
 export function ChatScreen({ user }) {
+    // A new signed-in account must never inherit the previous account's
+    // selected conversation, mobile panel, or live subscriptions.
+    return <AccountChatScreen key={user.uid} user={user} />;
+}
+
+function AccountChatScreen({ user }) {
     const [activeChat, setActiveChat] = useState(null);
     const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
     const [showChat, setShowChat] = useState(false);
