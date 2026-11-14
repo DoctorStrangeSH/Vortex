@@ -16,6 +16,7 @@ import { selfDestructService } from '../../services/selfDestructService';
 import { exportService } from '../../services/exportService';
 import { wallpaperService } from '../../services/wallpaperService';
 import { ChatHeader } from './ChatHeader';
+import { GroupMembersPanel } from './GroupMembersPanel';
 import { MessageBubble } from './MessageBubble';
 import { MessageInput } from './MessageInput';
 import { ContextMenu } from './ContextMenu';
@@ -54,6 +55,7 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
     const [showPollCreator, setShowPollCreator] = useState(false);
     const [showTheme, setShowTheme] = useState(false);
     const [showStatus, setShowStatus] = useState(false);
+    const [showMembers, setShowMembers] = useState(false);
     const [nowPlaying, setNowPlaying] = useState(null);
     const [selectedMessages, setSelectedMessages] = useState([]);
     const [selectionMode, setSelectionMode] = useState(false);
@@ -390,8 +392,12 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
                 otherStatus={otherStatus} isTyping={isTyping} isMobile={isMobile}
                 onBack={onBack} onShowGallery={() => setShowGallery(true)}
                 onShowTheme={() => setShowTheme(true)} onShowStatus={() => setShowStatus(true)}
+                onShowMembers={() => setShowMembers(true)}
                 onExport={handleExport}
             />
+
+            {showMembers && chat.type === 'group' && <GroupMembersPanel chat={chat} user={user}
+                onClose={() => setShowMembers(false)} onLeave={onBack} />}
 
             <PinnedMessage messages={pinnedMessages} onUnpin={(id) => id === null ? setShowAllPinned(true) : chatService.unpinMessage(chat.id, id)} onScrollTo={handleScrollToPinned} />
 

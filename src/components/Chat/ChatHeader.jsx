@@ -1,4 +1,4 @@
-export function ChatHeader({ chat, user, other, avatarColor, otherStatus, isTyping, isMobile, onBack, onShowGallery, onShowTheme, onShowStatus, onExport }) {
+export function ChatHeader({ chat, user, other, avatarColor, otherStatus, isTyping, isMobile, onBack, onShowGallery, onShowTheme, onShowStatus, onShowMembers, onExport }) {
     const formatLastSeen = (date) => {
         if (!date) return '';
         const diff = Math.floor((new Date() - date) / 1000);
@@ -22,6 +22,7 @@ export function ChatHeader({ chat, user, other, avatarColor, otherStatus, isTypi
                 </div>
             </div>
             <div style={s.actions}>
+                {chat.type === 'group' && <button type="button" style={s.btn} onClick={onShowMembers} title="Участники группы" aria-label="Участники группы">👥</button>}
                 <button style={s.btn} onClick={onShowTheme} title="Тема">🎨</button>
                 <button style={s.btn} onClick={onShowStatus} title="Статус">😊</button>
                 <button style={s.btn} onClick={onShowGallery} title="Галерея">🖼️</button>
