@@ -154,3 +154,35 @@ test('leaving a channel is atomic, cannot remove another member or owner', { ski
     }));
     await assertFails(getDoc(channel));
 });
+
+
+test('read receipts can only be added for the authenticated participant', { skip: !available }, async () => {
+    const bob = environment.authenticatedContext('bob').firestore();
+    const alice = environment.authenticatedContext('alice').firestore();
+    const message = doc(bob, 'chats/chat-a/messages/m1');
+    await assertSucceeds(updateDoc(message, { readBy: arrayUnion('bob') }));
+    await assertFails(updateDoc(message, { readBy: arrayUnion('eve') }));
+    await assertFails(updateDoc(message, { readBy: arrayUnion('alice') }));
+    await assertFails(updateDoc(message, { readBy: arrayUnion('bob'), reactions: { '❤️': ['bob'] } }));
+    await assertFails(updateDoc(doc(alice, 'chats/chat-a/messages/m1'), { readBy: arrayUnion('eve') }));
+});
+
+test('reactions can only be toggled by their own authenticated participant', { skip: !available }, async () => {
+    const bob = environment.authenticatedContext('bob').firestore();
+    const alice = environment.authenticatedContext('alice').firestore();
+    const message = doc(bob, 'chats/chat-a/messages/m1');
+    await assertSucceeds(updateDoc(message, { reactions: { '❤️': ['bob'] } }));
+    await assertFails(updateDoc(message, { reactions: { '❤️': ['bob', 'eve'] } }));
+    await assertFails(updateDoc(alice && doc(alice, 'chats/chat-a/messages/m1'), { reactions: { '❤️': [] } }));
+    await assertFails(updateDoc(message, { reactions: { '💣': ['bob'] } }));
+    await assertFails(updateDoc(message, { reactions: { '❤️': ['bob'], '🔥': ['bob'] } }));
+    await assertSucceeds(updateDoc(message, { reactions: { '❤️': [] } }));
+});
+
+test('message authors cannot smuggle privileged fields while editing text', { skip: !available }, async () => {
+    const alice = environment.authenticatedContext('alice').firestore();
+    const message = doc(alice, 'chats/chat-a/messages/m1');
+    await assertSucceeds(updateDoc(message, { text: 'edited by author', isEdited: true }));
+    await assertFails(updateDoc(message, { text: 'edited', senderId: 'bob' }));
+    await assertFails(updateDoc(message, { text: 'edited', readBy: ['eve'] }));
+});
