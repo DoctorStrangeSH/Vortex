@@ -119,7 +119,9 @@ service cloud.firestore {
           (get(/databases/$(database)/documents/chats/$(chatId)).data.type != 'channel' ||
            request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.admins) &&
           request.resource.data.senderId == request.auth.uid &&
-          request.resource.data.text is string && request.resource.data.text.size() <= 4096;
+          request.resource.data.text is string && request.resource.data.text.size() <= 4096 &&
+          (!('readBy' in request.resource.data) || request.resource.data.readBy == []) &&
+          !('reactions' in request.resource.data);
         allow update: if chatMember(chatId) && (
           (resource.data.senderId == request.auth.uid &&
            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text','isEdited','editedAt','selfDestruct','destructAt'])) ||

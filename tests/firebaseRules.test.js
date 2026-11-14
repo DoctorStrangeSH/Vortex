@@ -186,3 +186,17 @@ test('message authors cannot smuggle privileged fields while editing text', { sk
     await assertFails(updateDoc(message, { text: 'edited', senderId: 'bob' }));
     await assertFails(updateDoc(message, { text: 'edited', readBy: ['eve'] }));
 });
+
+
+test('new messages cannot start with forged receipts or reactions', { skip: !available }, async () => {
+    const alice = environment.authenticatedContext('alice').firestore();
+    await assertFails(setDoc(doc(collection(alice, 'chats/chat-a/messages')), {
+        senderId: 'alice', text: 'forged receipt', readBy: ['eve']
+    }));
+    await assertFails(setDoc(doc(collection(alice, 'chats/chat-a/messages')), {
+        senderId: 'alice', text: 'forged reaction', reactions: { '❤️': ['eve'] }
+    }));
+    await assertSucceeds(setDoc(doc(collection(alice, 'chats/chat-a/messages')), {
+        senderId: 'alice', text: 'normal message', readBy: []
+    }));
+});
