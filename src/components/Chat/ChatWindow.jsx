@@ -28,6 +28,7 @@ import { PollMessage } from './PollMessage';
 import { ThemeCustomizer } from '../Theme/ThemeCustomizer';
 import { StatusPicker } from '../Status/StatusPicker';
 import { mergeMessagePages } from '../../services/messagePagination.js';
+import { getNewIncomingIds, getUnreadIncomingIds } from '../../services/messageActivity.js';
 
 export function ChatWindow({ chat, user, onBack, isMobile }) {
     const [messages, setMessages] = useState([]);
@@ -67,6 +68,8 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
     const messagesEndRef = useRef(null);
     const shouldAutoScroll = useRef(true);
     const messagesContainerRef = useRef(null);
+    const seenMessageIdsRef = useRef(null);
+    const readAttemptIdsRef = useRef(new Set());
 
     // Offline listener
     useEffect(() => {
@@ -99,12 +102,29 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
         oldestCursorRef.current = null;
         olderMessagesRef.current = [];
         latestMessagesRef.current = [];
+        seenMessageIdsRef.current = null;
+        readAttemptIdsRef.current = new Set();
         loadingOlderRef.current = false;
         shouldAutoScroll.current = true;
         setText('');
         setEditingMessage(null);
         setOtherStatus({ isOnline: false, lastSeen: null });
         const unsubscribe = messageService.subscribeToMessages(chat.id, (msgs, cursor, hasMore) => {
+            const ids = new Set(msgs.map(message => message.id));
+            if (seenMessageIdsRef.current) {
+                if (getNewIncomingIds(seenMessageIdsRef.current, msgs, currentUserId).length > 0) {
+                    soundService.playMessageSound();
+                }
+            }
+            seenMessageIdsRef.current = ids;
+            const unreadIds = getUnreadIncomingIds(msgs, currentUserId, readAttemptIdsRef.current);
+            for (const messageId of unreadIds) {
+                readAttemptIdsRef.current.add(messageId);
+                messageService.markAsRead(currentChatId, currentUserId, messageId).catch(error => {
+                    readAttemptIdsRef.current.delete(messageId);
+                    console.warn('Не удалось отметить сообщение прочитанным', error);
+                });
+            }
             latestMessagesRef.current = msgs;
             if (!olderMessagesRef.current.length) {
                 oldestCursorRef.current = cursor;
@@ -169,20 +189,6 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
             typingService.watchTyping(chat.id, otherId, setIsTyping);
         }
     }, [chat?.id, user.uid]);
-
-    // Звук + прочитано
-    useEffect(() => {
-        if (messages.length > 0 && !messagesLoading) {
-            const lastMsg = messages[messages.length - 1];
-            if (lastMsg.senderId !== user.uid) {
-                soundService.playMessageSound();
-            }
-        }
-        if (chat && messages.length) {
-            const otherMsgs = messages.filter(m => m.senderId !== user.uid && !m.readBy?.includes(user.uid));
-            otherMsgs.forEach(m => messageService.markAsRead(chat.id, user.uid, m.id));
-        }
-    }, [messages.length]);
 
     // Закрытие меню
     useEffect(() => {
