@@ -2,11 +2,11 @@ import { useState } from 'preact/hooks';
 import { authService } from '../../services/authService';
 import { userService } from '../../services/userService';
 
-export function AuthScreen() {
-    const [mode, setMode] = useState('login');
+export function AuthScreen({ pendingUser = null }) {
+    const [mode, setMode] = useState(pendingUser ? 'complete' : 'login');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [name, setName] = useState('');
+    const [name, setName] = useState(pendingUser?.displayName || '');
     const [username, setUsername] = useState('');
     const [usernameStatus, setUsernameStatus] = useState('');
     const [usernameChecking, setUsernameChecking] = useState(false);
@@ -44,7 +44,10 @@ export function AuthScreen() {
         setLoading(true);
 
         try {
-            if (mode === 'login') {
+            if (mode === 'complete') {
+                if (name.trim().length < 2) throw new Error('Имя должно быть минимум 2 символа');
+                await authService.completeRegistration(pendingUser, name.trim(), username);
+            } else if (mode === 'login') {
                 await authService.login(email, password);
             } else {
                 if (name.length < 2) {
@@ -83,7 +86,10 @@ export function AuthScreen() {
                 </div>
 
                 {/* Табы */}
-                <div style={styles.tabs}>
+                {mode === 'complete' && <p style={{ marginBottom: '1rem', color: 'var(--text-secondary)' }}>
+                    Аккаунт уже создан. Выберите свободный @username, чтобы завершить регистрацию.
+                </p>}
+                {mode !== 'complete' && <div style={styles.tabs}>
                     <button
                         onClick={() => { setMode('login'); setError(''); }}
                         style={{
@@ -104,11 +110,11 @@ export function AuthScreen() {
                     >
                         Регистрация
                     </button>
-                </div>
+                </div>}
 
                 {/* Форма */}
                 <form onSubmit={handleSubmit} style={styles.form}>
-                    {mode === 'register' && (
+                    {(mode === 'register' || mode === 'complete') && (
                         <>
                             <div style={styles.fieldGroup}>
                                 <label style={styles.label}>Имя</label>
@@ -151,7 +157,7 @@ export function AuthScreen() {
                         </>
                     )}
 
-                    <div style={styles.fieldGroup}>
+                    {mode !== 'complete' && <><div style={styles.fieldGroup}>
                         <label style={styles.label}>Email</label>
                         <input
                             type="email"
@@ -175,7 +181,7 @@ export function AuthScreen() {
                             style={styles.input}
                             required
                         />
-                    </div>
+                    </div></>}
 
                     {error && (
                         <div style={styles.error}>
@@ -185,18 +191,20 @@ export function AuthScreen() {
 
                     <button
                         type="submit"
-                        disabled={loading || (mode === 'register' && usernameStatus.includes('❌'))}
+                        disabled={loading || (mode !== 'login' && usernameStatus.includes('❌'))}
                         style={{
                             ...styles.submitBtn,
                             opacity: loading ? 0.7 : 1
                         }}
                     >
-                        {loading ? 'Загрузка...' : mode === 'login' ? 'Войти' : 'Зарегистрироваться'}
+                        {loading ? 'Загрузка...' : mode === 'login' ? 'Войти' : mode === 'complete' ? 'Завершить регистрацию' : 'Зарегистрироваться'}
                     </button>
                 </form>
 
                 {/* Переключение режима */}
-                <div style={styles.switchText}>
+                {mode === 'complete' ? <div style={styles.switchText}>
+                    <span onClick={() => authService.logout()} style={styles.switchLink}>Выйти из аккаунта</span>
+                </div> : <div style={styles.switchText}>
                     {mode === 'login' ? (
                         <>
                             Нет аккаунта?{' '}
@@ -212,7 +220,7 @@ export function AuthScreen() {
                             </span>
                         </>
                     )}
-                </div>
+                </div>}
             </div>
         </div>
     );
