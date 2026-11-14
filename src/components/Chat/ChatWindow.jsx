@@ -27,6 +27,7 @@ import { PollMessage } from './PollMessage';
 import { ThemeCustomizer } from '../Theme/ThemeCustomizer';
 import { StatusPicker } from '../Status/StatusPicker';
 import { mergeMessagePages } from '../../services/messagePagination.js';
+import { isNearChatBottom } from '../../services/chatScroll.js';
 import { getNewIncomingIds, getUnreadIncomingIds, shouldPlayIncomingSound } from '../../services/messageActivity.js';
 
 export function ChatWindow({ chat, user, onBack, isMobile }) {
@@ -62,6 +63,8 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
     const [isOnline, setIsOnline] = useState(navigator.onLine);
     const [sending, setSending] = useState(false);
     const [sendNotice, setSendNotice] = useState('');
+    const [showJumpToLatest, setShowJumpToLatest] = useState(false);
+    const [newIncomingCount, setNewIncomingCount] = useState(0);
     const [pendingActions, setPendingActions] = useState([]);
     const sendingRef = useRef(false);
     const messagesEndRef = useRef(null);
@@ -99,13 +102,20 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
         readAttemptIdsRef.current = new Set();
         loadingOlderRef.current = false;
         shouldAutoScroll.current = true;
+        setShowJumpToLatest(false);
+        setNewIncomingCount(0);
         setText('');
         setEditingMessage(null);
         setOtherStatus({ isOnline: false, lastSeen: null });
         const unsubscribe = messageService.subscribeToMessages(chat.id, (msgs, cursor, hasMore) => {
             const ids = new Set(msgs.map(message => message.id));
             if (seenMessageIdsRef.current) {
-                if (getNewIncomingIds(seenMessageIdsRef.current, msgs, currentUserId).length > 0 &&
+                const newIncoming = getNewIncomingIds(seenMessageIdsRef.current, msgs, currentUserId);
+                if (newIncoming.length && !shouldAutoScroll.current) {
+                    setNewIncomingCount(count => count + newIncoming.length);
+                    setShowJumpToLatest(true);
+                }
+                if (newIncoming.length > 0 &&
                     shouldPlayIncomingSound({ visibilityState: document.visibilityState, hasFocus: document.hasFocus() })) {
                     soundService.playMessageSound();
                 }
@@ -143,6 +153,7 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
         const container = messagesContainerRef.current;
         const previousHeight = container?.scrollHeight || 0;
         shouldAutoScroll.current = false;
+        setShowJumpToLatest(true);
         try {
             const page = await messageService.fetchOlderMessages(currentChatId, oldestCursorRef.current);
             if (activeChatIdRef.current !== currentChatId) return;
@@ -165,8 +176,17 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
     const handleScroll = () => {
         const el = messagesContainerRef.current;
         if (!el) return;
-        const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 60;
+        const atBottom = isNearChatBottom(el);
         shouldAutoScroll.current = atBottom;
+        setShowJumpToLatest(!atBottom);
+        if (atBottom) setNewIncomingCount(0);
+    };
+
+    const jumpToLatest = () => {
+        shouldAutoScroll.current = true;
+        setShowJumpToLatest(false);
+        setNewIncomingCount(0);
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
     };
     useEffect(() => {
         if (shouldAutoScroll.current && messagesEndRef.current && !messagesLoading) {
@@ -451,6 +471,12 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
                 <div ref={messagesEndRef} />
             </div>
 
+            {showJumpToLatest && !messagesLoading && (
+                <button type="button" onClick={jumpToLatest} style={s.jumpToLatest} aria-label="Перейти к последним сообщениям">
+                    ↓ К последним{newIncomingCount ? ` · Новых: ${newIncomingCount}` : ''}
+                </button>
+            )}
+
             {selectionMode && selectedMessages.length > 0 && (
                 <div style={s.selectionBar}>
                     <span>Выбрано: {selectedMessages.length}</span>
@@ -485,6 +511,7 @@ const s = {
     emptyTitle: { fontSize:'1.5rem', fontWeight:700 },
     emptyText: { fontSize:'0.9rem' },
     offlineBar: { background:'var(--vortex-danger)', color:'white', textAlign:'center', padding:'4px', fontSize:'0.75rem' },
+    jumpToLatest: { position:'absolute', right:'18px', bottom:'88px', zIndex:12, border:'1px solid var(--border-default)', background:'var(--bg-secondary)', color:'var(--text-primary)', borderRadius:'24px', padding:'9px 14px', cursor:'pointer', boxShadow:'0 3px 14px rgba(0,0,0,0.25)', fontSize:'0.82rem' },
     queueBar: { display:'flex', justifyContent:'space-between', alignItems:'center', gap:'12px', background:'var(--bg-secondary)', color:'var(--text-primary)', padding:'7px 12px', fontSize:'0.78rem' },
     retryBtn: { border:'1px solid var(--border-default)', background:'var(--bg-tertiary)', borderRadius:'8px', padding:'5px 10px', color:'var(--text-primary)', cursor:'pointer' },
     sendNotice: { color:'var(--text-tertiary)', fontSize:'0.72rem', padding:'4px 14px', textAlign:'right' },
