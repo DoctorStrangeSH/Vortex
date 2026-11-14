@@ -28,7 +28,7 @@ import { ThemeCustomizer } from '../Theme/ThemeCustomizer';
 import { StatusPicker } from '../Status/StatusPicker';
 import { mergeMessagePages } from '../../services/messagePagination.js';
 import { isNearChatBottom } from '../../services/chatScroll.js';
-import { getNewIncomingIds, getUnreadIncomingIds, shouldPlayIncomingSound } from '../../services/messageActivity.js';
+import { getNewIncomingIds, getUnreadIncomingIds, getFirstUnreadIncomingId, shouldPlayIncomingSound } from '../../services/messageActivity.js';
 
 export function ChatWindow({ chat, user, onBack, isMobile }) {
     const [messages, setMessages] = useState([]);
@@ -65,12 +65,14 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
     const [sendNotice, setSendNotice] = useState('');
     const [showJumpToLatest, setShowJumpToLatest] = useState(false);
     const [newIncomingCount, setNewIncomingCount] = useState(0);
+    const [firstUnreadMessageId, setFirstUnreadMessageId] = useState(null);
     const [pendingActions, setPendingActions] = useState([]);
     const sendingRef = useRef(false);
     const messagesEndRef = useRef(null);
     const shouldAutoScroll = useRef(true);
     const messagesContainerRef = useRef(null);
     const seenMessageIdsRef = useRef(null);
+    const unreadBoundaryCapturedRef = useRef(false);
     const readAttemptIdsRef = useRef(new Set());
 
     // Offline listener
@@ -99,6 +101,8 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
         olderMessagesRef.current = [];
         latestMessagesRef.current = [];
         seenMessageIdsRef.current = null;
+        unreadBoundaryCapturedRef.current = false;
+        setFirstUnreadMessageId(null);
         readAttemptIdsRef.current = new Set();
         loadingOlderRef.current = false;
         shouldAutoScroll.current = true;
@@ -108,6 +112,10 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
         setEditingMessage(null);
         setOtherStatus({ isOnline: false, lastSeen: null });
         const unsubscribe = messageService.subscribeToMessages(chat.id, (msgs, cursor, hasMore) => {
+            if (!unreadBoundaryCapturedRef.current && msgs.length) {
+                unreadBoundaryCapturedRef.current = true;
+                setFirstUnreadMessageId(getFirstUnreadIncomingId(msgs, currentUserId));
+            }
             const ids = new Set(msgs.map(message => message.id));
             if (seenMessageIdsRef.current) {
                 const newIncoming = getNewIncomingIds(seenMessageIdsRef.current, msgs, currentUserId);
@@ -456,7 +464,9 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
                     if (item.type === 'date') return <div key={`d${i}`} style={s.dateDivider}><span style={s.dateText}>{item.date}</span></div>;
                     const msg = item.data;
                     return (
-                        <div key={msg.id} data-msg-id={msg.id}
+                        <div key={msg.id}>
+                        {msg.id === firstUnreadMessageId && <div style={s.unreadDivider} role="separator">Непрочитанные сообщения</div>}
+                        <div data-msg-id={msg.id}
                              onClick={() => toggleSelection(msg.id)}
                              onTouchStart={(e) => { const t = setTimeout(() => handleLongPress(msg.id), 500); e.target.addEventListener('touchend', () => clearTimeout(t), { once:true }); }}
                              style={{ background: selectedMessages.includes(msg.id) ? 'rgba(124,58,237,0.15)' : 'transparent', borderRadius: '8px', cursor: selectionMode ? 'pointer' : 'default' }}>
@@ -465,6 +475,7 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
                                 onContextMenu={handleContextMenu} onDoubleClick={handleDoubleClick}
                                 onImageClick={setPreviewImage} onReactionClick={handleReactionClick}
                                 onPlayAudio={setNowPlaying} onReply={handleReply} />
+                        </div>
                         </div>
                     );
                  })}
@@ -512,6 +523,7 @@ const s = {
     emptyText: { fontSize:'0.9rem' },
     offlineBar: { background:'var(--vortex-danger)', color:'white', textAlign:'center', padding:'4px', fontSize:'0.75rem' },
     jumpToLatest: { position:'absolute', right:'18px', bottom:'88px', zIndex:12, border:'1px solid var(--border-default)', background:'var(--bg-secondary)', color:'var(--text-primary)', borderRadius:'24px', padding:'9px 14px', cursor:'pointer', boxShadow:'0 3px 14px rgba(0,0,0,0.25)', fontSize:'0.82rem' },
+    unreadDivider: { margin:'14px 0', padding:'7px 12px', borderRadius:'12px', color:'var(--vortex-primary-light)', textAlign:'center', fontSize:'0.77rem', fontWeight:600, background:'rgba(124,58,237,0.12)', border:'1px solid rgba(124,58,237,0.22)' },
     queueBar: { display:'flex', justifyContent:'space-between', alignItems:'center', gap:'12px', background:'var(--bg-secondary)', color:'var(--text-primary)', padding:'7px 12px', fontSize:'0.78rem' },
     retryBtn: { border:'1px solid var(--border-default)', background:'var(--bg-tertiary)', borderRadius:'8px', padding:'5px 10px', color:'var(--text-primary)', cursor:'pointer' },
     sendNotice: { color:'var(--text-tertiary)', fontSize:'0.72rem', padding:'4px 14px', textAlign:'right' },

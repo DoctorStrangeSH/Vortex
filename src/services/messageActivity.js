@@ -8,6 +8,10 @@ export function getUnreadIncomingIds(messages, ownUid, attemptedIds) {
     return messages.filter(message => message.senderId !== ownUid && !message.readBy?.includes(ownUid) && !attemptedIds.has(message.id)).map(message => message.id);
 }
 
+export function getFirstUnreadIncomingId(messages, ownUid) {
+    return messages.find(message => message.senderId !== ownUid && !message.readBy?.includes(ownUid))?.id ?? null;
+}
+
 // Only the foreground, focused tab should play in-app sounds. Background
 // notifications require a separate server-backed push implementation.
 export function shouldPlayIncomingSound({ visibilityState, hasFocus }) {
