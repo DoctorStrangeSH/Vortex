@@ -8,6 +8,7 @@ import { NewChatModal } from '../NewChat/NewChatModal';
 import { ProfileModal } from '../Profile/ProfileModal';
 import { ThemeCustomizer } from '../Theme/ThemeCustomizer';
 import { filterChats, orderPinnedChats } from '../../services/chatList.js';
+import { createSearchRequestTracker } from '../../services/searchRequestTracker.js';
 
 const readLocalIds = key => {
     try { const saved = JSON.parse(localStorage.getItem(key) || '[]'); return Array.isArray(saved) ? saved.filter(id => typeof id === 'string') : []; }
@@ -30,7 +31,8 @@ export function Sidebar({ user, activeChat, onSelectChat }) {
     const [showHiddenChats, setShowHiddenChats] = useState(false);
     const [chatOptionsId, setChatOptionsId] = useState(null);
     const searchTimeoutRef = useRef(null);
-    const searchRequestRef = useRef(0);
+    const searchRequestRef = useRef(null);
+    if (!searchRequestRef.current) searchRequestRef.current = createSearchRequestTracker();
     const optionsMenuRef = useRef(null);
 
     useEffect(() => {
@@ -42,10 +44,15 @@ export function Sidebar({ user, activeChat, onSelectChat }) {
         setPinnedChats(readLocalIds(pinnedChatsKey));
         setChatOptionsId(null);
         setShowHiddenChats(false);
+        searchRequestRef.current.invalidate();
+        if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+        setGlobalSearch('');
+        setGlobalResults([]);
+        setShowGlobalResults(false);
     }, [hiddenChatsKey, pinnedChatsKey]);
 
     useEffect(() => () => {
-        searchRequestRef.current += 1;
+        searchRequestRef.current.dispose();
         if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
     }, []);
 
@@ -91,7 +98,7 @@ export function Sidebar({ user, activeChat, onSelectChat }) {
     const handleLogout = async () => { await authService.logout(); };
 
     const handleGlobalSearch = (value) => {
-        const requestId = ++searchRequestRef.current;
+        const requestId = searchRequestRef.current.issue();
         setGlobalSearch(value);
         if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
         setGlobalResults([]);
@@ -100,9 +107,9 @@ export function Sidebar({ user, activeChat, onSelectChat }) {
         searchTimeoutRef.current = setTimeout(async () => {
             try {
                 const r = await userService.searchUsers(value);
-                if (searchRequestRef.current !== requestId) return;
+                if (!searchRequestRef.current.isCurrent(requestId)) return;
                 setGlobalResults(r.filter(u => u.uid !== user.uid)); setShowGlobalResults(true);
-            } catch { if (searchRequestRef.current === requestId) setGlobalResults([]); }
+            } catch { if (searchRequestRef.current.isCurrent(requestId)) setGlobalResults([]); }
         }, 300);
     };
 
