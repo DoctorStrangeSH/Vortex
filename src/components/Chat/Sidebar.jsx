@@ -7,6 +7,7 @@ import { NewChatFAB } from '../NewChat/NewChatFAB';
 import { NewChatModal } from '../NewChat/NewChatModal';
 import { ProfileModal } from '../Profile/ProfileModal';
 import { ThemeCustomizer } from '../Theme/ThemeCustomizer';
+import { filterChats } from '../../services/chatList.js';
 
 export function Sidebar({ user, activeChat, onSelectChat }) {
     const [chats, setChats] = useState([]);
@@ -17,12 +18,23 @@ export function Sidebar({ user, activeChat, onSelectChat }) {
     const [globalSearch, setGlobalSearch] = useState('');
     const [globalResults, setGlobalResults] = useState([]);
     const [showGlobalResults, setShowGlobalResults] = useState(false);
-    const [hiddenChats, setHiddenChats] = useState(JSON.parse(localStorage.getItem('hiddenChats') || '[]'));
+    const hiddenChatsKey = `hiddenChats:${user.uid}`;
+    const [hiddenChats, setHiddenChats] = useState(() => {
+        try { const saved = JSON.parse(localStorage.getItem(hiddenChatsKey) || '[]'); return Array.isArray(saved) ? saved : []; }
+        catch { return []; }
+    });
     const searchTimeoutRef = useRef(null);
 
     useEffect(() => {
         return chatService.subscribeToChats(user.uid, setChats);
     }, [user.uid]);
+
+    useEffect(() => {
+        try { const saved = JSON.parse(localStorage.getItem(hiddenChatsKey) || '[]'); setHiddenChats(Array.isArray(saved) ? saved : []); }
+        catch { setHiddenChats([]); }
+    }, [hiddenChatsKey]);
+
+    useEffect(() => () => { if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current); }, []);
 
     const getChatData = (chat) => {
         if (chat.isChannel) return { name: chat.name || 'Канал' };
@@ -51,10 +63,15 @@ export function Sidebar({ user, activeChat, onSelectChat }) {
         setGlobalSearch(value);
         if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
         if (value.trim().length < 2) { setGlobalResults([]); setShowGlobalResults(false); return; }
+        setShowGlobalResults(false);
         searchTimeoutRef.current = setTimeout(async () => {
-            try { const r = await userService.searchUsers(value); setGlobalResults(r.filter(u => u.uid !== user.uid)); setShowGlobalResults(true); }
-            catch { setGlobalResults([]); }
+            try {
+                const r = await userService.searchUsers(value);
+                if (searchTimeoutRef.current !== timeout) return;
+                setGlobalResults(r.filter(u => u.uid !== user.uid)); setShowGlobalResults(true);
+            } catch { if (searchTimeoutRef.current === timeout) setGlobalResults([]); }
         }, 300);
+        const timeout = searchTimeoutRef.current;
     };
 
     const handleStartChat = async (foundUser) => {
@@ -62,15 +79,22 @@ export function Sidebar({ user, activeChat, onSelectChat }) {
         catch (err) { console.error(err); }
     };
 
+    const openChat = (chat) => {
+        if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+        setGlobalSearch('');
+        setShowGlobalResults(false);
+        onSelectChat(chat);
+    };
+
     const toggleHidden = (chatId) => {
         setHiddenChats(prev => {
             const updated = prev.includes(chatId) ? prev.filter(id => id !== chatId) : [...prev, chatId];
-            localStorage.setItem('hiddenChats', JSON.stringify(updated));
+            localStorage.setItem(hiddenChatsKey, JSON.stringify(updated));
             return updated;
         });
     };
 
-    const visibleChats = chats.filter(c => !hiddenChats.includes(c.id));
+    const visibleChats = filterChats(chats.filter(c => !hiddenChats.includes(c.id)), globalSearch, chat => getChatData(chat).name);
 
     return (
         <div style={st.container}>
@@ -83,7 +107,7 @@ export function Sidebar({ user, activeChat, onSelectChat }) {
             <div style={st.searchContainer}>
                 <div style={st.searchWrapper}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style={st.searchIcon}><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-                    <input value={globalSearch} onInput={e => handleGlobalSearch(e.target.value)} placeholder="Поиск..." style={st.searchInput} />
+                    <input value={globalSearch} onInput={e => handleGlobalSearch(e.target.value)} placeholder="Поиск чатов и людей" aria-label="Поиск чатов и людей" style={st.searchInput} />
                 </div>
                 {showGlobalResults && globalResults.length > 0 && (
                     <div style={st.results}><div style={st.resultTitle}>Пользователи</div>{globalResults.map(u => <div key={u.uid} onClick={() => handleStartChat(u)} style={st.resultItem}><div style={{...st.resultAvatar, background: getAvatarColor(u.displayName || u.username || '?')}}>{(u.displayName || u.username || '?').charAt(0).toUpperCase()}</div><div><div style={st.resultName}>{u.displayName || 'Без имени'}</div><div style={st.resultEmail}>@{u.username || 'без username'}</div></div></div>)}</div>
@@ -92,18 +116,18 @@ export function Sidebar({ user, activeChat, onSelectChat }) {
 
             <div style={st.chatList}>
                 {visibleChats.length === 0 ? (
-                    <div style={st.empty}><div style={{fontSize:'3rem'}}>💬</div><p>Нет чатов</p><p style={{fontSize:'0.75rem'}}>+ создать чат</p></div>
+                    <div style={st.empty}><div style={{fontSize:'3rem'}}>💬</div><p>{globalSearch.trim() ? 'Переписки не найдены' : 'Нет чатов'}</p><p style={{fontSize:'0.75rem'}}>{globalSearch.trim() ? 'Попробуйте другое имя или текст сообщения' : '+ создать чат'}</p></div>
                 ) : visibleChats.map(chat => {
                     const { name } = getChatData(chat);
                     const color = getAvatarColor(name);
                     const active = activeChat?.id === chat.id;
                     return (
-                        <div key={chat.id} onClick={() => onSelectChat(chat)} onContextMenu={(e) => { e.preventDefault(); toggleHidden(chat.id); }}
+                        <div key={chat.id} role="button" tabIndex={0} aria-label={`Открыть чат ${name}`} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openChat(chat); } }} onClick={() => openChat(chat)} onContextMenu={(e) => { e.preventDefault(); toggleHidden(chat.id); }}
                             style={{...st.chatItem, background: active ? 'var(--bg-active)' : 'transparent', border: active ? '1px solid rgba(124,58,237,0.2)' : '1px solid transparent'}}>
                             <div style={{...st.chatAvatar, background: color}}>{name.charAt(0).toUpperCase()}</div>
                             <div style={st.chatInfo}>
                                 <div style={st.chatName}>{chat.isChannel ? '📢 ' : chat.type === 'group' ? '👥 ' : ''}{name}</div>
-                                <div style={st.chatLast}>{chat.lastMessage || 'Нет сообщений'}</div>
+                                <div style={st.chatLast} title={chat.lastMessage || 'Нет сообщений'}>{chat.lastMessage || 'Нет сообщений'}</div>
                             </div>
                             <div style={st.chatTime}>{formatChatTime(chat.lastMessageTime)}</div>
                         </div>
