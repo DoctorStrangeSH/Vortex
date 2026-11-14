@@ -17,3 +17,7 @@ export function getFirstUnreadIncomingId(messages, ownUid) {
 export function shouldPlayIncomingSound({ visibilityState, hasFocus }) {
     return visibilityState === 'visible' && hasFocus;
 }
+
+export function shouldMarkMessagesRead({ visibilityState, hasFocus }) {
+    return visibilityState === 'visible' && hasFocus;
+}

@@ -28,7 +28,7 @@ import { ThemeCustomizer } from '../Theme/ThemeCustomizer';
 import { StatusPicker } from '../Status/StatusPicker';
 import { mergeMessagePages } from '../../services/messagePagination.js';
 import { isNearChatBottom } from '../../services/chatScroll.js';
-import { getNewIncomingIds, getUnreadIncomingIds, getFirstUnreadIncomingId, shouldPlayIncomingSound } from '../../services/messageActivity.js';
+import { getNewIncomingIds, getUnreadIncomingIds, getFirstUnreadIncomingId, shouldPlayIncomingSound, shouldMarkMessagesRead } from '../../services/messageActivity.js';
 
 export function ChatWindow({ chat, user, onBack, isMobile }) {
     const [messages, setMessages] = useState([]);
@@ -111,6 +111,20 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
         setText('');
         setEditingMessage(null);
         setOtherStatus({ isOnline: false, lastSeen: null });
+        const readAttempts = readAttemptIdsRef.current;
+        const markVisibleAsRead = () => {
+            if (activeChatIdRef.current !== currentChatId || !shouldMarkMessagesRead({ visibilityState: document.visibilityState, hasFocus: document.hasFocus() })) return;
+            const unreadIds = getUnreadIncomingIds(latestMessagesRef.current, currentUserId, readAttempts);
+            for (const messageId of unreadIds) {
+                readAttempts.add(messageId);
+                messageService.markAsRead(currentChatId, currentUserId, messageId).catch(error => {
+                    readAttempts.delete(messageId);
+                    console.warn('Не удалось отметить сообщение прочитанным', error);
+                });
+            }
+        };
+        document.addEventListener('visibilitychange', markVisibleAsRead);
+        window.addEventListener('focus', markVisibleAsRead);
         const unsubscribe = messageService.subscribeToMessages(chat.id, (msgs, cursor, hasMore) => {
             if (!unreadBoundaryCapturedRef.current && msgs.length) {
                 unreadBoundaryCapturedRef.current = true;
@@ -129,15 +143,8 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
                 }
             }
             seenMessageIdsRef.current = ids;
-            const unreadIds = getUnreadIncomingIds(msgs, currentUserId, readAttemptIdsRef.current);
-            for (const messageId of unreadIds) {
-                readAttemptIdsRef.current.add(messageId);
-                messageService.markAsRead(currentChatId, currentUserId, messageId).catch(error => {
-                    readAttemptIdsRef.current.delete(messageId);
-                    console.warn('Не удалось отметить сообщение прочитанным', error);
-                });
-            }
             latestMessagesRef.current = msgs;
+            markVisibleAsRead();
             if (!olderMessagesRef.current.length) {
                 oldestCursorRef.current = cursor;
                 setHasOlderMessages(hasMore);
@@ -147,6 +154,8 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
         });
         return () => {
             activeChatIdRef.current = null;
+            document.removeEventListener('visibilitychange', markVisibleAsRead);
+            window.removeEventListener('focus', markVisibleAsRead);
             unsubscribe?.();
             setMessages([]);
             typingService.stopTyping(currentChatId, currentUserId);
