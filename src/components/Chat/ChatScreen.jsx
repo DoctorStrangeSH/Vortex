@@ -1,11 +1,34 @@
 import { useState, useEffect } from 'preact/hooks';
 import { Sidebar } from './Sidebar';
 import { ChatWindow } from './ChatWindow';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '../../services/firebase';
 
 export function ChatScreen({ user }) {
     const [activeChat, setActiveChat] = useState(null);
     const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
     const [showChat, setShowChat] = useState(false);
+
+    // The sidebar updates its own list, but a selected chat must also refresh:
+    // newly invited members and admin changes should appear without reopening it.
+    useEffect(() => {
+        const chatId = activeChat?.id;
+        if (!chatId) return undefined;
+        const clearIfCurrent = () => {
+            setActiveChat(current => current?.id === chatId ? null : current);
+            setShowChat(false);
+        };
+        return onSnapshot(doc(db, 'chats', chatId), snapshot => {
+            if (!snapshot.exists() || !snapshot.data().participants?.includes(user.uid)) {
+                clearIfCurrent();
+                return;
+            }
+            setActiveChat(current => current?.id === chatId ? { id: snapshot.id, ...snapshot.data() } : current);
+        }, error => {
+            if (error.code === 'permission-denied' || error.code === 'not-found') clearIfCurrent();
+            else console.error('Не удалось обновить чат', error);
+        });
+    }, [activeChat?.id, user.uid]);
 
     useEffect(() => {
         const handleResize = () => {
