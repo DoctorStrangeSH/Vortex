@@ -340,7 +340,7 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
     const getOtherParticipant = () => {
         if (!chat) return { name: 'Чат' };
         if (chat.type === 'group') return { name: chat.name || 'Группа' };
-        const idx = chat.participantEmails?.findIndex(e => e !== user.email);
+        const idx = chat.participants?.findIndex(uid => uid !== user.uid);
         return { name: chat.participantNames?.[idx] || chat.participantEmails?.[idx]?.split('@')[0] || 'Чат' };
     };
 

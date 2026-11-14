@@ -27,7 +27,7 @@ export function Sidebar({ user, activeChat, onSelectChat }) {
     const getChatData = (chat) => {
         if (chat.isChannel) return { name: chat.name || 'Канал' };
         if (chat.type === 'group') return { name: chat.name || 'Группа' };
-        const otherIndex = chat.participantEmails?.findIndex(e => e !== user.email);
+        const otherIndex = chat.participants?.findIndex(uid => uid !== user.uid);
         return { name: chat.participantNames?.[otherIndex] || chat.participantEmails?.[otherIndex]?.split('@')[0] || 'Чат' };
     };
 
@@ -86,7 +86,7 @@ export function Sidebar({ user, activeChat, onSelectChat }) {
                     <input value={globalSearch} onInput={e => handleGlobalSearch(e.target.value)} placeholder="Поиск..." style={st.searchInput} />
                 </div>
                 {showGlobalResults && globalResults.length > 0 && (
-                    <div style={st.results}><div style={st.resultTitle}>Пользователи</div>{globalResults.map(u => <div key={u.uid} onClick={() => handleStartChat(u)} style={st.resultItem}><div style={{...st.resultAvatar, background: getAvatarColor(u.displayName || u.email)}}>{(u.displayName || u.email).charAt(0).toUpperCase()}</div><div><div style={st.resultName}>{u.displayName || 'Без имени'}</div><div style={st.resultEmail}>@{u.username || u.email.split('@')[0]}</div></div></div>)}</div>
+                    <div style={st.results}><div style={st.resultTitle}>Пользователи</div>{globalResults.map(u => <div key={u.uid} onClick={() => handleStartChat(u)} style={st.resultItem}><div style={{...st.resultAvatar, background: getAvatarColor(u.displayName || u.username || '?')}}>{(u.displayName || u.username || '?').charAt(0).toUpperCase()}</div><div><div style={st.resultName}>{u.displayName || 'Без имени'}</div><div style={st.resultEmail}>@{u.username || 'без username'}</div></div></div>)}</div>
                 )}
             </div>
 

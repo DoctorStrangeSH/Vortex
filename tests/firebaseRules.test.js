@@ -1,7 +1,7 @@
 import test, { after } from 'node:test';
 import assert from 'node:assert/strict';
 import { initializeTestEnvironment, assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
-import { arrayRemove, arrayUnion, collection, doc, getDoc, getDocs, increment, query, runTransaction, setDoc, updateDoc, where } from 'firebase/firestore';
+import { arrayRemove, arrayUnion, collection, deleteField, doc, getDoc, getDocs, increment, query, runTransaction, setDoc, updateDoc, where } from 'firebase/firestore';
 import { ref, uploadString } from 'firebase/storage';
 
 const available = !!process.env.FIRESTORE_EMULATOR_HOST;
@@ -76,10 +76,43 @@ test('username and profile are claimed atomically; another user cannot take the 
     await assertSucceeds(runTransaction(alice, async tx => {
         assert.equal((await tx.get(claim)).exists(), false);
         tx.set(profile, { uid: 'alice', email: 'alice@example.test', username: 'sherlock' });
-        tx.set(claim, { uid: 'alice', username: 'sherlock', email: 'alice@example.test' });
+        tx.set(claim, { uid: 'alice', username: 'sherlock' });
+        tx.set(doc(alice, 'publicProfiles/alice'), { uid: 'alice', username: 'sherlock', displayName: 'Alice' });
     }));
     await assertFails(setDoc(doc(bob, 'usernames/sherlock'), { uid: 'bob', username: 'sherlock' }));
     await assertFails(setDoc(doc(bob, 'users/bob'), { uid: 'bob', username: 'sherlock' }));
+});
+
+test('private profile protects email while public directory supports search', { skip: !available }, async () => {
+    const alice = environment.authenticatedContext('alice').firestore();
+    const bob = environment.authenticatedContext('bob').firestore();
+    const privateData = await assertSucceeds(getDoc(doc(alice, 'users/alice')));
+    assert.equal(privateData.data().email, 'alice@example.test');
+    await assertFails(getDoc(doc(bob, 'users/alice')));
+    const publicData = await assertSucceeds(getDoc(doc(bob, 'publicProfiles/alice')));
+    assert.equal(publicData.data().displayName, 'Alice');
+    assert.equal(Object.hasOwn(publicData.data(), 'email'), false);
+    await assertSucceeds(getDocs(query(collection(bob, 'publicProfiles'), where('username', '>=', 'sher'), where('username', '<=', 'sher\uf8ff'))));
+    await assertFails(updateDoc(doc(bob, 'publicProfiles/alice'), { displayName: 'Fake Alice' }));
+    await assertFails(updateDoc(doc(alice, 'publicProfiles/alice'), { email: 'leaked@example.test' }));
+    await assertFails(updateDoc(doc(alice, 'publicProfiles/alice'), { username: 'renamed' }));
+    await assertSucceeds(updateDoc(doc(alice, 'publicProfiles/alice'), { displayName: 'Алиса' }));
+});
+
+test('legacy email-bearing username claims are owner-only until email removal', { skip: !available }, async () => {
+    const alice = environment.authenticatedContext('alice').firestore();
+    const bob = environment.authenticatedContext('bob').firestore();
+    // A legacy claim is seeded with admin bypass to simulate old schema.
+    const response = await fetch(`http://${process.env.FIRESTORE_EMULATOR_HOST}/v1/projects/demo-vortex/databases/(default)/documents/usernames/legacy`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer owner' },
+        body: JSON.stringify({ fields: { uid: { stringValue: 'alice' }, username: { stringValue: 'legacy' }, email: { stringValue: 'alice@example.test' } } })
+    });
+    assert.equal(response.ok, true);
+    await assertFails(getDoc(doc(bob, 'usernames/legacy')));
+    await assertSucceeds(getDoc(doc(alice, 'usernames/legacy')));
+    await assertFails(updateDoc(doc(bob, 'usernames/legacy'), { email: deleteField() }));
+    await assertSucceeds(updateDoc(doc(alice, 'usernames/legacy'), { email: deleteField() }));
+    await assertSucceeds(getDoc(doc(bob, 'usernames/legacy')));
 });
 
 test('channel join is atomic and may add only the current user', { skip: !available }, async () => {

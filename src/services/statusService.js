@@ -5,21 +5,21 @@ class StatusService {
     STATUS_EMOJIS = ['😊', '😎', '🥰', '🤔', '😴', '💼', '🏖️', '🎮', '📚', '❤️', '🔥', '💯'];
 
     async setEmojiStatus(userId, emoji) {
-        await updateDoc(doc(db, 'users', userId), {
+        await updateDoc(doc(db, 'publicProfiles', userId), {
             emojiStatus: emoji,
             statusUpdatedAt: new Date()
         });
     }
 
     async setTextStatus(userId, text) {
-        await updateDoc(doc(db, 'users', userId), {
+        await updateDoc(doc(db, 'publicProfiles', userId), {
             customStatus: text,
             statusUpdatedAt: new Date()
         });
     }
 
     async clearStatus(userId) {
-        await updateDoc(doc(db, 'users', userId), {
+        await updateDoc(doc(db, 'publicProfiles', userId), {
             emojiStatus: null,
             customStatus: null,
             statusUpdatedAt: null

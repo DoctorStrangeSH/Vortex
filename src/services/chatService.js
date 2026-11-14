@@ -53,7 +53,7 @@ class ChatService {
             const data = doc.data();
             return data.participants.includes(otherUser.uid) && 
                    data.participants.length === 2 &&
-                   data.type !== 'group';
+                   (data.type === 'private' || !data.type);
         });
 
         if (existingChat) return existingChat.id;
@@ -62,10 +62,9 @@ class ChatService {
             type: 'private',
             createdBy: currentUser.uid,
             participants: [currentUser.uid, otherUser.uid],
-            participantEmails: [currentUser.email, otherUser.email],
             participantNames: [
-                currentUser.displayName || currentUser.email,
-                otherUser.displayName || otherUser.email
+                currentUser.displayName || 'Пользователь',
+                otherUser.displayName || otherUser.username || 'Пользователь'
             ],
             createdAt: serverTimestamp(),
             lastMessage: 'Чат создан',

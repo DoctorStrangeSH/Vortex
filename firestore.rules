@@ -1,5 +1,7 @@
 rules_version = '2';
-// Assumed model: users/{uid} (uid, username), usernames/{name} (uid, username),
+// Assumed model: users/{uid} (private uid, email, username),
+// publicProfiles/{uid} (uid, username, displayName, bio, optional presence/status),
+// usernames/{name} (uid, username),
 // chats/{id} (type, participants, createdBy; channels additionally have ownerId,
 // admins, subscribers, subscriberCount), messages/{id} (senderId, text), typing/{uid}.
 // Membership lists are capped at 100; all identities are Firebase Auth UIDs.
@@ -11,6 +13,23 @@ service cloud.firestore {
     }
     function chatMember(chatId) {
       return member(get(/databases/$(database)/documents/chats/$(chatId)).data);
+    }
+    function validPublicProfile(data, uid) {
+      return data.keys().hasAll(['uid', 'username', 'displayName']) &&
+        data.keys().hasOnly([
+          'uid', 'username', 'displayName', 'bio', 'isOnline', 'lastSeen',
+          'emojiStatus', 'customStatus', 'statusUpdatedAt'
+        ]) && data.uid == uid &&
+        data.username is string && data.username.size() <= 24 &&
+        data.displayName is string && data.displayName.size() <= 80 &&
+        (!('bio' in data) || (data.bio is string && data.bio.size() <= 500)) &&
+        (!('customStatus' in data) || data.customStatus == null ||
+          (data.customStatus is string && data.customStatus.size() <= 100)) &&
+        (!('emojiStatus' in data) || data.emojiStatus == null ||
+          (data.emojiStatus is string && data.emojiStatus.size() <= 16)) &&
+        (!('isOnline' in data) || data.isOnline is bool) &&
+        (!('lastSeen' in data) || data.lastSeen is timestamp) &&
+        (!('statusUpdatedAt' in data) || data.statusUpdatedAt == null || data.statusUpdatedAt is timestamp);
     }
     function validChat(data) {
       return data.keys().hasAll(['type', 'participants']) &&
@@ -54,8 +73,8 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      // Profiles are searchable by signed-in users. Avoid storing private data here.
-      allow read: if signedIn();
+      // Private account profile: email is never visible to other users.
+      allow read: if signedIn() && request.auth.uid == userId;
       allow create: if signedIn() && request.auth.uid == userId && request.resource.data.uid == userId &&
         (request.resource.data.username == '' ||
          (request.resource.data.username is string &&
@@ -66,12 +85,31 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    match /usernames/{username} {
+    match /publicProfiles/{userId} {
       allow read: if signedIn();
+      allow create: if signedIn() && request.auth.uid == userId &&
+        validPublicProfile(request.resource.data, userId) &&
+        getAfter(/databases/$(database)/documents/users/$(userId)).data.username == request.resource.data.username;
+      allow update: if signedIn() && request.auth.uid == userId &&
+        validPublicProfile(request.resource.data, userId) &&
+        request.resource.data.username == resource.data.username;
+      allow delete: if false;
+    }
+
+    match /usernames/{username} {
+      // Legacy username claims may include an email. Hide them until migrated.
+      allow get: if signedIn() &&
+        (!exists(/databases/$(database)/documents/usernames/$(username)) ||
+         !('email' in resource.data) || resource.data.uid == request.auth.uid);
+      allow list: if signedIn() && !('email' in resource.data);
       allow create: if signedIn() && request.resource.data.uid == request.auth.uid &&
         request.resource.data.username == username &&
         getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.username == username;
-      allow update, delete: if false;
+      allow update: if signedIn() && resource.data.uid == request.auth.uid &&
+        request.resource.data.keys().hasOnly(['uid', 'username']) &&
+        request.resource.data.uid == resource.data.uid &&
+        request.resource.data.username == resource.data.username;
+      allow delete: if false;
     }
 
     match /chats/{chatId} {

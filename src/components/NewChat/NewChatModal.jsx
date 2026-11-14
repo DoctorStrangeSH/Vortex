@@ -13,7 +13,7 @@ export function NewChatModal({ user, onClose, onChatCreated, mode = 'personal' }
     const [step, setStep] = useState(mode === 'group' ? 'groupForm' : mode === 'channel' ? 'channelForm' : 'search');
 
     const handleSearch = async () => {
-        if (!searchInput.trim()) { setError('Введите email или @username'); return; }
+        if (!searchInput.trim()) { setError('Введите @username'); return; }
         setLoading(true); setError('');
         try {
             const found = await userService.findUser(searchInput);
@@ -71,16 +71,16 @@ export function NewChatModal({ user, onClose, onChatCreated, mode = 'personal' }
                 <div style={st.body}>
                     {step === 'search' && (
                         <>
-                            <p style={st.hint}>Введите email или @username</p>
-                            <div style={st.row}><input value={searchInput} onInput={e => { setSearchInput(e.target.value); setError(''); }} onKeyDown={e => e.key==='Enter' && handleSearch()} placeholder="Email или @username" style={st.input} autoFocus /><button onClick={handleSearch} disabled={loading || !searchInput.trim()} style={st.btn}>{loading?'...':'Найти'}</button></div>
+                            <p style={st.hint}>Найдите пользователя по @username. Email остаётся приватным.</p>
+                            <div style={st.row}><input value={searchInput} onInput={e => { setSearchInput(e.target.value); setError(''); }} onKeyDown={e => e.key==='Enter' && handleSearch()} placeholder="@username" style={st.input} autoFocus /><button onClick={handleSearch} disabled={loading || !searchInput.trim()} style={st.btn}>{loading?'...':'Найти'}</button></div>
                             {error && <p style={st.error}>{error}</p>}
                         </>
                     )}
                     {step === 'result' && searchResult && (
                         <>
                             <div style={st.userCard}>
-                                <div style={{...st.avatar, background: getAvatarColor(searchResult.displayName || searchResult.email)}}>{(searchResult.displayName || searchResult.email).charAt(0).toUpperCase()}</div>
-                                <div><div style={st.userName}>{searchResult.displayName || 'Без имени'}</div><div style={st.userEmail}>{searchResult.email}</div></div>
+                                <div style={{...st.avatar, background: getAvatarColor(searchResult.displayName || searchResult.username || '?')}}>{(searchResult.displayName || searchResult.username || '?').charAt(0).toUpperCase()}</div>
+                                <div><div style={st.userName}>{searchResult.displayName || 'Без имени'}</div><div style={st.userEmail}>@{searchResult.username || 'без username'}</div></div>
                             </div>
                             <div style={st.actions}><button onClick={() => setStep('search')} style={st.backBtn}>← Назад</button><button onClick={handleCreatePersonal} disabled={loading} style={st.createBtn}>{loading?'...':'Создать чат'}</button></div>
                         </>

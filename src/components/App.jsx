@@ -32,6 +32,8 @@ export function App() {
                         setUser(null);
                         return;
                     }
+                    await userService.ensurePublicProfile(firebaseUser.uid);
+                    if (!mounted || version !== requestVersion) return;
                 } catch (error) {
                     if (!mounted || version !== requestVersion) return;
                     console.error('Profile lookup failed:', error);
