@@ -225,3 +225,39 @@ test('message schema rejects unknown fields and oversized attachment metadata', 
     await assertFails(updateDoc(doc(alice, 'chats/chat-a/messages/m1'), { text: 'Содержимое', role: 'admin' }));
     await assertFails(updateDoc(doc(alice, 'chats/chat-a/messages/m1'), { text: 123 }));
 });
+
+test('group membership is managed by admins, while ordinary members can only leave', { skip: !available }, async () => {
+    const alice = environment.authenticatedContext('alice').firestore();
+    const bob = environment.authenticatedContext('bob').firestore();
+    const charlie = environment.authenticatedContext('charlie').firestore();
+    const groupId = 'group-membership-check';
+    await assertSucceeds(setDoc(doc(alice, 'chats', groupId), {
+        type: 'group', createdBy: 'alice', participants: ['alice', 'bob'], admins: ['alice']
+    }));
+    await assertFails(updateDoc(doc(bob, 'chats', groupId), { participants: arrayUnion('eve') }));
+    await assertFails(updateDoc(doc(bob, 'chats', groupId), { participants: arrayRemove('alice') }));
+    await assertFails(updateDoc(doc(alice, 'chats', groupId), { participants: arrayRemove('alice') }));
+    await assertSucceeds(updateDoc(doc(alice, 'chats', groupId), { participants: arrayUnion('charlie') }));
+    await assertFails(updateDoc(doc(charlie, 'chats', groupId), { participants: arrayUnion('eve') }));
+    await assertSucceeds(updateDoc(doc(bob, 'chats', groupId), { participants: arrayRemove('bob') }));
+    await assertFails(getDoc(doc(bob, 'chats', groupId)));
+    await assertFails(updateDoc(doc(alice, 'chats', groupId), { participants: ['alice', 'charlie', 'eve', 'mallory'] }));
+});
+
+test('only group creator can manage admins and owner is never removed', { skip: !available }, async () => {
+    const alice = environment.authenticatedContext('alice').firestore();
+    const bob = environment.authenticatedContext('bob').firestore();
+    const groupId = 'group-admin-check';
+    await assertSucceeds(setDoc(doc(alice, 'chats', groupId), {
+        type: 'group', createdBy: 'alice', participants: ['alice', 'bob'], admins: ['alice']
+    }));
+    await assertFails(updateDoc(doc(bob, 'chats', groupId), { admins: arrayUnion('bob') }));
+    await assertFails(updateDoc(doc(alice, 'chats', groupId), { admins: arrayUnion('eve') }));
+    await assertSucceeds(updateDoc(doc(alice, 'chats', groupId), { admins: arrayUnion('bob') }));
+    await assertFails(updateDoc(doc(bob, 'chats', groupId), { admins: arrayRemove('alice') }));
+    await assertFails(updateDoc(doc(alice, 'chats', groupId), { admins: arrayRemove('alice') }));
+    await assertSucceeds(updateDoc(doc(bob, 'chats', groupId), { participants: arrayUnion('eve') }));
+    await assertFails(updateDoc(doc(alice, 'chats', groupId), { participants: arrayRemove('bob') }));
+    await assertSucceeds(updateDoc(doc(alice, 'chats', groupId), { admins: arrayRemove('bob') }));
+    await assertSucceeds(updateDoc(doc(alice, 'chats', groupId), { participants: arrayRemove('bob') }));
+});

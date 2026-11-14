@@ -12,7 +12,10 @@ import {
     doc,
     setDoc,
     getDoc,
-    runTransaction
+    runTransaction,
+    updateDoc,
+    arrayUnion,
+    arrayRemove
 } from 'firebase/firestore';
 
 class ChatService {
@@ -80,7 +83,7 @@ class ChatService {
     }
 
     async createGroupChat(currentUser, participantIds, groupName = 'Группа') {
-        const allParticipants = [currentUser.uid, ...participantIds];
+        const allParticipants = [...new Set([currentUser.uid, ...participantIds])];
         
         const chatData = {
             type: 'group',
@@ -96,6 +99,27 @@ class ChatService {
 
         const ref = await addDoc(collection(db, 'chats'), chatData);
         return ref.id;
+    }
+
+    async addGroupMember(groupId, memberUid) {
+        if (!memberUid || typeof memberUid !== 'string') throw new Error('Выберите участника');
+        await updateDoc(doc(db, 'chats', groupId), { participants: arrayUnion(memberUid) });
+    }
+
+    async removeGroupMember(groupId, memberUid) {
+        if (!memberUid || typeof memberUid !== 'string') throw new Error('Выберите участника');
+        await updateDoc(doc(db, 'chats', groupId), { participants: arrayRemove(memberUid) });
+    }
+
+    async leaveGroup(groupId, userUid) {
+        await this.removeGroupMember(groupId, userUid);
+    }
+
+    async setGroupAdmin(groupId, memberUid, enabled) {
+        if (!memberUid || typeof memberUid !== 'string') throw new Error('Выберите участника');
+        await updateDoc(doc(db, 'chats', groupId), {
+            admins: enabled ? arrayUnion(memberUid) : arrayRemove(memberUid)
+        });
     }
 
     async sendMessage(chatId, text, user, attachment = null) {

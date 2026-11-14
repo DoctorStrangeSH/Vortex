@@ -26,8 +26,9 @@ service cloud.firestore {
         data.participants is list && data.participants.size() >= 1 && data.participants.size() <= 100 &&
         (!('name' in data) || (data.name is string && data.name.size() >= 1 && data.name.size() <= 100)) &&
         (!('description' in data) || (data.description is string && data.description.size() <= 500)) &&
-        (data.type != 'group' || (data.admins is list && data.admins == [data.createdBy] &&
-          data.createdBy in data.participants)) &&
+        (data.type != 'group' || (data.admins is list && data.admins.size() >= 1 &&
+          data.admins.size() <= 10 && data.admins[0] == data.createdBy &&
+          data.participants.hasAll(data.admins))) &&
         (data.type != 'channel' || (data.keys().hasAll(['ownerId','admins','subscribers','subscriberCount']) &&
           data.ownerId == data.createdBy && data.admins is list && data.admins.size() == 1 &&
           data.admins[0] == data.ownerId && data.subscribers is list && data.subscribers == data.participants &&
@@ -47,6 +48,29 @@ service cloud.firestore {
       return signedIn() && before.type == 'channel' &&
         after.diff(before).affectedKeys().hasOnly(['participants','subscribers','subscriberCount']) &&
         after.subscriberCount == before.subscriberCount + (joining ? 1 : -1) && (joining || leaving);
+    }
+    function validGroupMemberChange() {
+      let before = resource.data;
+      let after = request.resource.data;
+      let uid = request.auth.uid;
+      let admin = uid in before.admins;
+      let addition = after.participants.size() == before.participants.size() + 1 &&
+        after.participants.hasAll(before.participants) && admin;
+      let removal = before.participants.size() == after.participants.size() + 1 &&
+        before.participants.hasAll(after.participants) && after.participants.hasAll(before.admins) &&
+        (admin || (uid in before.participants && !(uid in after.participants)));
+      return signedIn() && before.type == 'group' &&
+        after.diff(before).affectedKeys().hasOnly(['participants']) && (addition || removal);
+    }
+    function validGroupAdminChange() {
+      let before = resource.data;
+      let after = request.resource.data;
+      let promotion = after.admins.size() == before.admins.size() + 1 &&
+        after.admins.hasAll(before.admins) && after.participants.hasAll(after.admins);
+      let demotion = before.admins.size() == after.admins.size() + 1 &&
+        before.admins.hasAll(after.admins) && after.admins[0] == before.createdBy;
+      return signedIn() && before.type == 'group' && request.auth.uid == before.createdBy &&
+        after.diff(before).affectedKeys().hasOnly(['admins']) && (promotion || demotion);
     }
     function validReadReceiptChange() {
       let before = resource.data.get('readBy', []);
@@ -132,11 +156,12 @@ service cloud.firestore {
       allow get: if (signedIn() && !exists(/databases/$(database)/documents/chats/$(chatId))) || member(resource.data);
       allow list: if member(resource.data);
       allow create: if signedIn() && validChat(request.resource.data) && member(request.resource.data) &&
-        request.resource.data.createdBy == request.auth.uid;
+        request.resource.data.createdBy == request.auth.uid &&
+        (request.resource.data.type != 'group' || request.resource.data.admins == [request.auth.uid]);
       allow update: if validChat(request.resource.data) && (
         (member(resource.data) && (resource.data.type != 'channel' || request.auth.uid in resource.data.admins) &&
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastMessage','lastMessageTime','pinnedMessages'])) ||
-        validChannelMembershipChange());
+        validChannelMembershipChange() || validGroupMemberChange() || validGroupAdminChange());
       allow delete: if signedIn() && resource.data.createdBy == request.auth.uid;
       match /messages/{messageId} {
         allow read: if chatMember(chatId);
