@@ -29,6 +29,7 @@ import { StatusPicker } from '../Status/StatusPicker';
 import { mergeMessagePages } from '../../services/messagePagination.js';
 import { isNearChatBottom, getInitialChatScrollTarget, getMessageScrollTop } from '../../services/chatScroll.js';
 import { getNewIncomingIds, getUnreadIncomingIds, getFirstUnreadIncomingId, shouldPlayIncomingSound, shouldMarkMessagesRead, isMessageVisible } from '../../services/messageActivity.js';
+import { createFrameScheduler } from '../../services/frameScheduler.js';
 
 export function ChatWindow({ chat, user, onBack, isMobile }) {
     const [messages, setMessages] = useState([]);
@@ -119,13 +120,14 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
             if (activeChatIdRef.current !== currentChatId || !initialScrollDoneRef.current || !shouldMarkMessagesRead({ visibilityState: document.visibilityState, hasFocus: document.hasFocus() })) return;
             const container = messagesContainerRef.current;
             if (!container) return;
-            const viewport = container.getBoundingClientRect();
-            const visibleIds = new Set(Array.from(container.querySelectorAll('[data-msg-id]'))
-                .filter(element => isMessageVisible(element.getBoundingClientRect(), viewport))
-                .map(element => element.dataset.msgId));
             const loadedMessages = mergeMessagePages(olderMessagesRef.current, latestMessagesRef.current);
-            const unreadIds = getUnreadIncomingIds(loadedMessages, currentUserId, readAttempts).filter(id => visibleIds.has(id));
-            for (const messageId of unreadIds) {
+            const unreadIds = new Set(getUnreadIncomingIds(loadedMessages, currentUserId, readAttempts));
+            if (!unreadIds.size) return;
+            const viewport = container.getBoundingClientRect();
+            const visibleIds = Array.from(container.querySelectorAll('[data-msg-id]'))
+                .filter(element => unreadIds.has(element.dataset.msgId) && isMessageVisible(element.getBoundingClientRect(), viewport))
+                .map(element => element.dataset.msgId);
+            for (const messageId of visibleIds) {
                 readAttempts.add(messageId);
                 messageService.markAsRead(currentChatId, currentUserId, messageId).catch(error => {
                     readAttempts.delete(messageId);
@@ -133,9 +135,10 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
                 });
             }
         };
-        markVisibleAsReadRef.current = markVisibleAsRead;
-        document.addEventListener('visibilitychange', markVisibleAsRead);
-        window.addEventListener('focus', markVisibleAsRead);
+        const readScheduler = createFrameScheduler(markVisibleAsRead, requestAnimationFrame, cancelAnimationFrame);
+        markVisibleAsReadRef.current = readScheduler.schedule;
+        document.addEventListener('visibilitychange', readScheduler.schedule);
+        window.addEventListener('focus', readScheduler.schedule);
         const unsubscribe = messageService.subscribeToMessages(chat.id, (msgs, cursor, hasMore) => {
             if (!unreadBoundaryCapturedRef.current && msgs.length) {
                 unreadBoundaryCapturedRef.current = true;
@@ -165,8 +168,9 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
         return () => {
             activeChatIdRef.current = null;
             markVisibleAsReadRef.current = null;
-            document.removeEventListener('visibilitychange', markVisibleAsRead);
-            window.removeEventListener('focus', markVisibleAsRead);
+            readScheduler.cancel();
+            document.removeEventListener('visibilitychange', readScheduler.schedule);
+            window.removeEventListener('focus', readScheduler.schedule);
             unsubscribe?.();
             setMessages([]);
             typingService.stopTyping(currentChatId, currentUserId);
