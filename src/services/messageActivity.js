@@ -21,3 +21,11 @@ export function shouldPlayIncomingSound({ visibilityState, hasFocus }) {
 export function shouldMarkMessagesRead({ visibilityState, hasFocus }) {
     return visibilityState === 'visible' && hasFocus;
 }
+
+// A message is read only after a meaningful part of its bubble enters the
+// scroll viewport, not merely because its chat is open.
+export function isMessageVisible(messageRect, containerRect) {
+    const height = Math.max(0, messageRect.bottom - messageRect.top);
+    const overlap = Math.max(0, Math.min(messageRect.bottom, containerRect.bottom) - Math.max(messageRect.top, containerRect.top));
+    return height > 0 && overlap >= Math.min(24, height / 2);
+}

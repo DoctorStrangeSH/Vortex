@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { getNewIncomingIds, getUnreadIncomingIds, getFirstUnreadIncomingId, shouldPlayIncomingSound, shouldMarkMessagesRead } from '../src/services/messageActivity.js';
+import { getNewIncomingIds, getUnreadIncomingIds, getFirstUnreadIncomingId, shouldPlayIncomingSound, shouldMarkMessagesRead, isMessageVisible } from '../src/services/messageActivity.js';
 
 test('new incoming messages notify once, not on edits or receipt changes', () => {
     const previous = new Set(['m1', 'm2']);
@@ -30,4 +30,13 @@ test('read receipts wait until the conversation tab is visible and focused', () 
     assert.equal(shouldMarkMessagesRead({ visibilityState: 'hidden', hasFocus: false }), false);
     assert.equal(shouldMarkMessagesRead({ visibilityState: 'visible', hasFocus: false }), false);
     assert.equal(shouldMarkMessagesRead({ visibilityState: 'visible', hasFocus: true }), true);
+});
+
+test('a message outside the scroll viewport must not be marked read', () => {
+    const viewport = { top: 100, bottom: 500 };
+    assert.equal(isMessageVisible({ top: 520, bottom: 560 }, viewport), false);
+    assert.equal(isMessageVisible({ top: 20, bottom: 90 }, viewport), false);
+    assert.equal(isMessageVisible({ top: 480, bottom: 520 }, viewport), true);
+    assert.equal(isMessageVisible({ top: 497, bottom: 540 }, viewport), false);
+    assert.equal(isMessageVisible({ top: 200, bottom: 400 }, viewport), true);
 });
