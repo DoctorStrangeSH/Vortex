@@ -27,7 +27,7 @@ import { PollMessage } from './PollMessage';
 import { ThemeCustomizer } from '../Theme/ThemeCustomizer';
 import { StatusPicker } from '../Status/StatusPicker';
 import { mergeMessagePages } from '../../services/messagePagination.js';
-import { isNearChatBottom } from '../../services/chatScroll.js';
+import { isNearChatBottom, getInitialChatScrollTarget, getMessageScrollTop } from '../../services/chatScroll.js';
 import { getNewIncomingIds, getUnreadIncomingIds, getFirstUnreadIncomingId, shouldPlayIncomingSound, shouldMarkMessagesRead } from '../../services/messageActivity.js';
 
 export function ChatWindow({ chat, user, onBack, isMobile }) {
@@ -73,6 +73,7 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
     const messagesContainerRef = useRef(null);
     const seenMessageIdsRef = useRef(null);
     const unreadBoundaryCapturedRef = useRef(false);
+    const initialScrollDoneRef = useRef(false);
     const readAttemptIdsRef = useRef(new Set());
 
     // Offline listener
@@ -102,6 +103,7 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
         latestMessagesRef.current = [];
         seenMessageIdsRef.current = null;
         unreadBoundaryCapturedRef.current = false;
+        initialScrollDoneRef.current = false;
         setFirstUnreadMessageId(null);
         readAttemptIdsRef.current = new Set();
         loadingOlderRef.current = false;
@@ -205,7 +207,35 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
         setNewIncomingCount(0);
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
     };
+    const jumpToUnread = (behavior = 'smooth') => {
+        const container = messagesContainerRef.current;
+        const divider = container?.querySelector('[data-unread-divider]');
+        if (!container || !divider) return false;
+        container.scrollTo({
+            top: getMessageScrollTop({
+                scrollTop: container.scrollTop,
+                containerTop: container.getBoundingClientRect().top,
+                messageTop: divider.getBoundingClientRect().top
+            }),
+            behavior
+        });
+        shouldAutoScroll.current = false;
+        return true;
+    };
     useEffect(() => {
+        if (messagesLoading || initialScrollDoneRef.current) return;
+        const target = getInitialChatScrollTarget(firstUnreadMessageId);
+        if (target.type === 'unread' && jumpToUnread('auto')) {
+            initialScrollDoneRef.current = true;
+            setShowJumpToLatest(true);
+            return;
+        }
+        initialScrollDoneRef.current = true;
+        shouldAutoScroll.current = true;
+        messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+    }, [messagesLoading, firstUnreadMessageId]);
+    useEffect(() => {
+        if (!initialScrollDoneRef.current) return;
         if (shouldAutoScroll.current && messagesEndRef.current && !messagesLoading) {
             messagesEndRef.current.scrollIntoView({ behavior: 'auto' });
         }
@@ -474,7 +504,7 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
                     const msg = item.data;
                     return (
                         <div key={msg.id}>
-                        {msg.id === firstUnreadMessageId && <div style={s.unreadDivider} role="separator">Непрочитанные сообщения</div>}
+                        {msg.id === firstUnreadMessageId && <div data-unread-divider style={s.unreadDivider} role="separator">Непрочитанные сообщения</div>}
                         <div data-msg-id={msg.id}
                              onClick={() => toggleSelection(msg.id)}
                              onTouchStart={(e) => { const t = setTimeout(() => handleLongPress(msg.id), 500); e.target.addEventListener('touchend', () => clearTimeout(t), { once:true }); }}
@@ -494,6 +524,12 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
             {showJumpToLatest && !messagesLoading && (
                 <button type="button" onClick={jumpToLatest} style={s.jumpToLatest} aria-label="Перейти к последним сообщениям">
                     ↓ К последним{newIncomingCount ? ` · Новых: ${newIncomingCount}` : ''}
+                </button>
+            )}
+
+            {firstUnreadMessageId && !messagesLoading && (
+                <button type="button" onClick={() => jumpToUnread()} style={s.jumpToUnread} aria-label="Перейти к первым непрочитанным сообщениям">
+                    ↑ К непрочитанным
                 </button>
             )}
 
@@ -532,6 +568,7 @@ const s = {
     emptyText: { fontSize:'0.9rem' },
     offlineBar: { background:'var(--vortex-danger)', color:'white', textAlign:'center', padding:'4px', fontSize:'0.75rem' },
     jumpToLatest: { position:'absolute', right:'18px', bottom:'88px', zIndex:12, border:'1px solid var(--border-default)', background:'var(--bg-secondary)', color:'var(--text-primary)', borderRadius:'24px', padding:'9px 14px', cursor:'pointer', boxShadow:'0 3px 14px rgba(0,0,0,0.25)', fontSize:'0.82rem' },
+    jumpToUnread: { position:'absolute', left:'18px', bottom:'88px', zIndex:12, border:'1px solid rgba(124,58,237,0.35)', background:'var(--bg-secondary)', color:'var(--vortex-primary-light)', borderRadius:'24px', padding:'9px 14px', cursor:'pointer', boxShadow:'0 3px 14px rgba(0,0,0,0.25)', fontSize:'0.82rem' },
     unreadDivider: { margin:'14px 0', padding:'7px 12px', borderRadius:'12px', color:'var(--vortex-primary-light)', textAlign:'center', fontSize:'0.77rem', fontWeight:600, background:'rgba(124,58,237,0.12)', border:'1px solid rgba(124,58,237,0.22)' },
     queueBar: { display:'flex', justifyContent:'space-between', alignItems:'center', gap:'12px', background:'var(--bg-secondary)', color:'var(--text-primary)', padding:'7px 12px', fontSize:'0.78rem' },
     retryBtn: { border:'1px solid var(--border-default)', background:'var(--bg-tertiary)', borderRadius:'8px', padding:'5px 10px', color:'var(--text-primary)', cursor:'pointer' },
