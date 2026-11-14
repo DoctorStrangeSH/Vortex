@@ -1,4 +1,8 @@
 rules_version = '2';
+// Message schema: senderId/text required; optional senderName, type, createdAt,
+// attachment metadata, readBy, reactions, edit and expiry metadata.
+// Chat schema: type/participants required; group and channel administrators
+// originate with the creator and are not editable by ordinary members.
 service cloud.firestore {
   match /databases/{database}/documents {
     function signedIn() { return request.auth != null; }
@@ -20,6 +24,10 @@ service cloud.firestore {
       return data.keys().hasAll(['type','participants']) && data.type in ['private','group','channel','secret'] &&
         (!('createdBy' in data) || (data.createdBy is string && data.createdBy.size() > 0)) &&
         data.participants is list && data.participants.size() >= 1 && data.participants.size() <= 100 &&
+        (!('name' in data) || (data.name is string && data.name.size() >= 1 && data.name.size() <= 100)) &&
+        (!('description' in data) || (data.description is string && data.description.size() <= 500)) &&
+        (data.type != 'group' || (data.admins is list && data.admins == [data.createdBy] &&
+          data.createdBy in data.participants)) &&
         (data.type != 'channel' || (data.keys().hasAll(['ownerId','admins','subscribers','subscriberCount']) &&
           data.ownerId == data.createdBy && data.admins is list && data.admins.size() == 1 &&
           data.admins[0] == data.ownerId && data.subscribers is list && data.subscribers == data.participants &&
@@ -68,6 +76,29 @@ service cloud.firestore {
         (changed.hasOnly(['😡']) && validReactionForKey(before, after, '😡'))
       );
     }
+    function validMessage(data, chatId) {
+      return data.keys().hasAll(['senderId', 'text']) &&
+        data.keys().hasOnly(['senderId','senderName','createdAt','type','text','readBy',
+          'reactions','fileData','fileName','fileSize','storagePath','isEdited',
+          'editedAt','selfDestruct','destructAt']) &&
+        data.senderId is string && data.senderId.size() > 0 && data.senderId.size() <= 128 &&
+        data.text is string && data.text.size() <= 4096 &&
+        (!('senderName' in data) || (data.senderName is string && data.senderName.size() <= 120)) &&
+        (!('createdAt' in data) || data.createdAt is timestamp) &&
+        (!('type' in data) || data.type in ['text','image','video','voice','audio','file']) &&
+        (!('fileName' in data) || (data.fileName is string && data.fileName.size() <= 255)) &&
+        (!('fileData' in data) || (data.fileData is string && data.fileData.size() <= 500000)) &&
+        (!('fileSize' in data) || (data.fileSize is int && data.fileSize >= 0 && data.fileSize <= 26214400)) &&
+        (!('storagePath' in data) || (data.storagePath is string &&
+          data.storagePath.matches('^chats/' + chatId + '/media/' + data.senderId + '/[^/]+$'))) &&
+        (!('readBy' in data) || (data.readBy is list && data.readBy.size() <= 100)) &&
+        (!('reactions' in data) || (data.reactions is map && data.reactions.size() <= 6 &&
+          data.reactions.keys().hasOnly(['👍','❤️','😂','😮','😢','😡']))) &&
+        (!('isEdited' in data) || data.isEdited is bool) &&
+        (!('editedAt' in data) || data.editedAt is timestamp) &&
+        (!('selfDestruct' in data) || (data.selfDestruct is int && data.selfDestruct >= 1 && data.selfDestruct <= 604800)) &&
+        (!('destructAt' in data) || data.destructAt is timestamp);
+    }
     match /users/{userId} {
       allow read: if signedIn() && request.auth.uid == userId;
       allow create: if signedIn() && request.auth.uid == userId && request.resource.data.uid == userId &&
@@ -109,14 +140,14 @@ service cloud.firestore {
       allow delete: if signedIn() && resource.data.createdBy == request.auth.uid;
       match /messages/{messageId} {
         allow read: if chatMember(chatId);
-        allow create: if chatMember(chatId) &&
+        allow create: if chatMember(chatId) && validMessage(request.resource.data, chatId) &&
           (get(/databases/$(database)/documents/chats/$(chatId)).data.type != 'channel' ||
            request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.admins) &&
           request.resource.data.senderId == request.auth.uid &&
           request.resource.data.text is string && request.resource.data.text.size() <= 4096 &&
           (!('readBy' in request.resource.data) || request.resource.data.readBy == []) &&
           !('reactions' in request.resource.data);
-        allow update: if chatMember(chatId) && (
+        allow update: if chatMember(chatId) && validMessage(request.resource.data, chatId) && (
           (resource.data.senderId == request.auth.uid &&
            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text','isEdited','editedAt','selfDestruct','destructAt'])) ||
           (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readBy']) && validReadReceiptChange()) ||

@@ -200,3 +200,28 @@ test('new messages cannot start with forged receipts or reactions', { skip: !ava
         senderId: 'alice', text: 'normal message', readBy: []
     }));
 });
+
+test('new group cannot grant extra admin privileges or spoof the creator', { skip: !available }, async () => {
+    const alice = environment.authenticatedContext('alice').firestore();
+    const groups = collection(alice, 'chats');
+    const valid = { type: 'group', name: 'Команда', createdBy: 'alice', participants: ['alice', 'bob'], admins: ['alice'] };
+    await assertSucceeds(setDoc(doc(groups), valid));
+    await assertFails(setDoc(doc(groups), { ...valid, admins: ['alice', 'eve'] }));
+    await assertFails(setDoc(doc(groups), { ...valid, createdBy: 'eve', admins: ['eve'] }));
+    await assertFails(setDoc(doc(groups), { ...valid, name: 'A'.repeat(101) }));
+    await assertFails(setDoc(doc(groups), { ...valid, participants: ['bob'] }));
+});
+
+test('message schema rejects unknown fields and oversized attachment metadata', { skip: !available }, async () => {
+    const alice = environment.authenticatedContext('alice').firestore();
+    const messages = collection(alice, 'chats/chat-a/messages');
+    const base = { senderId: 'alice', text: 'Привет' };
+    await assertFails(setDoc(doc(messages), { ...base, role: 'admin' }));
+    await assertFails(setDoc(doc(messages), { ...base, senderName: 'A'.repeat(121) }));
+    await assertFails(setDoc(doc(messages), { ...base, fileData: 'x'.repeat(500001) }));
+    await assertFails(setDoc(doc(messages), { ...base, storagePath: 'chats/chat-b/media/alice/unsafe' }));
+    await assertFails(setDoc(doc(messages), { ...base, fileSize: -1 }));
+    await assertSucceeds(setDoc(doc(messages), { ...base, type: 'file', fileSize: 4, fileName: 'x.txt', fileData: 'data:text/plain;base64,QQ==' }));
+    await assertFails(updateDoc(doc(alice, 'chats/chat-a/messages/m1'), { text: 'Содержимое', role: 'admin' }));
+    await assertFails(updateDoc(doc(alice, 'chats/chat-a/messages/m1'), { text: 123 }));
+});
