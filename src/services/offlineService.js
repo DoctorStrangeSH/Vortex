@@ -6,6 +6,7 @@ export class OfflineService {
         this.isOnline = network?.onLine ?? false;
         this.queue = JSON.parse(this.storage?.getItem('offlineQueue') || '[]');
         this.listeners = [];
+        this.queueListeners = [];
         this.processingPromise = null;
         this.initialized = false;
     }
@@ -35,6 +36,7 @@ export class OfflineService {
     async addToQueue(action) {
         this.queue.push({ ...action, id: this.createId(), timestamp: Date.now() });
         this.storage?.setItem('offlineQueue', JSON.stringify(this.queue));
+        this.notifyQueue();
     }
 
     // Обработать очередь когда онлайн
@@ -45,12 +47,18 @@ export class OfflineService {
             for (const action of [...this.queue]) {
                 if (!this.isOnline) break;
                 try {
+                    action.status = 'sending';
+                    this.notifyQueue();
                     await this.executeAction(action);
                     // Remove only after the server confirms the write. A crash or
                     // disconnect keeps the action available for the next retry.
                     this.queue = this.queue.filter(item => item !== action);
                     this.storage?.setItem('offlineQueue', JSON.stringify(this.queue));
+                    this.notifyQueue();
                 } catch (error) {
+                    action.status = 'failed';
+                    this.storage?.setItem('offlineQueue', JSON.stringify(this.queue));
+                    this.notifyQueue();
                     console.warn('Сообщение осталось в очереди отправки', error);
                 }
             }
@@ -71,6 +79,21 @@ export class OfflineService {
     onChange(callback) {
         this.listeners.push(callback);
         return () => this.listeners = this.listeners.filter(fn => fn !== callback);
+    }
+
+    getQueue() {
+        return this.queue.map(action => ({ ...action }));
+    }
+
+    notifyQueue() {
+        const snapshot = this.getQueue();
+        this.queueListeners.forEach(callback => callback(snapshot));
+    }
+
+    onQueueChange(callback) {
+        this.queueListeners.push(callback);
+        callback(this.getQueue());
+        return () => { this.queueListeners = this.queueListeners.filter(fn => fn !== callback); };
     }
 }
 

@@ -82,3 +82,22 @@ test('initialization registers connectivity handlers once and flushes persisted 
     assert.equal(sends, 1);
     assert.deepEqual(service.queue, []);
 });
+
+test('queue subscribers receive sending, failure, and confirmed removal states', async () => {
+    const { service } = createService();
+    const states = [];
+    const unsubscribe = service.onQueueChange(items => states.push(items.map(item => item.status || 'queued')));
+    await service.addToQueue({ type: 'sendMessage', chatId: 'chat-1', user: { uid: 'user-1' }, text: 'Тест' });
+    service.executeAction = async () => { throw new Error('temporary'); };
+    const originalWarn = console.warn;
+    console.warn = () => {};
+    try { await service.processQueue(); }
+    finally { console.warn = originalWarn; }
+    assert.equal(service.getQueue()[0].status, 'failed');
+    service.executeAction = async () => {};
+    await service.processQueue();
+    assert.deepEqual(states, [[], ['queued'], ['sending'], ['failed'], ['sending'], []]);
+    unsubscribe();
+    await service.addToQueue({ type: 'sendMessage', text: 'Другое' });
+    assert.equal(states.length, 6);
+});

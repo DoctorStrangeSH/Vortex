@@ -61,6 +61,8 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
     const [selectionMode, setSelectionMode] = useState(false);
     const [isOnline, setIsOnline] = useState(navigator.onLine);
     const [sending, setSending] = useState(false);
+    const [sendNotice, setSendNotice] = useState('');
+    const [pendingActions, setPendingActions] = useState([]);
     const sendingRef = useRef(false);
     const messagesEndRef = useRef(null);
     const shouldAutoScroll = useRef(true);
@@ -69,7 +71,9 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
     // Offline listener
     useEffect(() => {
         offlineService.init();
-        return offlineService.onChange(setIsOnline);
+        const unsubscribeNetwork = offlineService.onChange(setIsOnline);
+        const unsubscribeQueue = offlineService.onQueueChange(setPendingActions);
+        return () => { unsubscribeNetwork(); unsubscribeQueue(); };
     }, []);
 
     // Push init
@@ -196,6 +200,7 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
         const isEditing = !!editingMessage;
         sendingRef.current = true;
         setSending(true);
+        setSendNotice(isEditing ? 'Сохранение изменений…' : navigator.onLine ? 'Отправляется…' : 'Добавляется в очередь…');
 
         try {
             if (!navigator.onLine && !isEditing) {
@@ -209,14 +214,18 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
             if (activeChatIdRef.current === targetChatId) {
                 setText(current => current === finalText ? '' : current);
                 if (isEditing) setEditingMessage(null);
+                setSendNotice(isEditing ? 'Изменения сохранены' : navigator.onLine ? 'Отправлено' : 'Ожидает подключения');
             }
         } catch (error) {
-            alert(error.message || 'Не удалось отправить сообщение');
+            if (activeChatIdRef.current === targetChatId) setSendNotice(error.message || 'Ошибка отправки — сообщение осталось в поле ввода');
         } finally {
             sendingRef.current = false;
             setSending(false);
         }
     };
+
+    const queuedForChat = pendingActions.filter(action => action.type === 'sendMessage' && action.chatId === chat?.id && action.user?.uid === user.uid);
+    const failedForChat = queuedForChat.filter(action => action.status === 'failed').length;
 
     const handleTyping = () => { if (chat && user) typingService.startTyping(chat.id, user.uid); };
 
@@ -394,6 +403,14 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
             {!isOnline && (
                 <div style={s.offlineBar}>📴 Нет соединения. Сообщения отправятся при подключении.</div>
             )}
+            {queuedForChat.length > 0 && (
+                <div style={s.queueBar} role="status">
+                    <span>{failedForChat ? `⚠️ Ошибка отправки: ${failedForChat}` : !isOnline ? '⏳ Ожидает подключения' : '⏳ Ожидает отправки'} · В очереди: {queuedForChat.length}</span>
+                    {isOnline && <button type="button" style={s.retryBtn} disabled={queuedForChat.some(action => action.status === 'sending')} onClick={() => offlineService.processQueue()}>
+                        Повторить
+                    </button>}
+                </div>
+            )}
 
             <ChatHeader
                 chat={chat} user={user} other={other} avatarColor={avatarColor}
@@ -454,6 +471,7 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
             {previewImage && <div style={s.imageOverlay} onClick={() => setPreviewImage(null)}><img src={previewImage} style={s.imagePreview} /></div>}
             {nowPlaying && <div style={s.miniPlayer}><span>🎵</span><div>{nowPlaying.name}</div><audio controls src={nowPlaying.src} autoPlay /><button onClick={() => setNowPlaying(null)}>✕</button></div>}
 
+            {sendNotice && <div style={s.sendNotice} role="status">{sendNotice}</div>}
             <MessageInput text={text} onTextChange={setText} onSend={handleSend} sending={sending} onTyping={handleTyping} isRecording={isRecording} onStartVoice={startVoiceRecording} onStopVoice={stopVoiceRecording} onShowAI={() => setShowAI(!showAI)} onFileSend={handleFileSend} editingMessage={editingMessage} onCancelEdit={cancelEdit} onShowPoll={() => setShowPollCreator(true)} />
         </div>
     );
@@ -467,6 +485,9 @@ const s = {
     emptyTitle: { fontSize:'1.5rem', fontWeight:700 },
     emptyText: { fontSize:'0.9rem' },
     offlineBar: { background:'var(--vortex-danger)', color:'white', textAlign:'center', padding:'4px', fontSize:'0.75rem' },
+    queueBar: { display:'flex', justifyContent:'space-between', alignItems:'center', gap:'12px', background:'var(--bg-secondary)', color:'var(--text-primary)', padding:'7px 12px', fontSize:'0.78rem' },
+    retryBtn: { border:'1px solid var(--border-default)', background:'var(--bg-tertiary)', borderRadius:'8px', padding:'5px 10px', color:'var(--text-primary)', cursor:'pointer' },
+    sendNotice: { color:'var(--text-tertiary)', fontSize:'0.72rem', padding:'4px 14px', textAlign:'right' },
     messagesContainer: { flex:1, overflowY:'auto', padding:'0.6rem 0.8rem', display:'flex', flexDirection:'column', gap:'2px', backgroundSize:'cover' },
     loading: { textAlign:'center', padding:'2rem', color:'var(--text-tertiary)' },
     emptyChat: { textAlign:'center', padding:'3rem', color:'var(--text-tertiary)' },
