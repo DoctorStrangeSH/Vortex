@@ -1,3 +1,5 @@
+import { assertQueuedMessageOwner } from './queuedMessageOwner.js';
+
 export class OfflineService {
     constructor({ storage = globalThis.localStorage, network = globalThis.navigator, eventTarget = globalThis.window, createId = () => globalThis.crypto.randomUUID(), locks = network?.locks } = {}) {
         this.storage = storage;
@@ -101,6 +103,8 @@ export class OfflineService {
         // Перевыполняем действие
         switch (action.type) {
             case 'sendMessage':
+                const { auth } = await import('./firebase.js');
+                assertQueuedMessageOwner(action, auth.currentUser?.uid);
                 const { chatService } = await import('./chatService.js');
                 await chatService.sendMessage(action.chatId, action.text, action.user, null, action.id);
                 break;
