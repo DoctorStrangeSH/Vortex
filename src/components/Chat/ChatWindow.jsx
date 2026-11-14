@@ -60,12 +60,15 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
     const [selectedMessages, setSelectedMessages] = useState([]);
     const [selectionMode, setSelectionMode] = useState(false);
     const [isOnline, setIsOnline] = useState(navigator.onLine);
+    const [sending, setSending] = useState(false);
+    const sendingRef = useRef(false);
     const messagesEndRef = useRef(null);
     const shouldAutoScroll = useRef(true);
     const messagesContainerRef = useRef(null);
 
     // Offline listener
     useEffect(() => {
+        offlineService.init();
         return offlineService.onChange(setIsOnline);
     }, []);
 
@@ -187,26 +190,31 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
     // Отправка
     const handleSend = async (e) => {
         e?.preventDefault();
-        const finalText = editingMessage ? editingMessage.text : text;
-        if (!finalText.trim() || !chat) return;
-
-        if (!navigator.onLine) {
-            await offlineService.addToQueue({ type: 'sendMessage', chatId: chat.id, text: finalText, user });
-            setText('');
-            alert('📴 Сообщение отправится при подключении к интернету');
-            return;
-        }
+        const finalText = text;
+        if (!finalText.trim() || !chat || sendingRef.current) return;
+        const targetChatId = chat.id;
+        const isEditing = !!editingMessage;
+        sendingRef.current = true;
+        setSending(true);
 
         try {
-            if (editingMessage) {
-                await messageService.editMessage(chat.id, editingMessage.id, finalText);
-                setEditingMessage(null);
+            if (!navigator.onLine && !isEditing) {
+                await offlineService.addToQueue({ type: 'sendMessage', chatId: targetChatId, text: finalText, user: { uid: user.uid, displayName: user.displayName } });
+            } else if (isEditing) {
+                if (!navigator.onLine) throw new Error('Редактирование требует подключения к интернету');
+                await messageService.editMessage(targetChatId, editingMessage.id, finalText);
             } else {
-                await chatService.sendMessage(chat.id, finalText, user);
+                await chatService.sendMessage(targetChatId, finalText, user);
             }
-            setText('');
+            if (activeChatIdRef.current === targetChatId) {
+                setText(current => current === finalText ? '' : current);
+                if (isEditing) setEditingMessage(null);
+            }
         } catch (error) {
             alert(error.message || 'Не удалось отправить сообщение');
+        } finally {
+            sendingRef.current = false;
+            setSending(false);
         }
     };
 
@@ -446,7 +454,7 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
             {previewImage && <div style={s.imageOverlay} onClick={() => setPreviewImage(null)}><img src={previewImage} style={s.imagePreview} /></div>}
             {nowPlaying && <div style={s.miniPlayer}><span>🎵</span><div>{nowPlaying.name}</div><audio controls src={nowPlaying.src} autoPlay /><button onClick={() => setNowPlaying(null)}>✕</button></div>}
 
-            <MessageInput text={text} onTextChange={setText} onSend={handleSend} onTyping={handleTyping} isRecording={isRecording} onStartVoice={startVoiceRecording} onStopVoice={stopVoiceRecording} onShowAI={() => setShowAI(!showAI)} onFileSend={handleFileSend} editingMessage={editingMessage} onCancelEdit={cancelEdit} onShowPoll={() => setShowPollCreator(true)} />
+            <MessageInput text={text} onTextChange={setText} onSend={handleSend} sending={sending} onTyping={handleTyping} isRecording={isRecording} onStartVoice={startVoiceRecording} onStopVoice={stopVoiceRecording} onShowAI={() => setShowAI(!showAI)} onFileSend={handleFileSend} editingMessage={editingMessage} onCancelEdit={cancelEdit} onShowPoll={() => setShowPollCreator(true)} />
         </div>
     );
 }

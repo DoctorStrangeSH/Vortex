@@ -1,6 +1,6 @@
 import { useRef } from 'preact/hooks';
 
-export function MessageInput({ text, onTextChange, onSend, onTyping, isRecording, onStartVoice, onStopVoice, onShowAI, onFileSend, editingMessage, onCancelEdit }) {
+export function MessageInput({ text, onTextChange, onSend, sending = false, onTyping, isRecording, onStartVoice, onStopVoice, onShowAI, onFileSend, editingMessage, onCancelEdit }) {
     const fileInputRef = useRef(null);
 
     const handleInput = (value) => {
@@ -33,13 +33,14 @@ export function MessageInput({ text, onTextChange, onSend, onTyping, isRecording
                     type="text"
                     value={text}
                     onInput={(e) => handleInput(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && onSend()}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); if (!sending) onSend(); } }}
                     placeholder="Сообщение"
                     style={s.input}
                 />
 
                 <button style={s.btn} onClick={onShowAI}>🤖</button>
-                <button onClick={onSend} disabled={!text.trim()} style={{ ...s.sendBtn, opacity: text.trim() ? 1 : 0.4 }}>➤</button>
+                <button onClick={onSend} disabled={!text.trim() || sending} aria-label={sending ? 'Отправка сообщения' : 'Отправить сообщение'}
+                    style={{ ...s.sendBtn, opacity: text.trim() && !sending ? 1 : 0.4 }}>{sending ? '…' : '➤'}</button>
             </div>
         </div>
     );

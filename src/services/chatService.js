@@ -122,8 +122,8 @@ class ChatService {
         });
     }
 
-    async sendMessage(chatId, text, user, attachment = null) {
-        await messageService.sendMessage(chatId, user, text, attachment);
+    async sendMessage(chatId, text, user, attachment = null, messageId = null) {
+        await messageService.sendMessage(chatId, user, text, attachment, messageId);
     }
 
     subscribeToMessages(chatId, callback) {

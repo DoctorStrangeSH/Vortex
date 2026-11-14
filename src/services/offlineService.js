@@ -1,13 +1,21 @@
-class OfflineService {
-    constructor() {
-        this.isOnline = navigator.onLine;
-        this.queue = JSON.parse(localStorage.getItem('offlineQueue') || '[]');
+export class OfflineService {
+    constructor({ storage = globalThis.localStorage, network = globalThis.navigator, eventTarget = globalThis.window, createId = () => globalThis.crypto.randomUUID() } = {}) {
+        this.storage = storage;
+        this.eventTarget = eventTarget;
+        this.createId = createId;
+        this.isOnline = network?.onLine ?? false;
+        this.queue = JSON.parse(this.storage?.getItem('offlineQueue') || '[]');
         this.listeners = [];
+        this.processingPromise = null;
+        this.initialized = false;
     }
 
     init() {
-        window.addEventListener('online', () => this.goOnline());
-        window.addEventListener('offline', () => this.goOffline());
+        if (this.initialized) return;
+        this.initialized = true;
+        this.eventTarget?.addEventListener('online', () => this.goOnline());
+        this.eventTarget?.addEventListener('offline', () => this.goOffline());
+        if (this.isOnline) this.processQueue();
     }
 
     goOnline() {
@@ -25,29 +33,29 @@ class OfflineService {
 
     // Добавить в очередь на отправку
     async addToQueue(action) {
-        this.queue.push({ ...action, timestamp: Date.now() });
-        localStorage.setItem('offlineQueue', JSON.stringify(this.queue));
+        this.queue.push({ ...action, id: this.createId(), timestamp: Date.now() });
+        this.storage?.setItem('offlineQueue', JSON.stringify(this.queue));
     }
 
     // Обработать очередь когда онлайн
     async processQueue() {
+        if (this.processingPromise) return this.processingPromise;
         if (!this.isOnline || this.queue.length === 0) return;
-
-        const queue = [...this.queue];
-        this.queue = [];
-        localStorage.setItem('offlineQueue', '[]');
-
-        for (const action of queue) {
-            try {
-                await this.executeAction(action);
-            } catch (e) {
-                this.queue.push(action);
+        this.processingPromise = (async () => {
+            for (const action of [...this.queue]) {
+                if (!this.isOnline) break;
+                try {
+                    await this.executeAction(action);
+                    // Remove only after the server confirms the write. A crash or
+                    // disconnect keeps the action available for the next retry.
+                    this.queue = this.queue.filter(item => item !== action);
+                    this.storage?.setItem('offlineQueue', JSON.stringify(this.queue));
+                } catch (error) {
+                    console.warn('Сообщение осталось в очереди отправки', error);
+                }
             }
-        }
-
-        if (this.queue.length > 0) {
-            localStorage.setItem('offlineQueue', JSON.stringify(this.queue));
-        }
+        })().finally(() => { this.processingPromise = null; });
+        return this.processingPromise;
     }
 
     async executeAction(action) {
@@ -55,7 +63,7 @@ class OfflineService {
         switch (action.type) {
             case 'sendMessage':
                 const { chatService } = await import('./chatService.js');
-                await chatService.sendMessage(action.chatId, action.text, action.user);
+                await chatService.sendMessage(action.chatId, action.text, action.user, null, action.id);
                 break;
         }
     }

@@ -49,8 +49,14 @@ class MessageService {
         };
     }
 
-    async sendMessage(chatId, user, text, attachment = null) {
+    async sendMessage(chatId, user, text, attachment = null, messageId = null) {
         validateOutgoingMessage({ chatId, user, text, attachment });
+        const messageRef = messageId
+            ? doc(db, 'chats', chatId, 'messages', messageId)
+            : doc(collection(db, 'chats', chatId, 'messages'));
+        // Offline retries reuse the same message ID. If the previous attempt
+        // committed before the connection dropped, it must not send a duplicate.
+        if (messageId && (await getDoc(messageRef)).exists()) return;
         const messageData = {
             senderId: user.uid,
             senderName: user.displayName || user.email,
@@ -78,7 +84,6 @@ class MessageService {
         // Message and preview are committed together, so a failed write cannot
         // leave the chat preview behind the newest message.
         const batch = writeBatch(db);
-        const messageRef = doc(collection(db, 'chats', chatId, 'messages'));
         batch.set(messageRef, messageData);
         batch.update(doc(db, 'chats', chatId), {
             lastMessage: lastMsg,
