@@ -7,3 +7,9 @@ export function getNewIncomingIds(previousIds, messages, ownUid) {
 export function getUnreadIncomingIds(messages, ownUid, attemptedIds) {
     return messages.filter(message => message.senderId !== ownUid && !message.readBy?.includes(ownUid) && !attemptedIds.has(message.id)).map(message => message.id);
 }
+
+// Only the foreground, focused tab should play in-app sounds. Background
+// notifications require a separate server-backed push implementation.
+export function shouldPlayIncomingSound({ visibilityState, hasFocus }) {
+    return visibilityState === 'visible' && hasFocus;
+}

@@ -11,7 +11,6 @@ import { typingService } from '../../services/typingService';
 import { reactionService } from '../../services/reactionService';
 import { soundService } from '../../services/soundService';
 import { offlineService } from '../../services/offlineService';
-import { pushService } from '../../services/pushService';
 import { selfDestructService } from '../../services/selfDestructService';
 import { exportService } from '../../services/exportService';
 import { wallpaperService } from '../../services/wallpaperService';
@@ -28,7 +27,7 @@ import { PollMessage } from './PollMessage';
 import { ThemeCustomizer } from '../Theme/ThemeCustomizer';
 import { StatusPicker } from '../Status/StatusPicker';
 import { mergeMessagePages } from '../../services/messagePagination.js';
-import { getNewIncomingIds, getUnreadIncomingIds } from '../../services/messageActivity.js';
+import { getNewIncomingIds, getUnreadIncomingIds, shouldPlayIncomingSound } from '../../services/messageActivity.js';
 
 export function ChatWindow({ chat, user, onBack, isMobile }) {
     const [messages, setMessages] = useState([]);
@@ -79,12 +78,6 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
         return () => { unsubscribeNetwork(); unsubscribeQueue(); };
     }, []);
 
-    // Push init
-    useEffect(() => {
-        pushService.init();
-        pushService.subscribe(user.uid);
-    }, []);
-
     // Очистка при смене чата
     useEffect(() => {
         if (!chat) {
@@ -112,7 +105,8 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
         const unsubscribe = messageService.subscribeToMessages(chat.id, (msgs, cursor, hasMore) => {
             const ids = new Set(msgs.map(message => message.id));
             if (seenMessageIdsRef.current) {
-                if (getNewIncomingIds(seenMessageIdsRef.current, msgs, currentUserId).length > 0) {
+                if (getNewIncomingIds(seenMessageIdsRef.current, msgs, currentUserId).length > 0 &&
+                    shouldPlayIncomingSound({ visibilityState: document.visibilityState, hasFocus: document.hasFocus() })) {
                     soundService.playMessageSound();
                 }
             }
