@@ -13,7 +13,8 @@ import {
     getDocs,
     getDoc,
     arrayUnion,
-    writeBatch
+    writeBatch,
+    startAfter
 } from 'firebase/firestore';
 import { validateOutgoingMessage, MESSAGE_PAGE_SIZE } from './messageValidation.js';
 
@@ -29,8 +30,23 @@ class MessageService {
             snapshot.forEach((doc) => {
                 messages.push({ id: doc.id, ...doc.data() });
             });
-            callback(messages.reverse());
+            callback(messages.reverse(), snapshot.docs.at(-1) || null, snapshot.size === MESSAGE_PAGE_SIZE);
         });
+    }
+
+    async fetchOlderMessages(chatId, cursor) {
+        if (!cursor) return { messages: [], cursor: null, hasMore: false };
+        const snapshot = await getDocs(query(
+            collection(db, 'chats', chatId, 'messages'),
+            orderBy('createdAt', 'desc'),
+            startAfter(cursor),
+            limit(MESSAGE_PAGE_SIZE)
+        ));
+        return {
+            messages: snapshot.docs.map(message => ({ id: message.id, ...message.data() })).reverse(),
+            cursor: snapshot.docs.at(-1) || null,
+            hasMore: snapshot.size === MESSAGE_PAGE_SIZE
+        };
     }
 
     async sendMessage(chatId, user, text, attachment = null) {

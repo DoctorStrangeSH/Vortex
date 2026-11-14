@@ -24,10 +24,18 @@ import { PollCreator } from './PollCreator';
 import { PollMessage } from './PollMessage';
 import { ThemeCustomizer } from '../Theme/ThemeCustomizer';
 import { StatusPicker } from '../Status/StatusPicker';
+import { mergeMessagePages } from '../../services/messagePagination.js';
 
 export function ChatWindow({ chat, user, onBack, isMobile }) {
     const [messages, setMessages] = useState([]);
     const [messagesLoading, setMessagesLoading] = useState(true);
+    const [olderMessagesLoading, setOlderMessagesLoading] = useState(false);
+    const [hasOlderMessages, setHasOlderMessages] = useState(false);
+    const oldestCursorRef = useRef(null);
+    const olderMessagesRef = useRef([]);
+    const latestMessagesRef = useRef([]);
+    const loadingOlderRef = useRef(false);
+    const activeChatIdRef = useRef(null);
     const [text, setText] = useState('');
     const [editingMessage, setEditingMessage] = useState(null);
     const [otherStatus, setOtherStatus] = useState({ isOnline: false, lastSeen: null });
@@ -71,22 +79,62 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
             return;
         }
         const currentChatId = chat.id;
+        activeChatIdRef.current = currentChatId;
         const currentUserId = user.uid;
         setMessages([]);
         setMessagesLoading(true);
+        setOlderMessagesLoading(false);
+        setHasOlderMessages(false);
+        oldestCursorRef.current = null;
+        olderMessagesRef.current = [];
+        latestMessagesRef.current = [];
+        loadingOlderRef.current = false;
+        shouldAutoScroll.current = true;
         setText('');
         setEditingMessage(null);
         setOtherStatus({ isOnline: false, lastSeen: null });
-        const unsubscribe = chatService.subscribeToMessages(chat.id, (msgs) => {
-            setMessages(msgs);
+        const unsubscribe = messageService.subscribeToMessages(chat.id, (msgs, cursor, hasMore) => {
+            latestMessagesRef.current = msgs;
+            if (!olderMessagesRef.current.length) {
+                oldestCursorRef.current = cursor;
+                setHasOlderMessages(hasMore);
+            }
+            setMessages(mergeMessagePages(olderMessagesRef.current, msgs));
             setMessagesLoading(false);
         });
         return () => {
+            activeChatIdRef.current = null;
             unsubscribe?.();
             setMessages([]);
             typingService.stopTyping(currentChatId, currentUserId);
         };
     }, [chat?.id]);
+
+    const loadOlderMessages = async () => {
+        if (!chat || !oldestCursorRef.current || loadingOlderRef.current || !hasOlderMessages) return;
+        loadingOlderRef.current = true;
+        setOlderMessagesLoading(true);
+        const currentChatId = chat.id;
+        const container = messagesContainerRef.current;
+        const previousHeight = container?.scrollHeight || 0;
+        shouldAutoScroll.current = false;
+        try {
+            const page = await messageService.fetchOlderMessages(currentChatId, oldestCursorRef.current);
+            if (activeChatIdRef.current !== currentChatId) return;
+            oldestCursorRef.current = page.cursor;
+            olderMessagesRef.current = mergeMessagePages(page.messages, olderMessagesRef.current);
+            setHasOlderMessages(page.hasMore);
+            setMessages(mergeMessagePages(olderMessagesRef.current, latestMessagesRef.current));
+            requestAnimationFrame(() => {
+                if (container) container.scrollTop += container.scrollHeight - previousHeight;
+            });
+        } catch (error) {
+            alert(error.message || 'Не удалось загрузить историю');
+        } finally {
+            loadingOlderRef.current = false;
+            setOlderMessagesLoading(false);
+        }
+    };
 
     // Автоскролл
     const handleScroll = () => {
@@ -352,6 +400,9 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
             <PinnedMessage messages={pinnedMessages} onUnpin={(id) => id === null ? setShowAllPinned(true) : chatService.unpinMessage(chat.id, id)} onScrollTo={handleScrollToPinned} />
 
             <div style={{ ...s.messagesContainer, background: wallpaper || 'var(--bg-primary)' }} ref={messagesContainerRef} onScroll={handleScroll}>
+                {!messagesLoading && hasOlderMessages && <button type="button" disabled={olderMessagesLoading} onClick={loadOlderMessages} style={{ display:'block', margin:'12px auto', padding:'9px 16px', borderRadius:'12px', cursor:'pointer' }}>
+                    {olderMessagesLoading ? 'Загружаем историю…' : '↑ Загрузить ранние сообщения'}
+                </button>}
                 {messagesLoading ? <div style={s.loading}>Загрузка...</div> :
                  grouped.length === 0 ? <div style={s.emptyChat}><div style={{ fontSize:'3rem' }}>💬</div><p>Нет сообщений</p></div> :
                  grouped.map((item, i) => {
