@@ -65,13 +65,7 @@ service cloud.firestore {
         (changed.hasOnly(['😂']) && validReactionForKey(before, after, '😂')) ||
         (changed.hasOnly(['😮']) && validReactionForKey(before, after, '😮')) ||
         (changed.hasOnly(['😢']) && validReactionForKey(before, after, '😢')) ||
-        (changed.hasOnly(['🙏']) && validReactionForKey(before, after, '🙏')) ||
-        (changed.hasOnly(['🔥']) && validReactionForKey(before, after, '🔥')) ||
-        (changed.hasOnly(['🎉']) && validReactionForKey(before, after, '🎉')) ||
-        (changed.hasOnly(['👏']) && validReactionForKey(before, after, '👏')) ||
-        (changed.hasOnly(['😍']) && validReactionForKey(before, after, '😍')) ||
-        (changed.hasOnly(['🤔']) && validReactionForKey(before, after, '🤔')) ||
-        (changed.hasOnly(['👎']) && validReactionForKey(before, after, '👎'))
+        (changed.hasOnly(['😡']) && validReactionForKey(before, after, '😡'))
       );
     }
     match /users/{userId} {
