@@ -163,7 +163,7 @@ test('read receipts can only be added for the authenticated participant', { skip
     await assertSucceeds(updateDoc(message, { readBy: arrayUnion('bob') }));
     await assertFails(updateDoc(message, { readBy: arrayUnion('eve') }));
     await assertFails(updateDoc(message, { readBy: arrayUnion('alice') }));
-    await assertFails(updateDoc(message, { readBy: arrayUnion('bob'), reactions: { '❤️': ['bob'] } }));
+    await assertFails(updateDoc(message, { readBy: arrayUnion('alice'), reactions: { '❤️': ['bob'] } }));
     await assertFails(updateDoc(doc(alice, 'chats/chat-a/messages/m1'), { readBy: arrayUnion('eve') }));
 });
 
@@ -173,7 +173,7 @@ test('reactions can only be toggled by their own authenticated participant', { s
     const message = doc(bob, 'chats/chat-a/messages/m1');
     await assertSucceeds(updateDoc(message, { reactions: { '❤️': ['bob'] } }));
     await assertFails(updateDoc(message, { reactions: { '❤️': ['bob', 'eve'] } }));
-    await assertFails(updateDoc(alice && doc(alice, 'chats/chat-a/messages/m1'), { reactions: { '❤️': [] } }));
+    await assertFails(updateDoc(doc(alice, 'chats/chat-a/messages/m1'), { reactions: { '❤️': [] } }));
     await assertFails(updateDoc(message, { reactions: { '💣': ['bob'] } }));
     await assertFails(updateDoc(message, { reactions: { '❤️': ['bob'], '🔥': ['bob'] } }));
     await assertSucceeds(updateDoc(message, { reactions: { '❤️': [] } }));
