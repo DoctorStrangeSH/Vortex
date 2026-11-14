@@ -30,6 +30,7 @@ export function Sidebar({ user, activeChat, onSelectChat }) {
     const [showHiddenChats, setShowHiddenChats] = useState(false);
     const [chatOptionsId, setChatOptionsId] = useState(null);
     const searchTimeoutRef = useRef(null);
+    const searchRequestRef = useRef(0);
     const optionsMenuRef = useRef(null);
 
     useEffect(() => {
@@ -43,7 +44,10 @@ export function Sidebar({ user, activeChat, onSelectChat }) {
         setShowHiddenChats(false);
     }, [hiddenChatsKey, pinnedChatsKey]);
 
-    useEffect(() => () => { if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current); }, []);
+    useEffect(() => () => {
+        searchRequestRef.current += 1;
+        if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    }, []);
 
     useEffect(() => {
         if (!chatOptionsId) return;
@@ -87,30 +91,29 @@ export function Sidebar({ user, activeChat, onSelectChat }) {
     const handleLogout = async () => { await authService.logout(); };
 
     const handleGlobalSearch = (value) => {
+        const requestId = ++searchRequestRef.current;
         setGlobalSearch(value);
         if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
-        if (value.trim().length < 2) { setGlobalResults([]); setShowGlobalResults(false); return; }
+        setGlobalResults([]);
+        if (value.trim().length < 2) { setShowGlobalResults(false); return; }
         setShowGlobalResults(false);
         searchTimeoutRef.current = setTimeout(async () => {
             try {
                 const r = await userService.searchUsers(value);
-                if (searchTimeoutRef.current !== timeout) return;
+                if (searchRequestRef.current !== requestId) return;
                 setGlobalResults(r.filter(u => u.uid !== user.uid)); setShowGlobalResults(true);
-            } catch { if (searchTimeoutRef.current === timeout) setGlobalResults([]); }
+            } catch { if (searchRequestRef.current === requestId) setGlobalResults([]); }
         }, 300);
-        const timeout = searchTimeoutRef.current;
     };
 
     const handleStartChat = async (foundUser) => {
-        try { const id = await chatService.createChat(user, foundUser); setShowGlobalResults(false); setGlobalSearch(''); onSelectChat?.({ id }); }
+        try { const id = await chatService.createChat(user, foundUser); handleGlobalSearch(''); onSelectChat?.({ id }); }
         catch (err) { console.error(err); }
     };
 
     const openChat = (chat) => {
         setChatOptionsId(null);
-        if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
-        setGlobalSearch('');
-        setShowGlobalResults(false);
+        handleGlobalSearch('');
         onSelectChat(chat);
     };
 
@@ -146,10 +149,11 @@ export function Sidebar({ user, activeChat, onSelectChat }) {
             <div style={st.searchContainer}>
                 <div style={st.searchWrapper}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style={st.searchIcon}><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-                    <input value={globalSearch} onInput={e => handleGlobalSearch(e.target.value)} placeholder="Поиск чатов и людей" aria-label="Поиск чатов и людей" style={st.searchInput} />
+                    <input value={globalSearch} onInput={e => handleGlobalSearch(e.target.value)} onKeyDown={e => { if (e.key === 'Escape') { handleGlobalSearch(''); e.currentTarget.blur(); } }} placeholder="Поиск чатов и людей" aria-label="Поиск чатов и людей" style={{...st.searchInput, paddingRight: globalSearch ? '2.3rem' : '0.75rem'}} />
+                    {globalSearch && <button type="button" aria-label="Очистить поиск" title="Очистить поиск" style={st.clearSearch} onClick={() => handleGlobalSearch('')}>×</button>}
                 </div>
                 {showGlobalResults && globalResults.length > 0 && (
-                    <div style={st.results}><div style={st.resultTitle}>Пользователи</div>{globalResults.map(u => <div key={u.uid} onClick={() => handleStartChat(u)} style={st.resultItem}><div style={{...st.resultAvatar, background: getAvatarColor(u.displayName || u.username || '?')}}>{(u.displayName || u.username || '?').charAt(0).toUpperCase()}</div><div><div style={st.resultName}>{u.displayName || 'Без имени'}</div><div style={st.resultEmail}>@{u.username || 'без username'}</div></div></div>)}</div>
+                    <div style={st.results}><div style={st.resultTitle}>Пользователи</div>{globalResults.map(u => <button type="button" key={u.uid} onClick={() => handleStartChat(u)} style={st.resultItem}><div style={{...st.resultAvatar, background: getAvatarColor(u.displayName || u.username || '?')}}>{(u.displayName || u.username || '?').charAt(0).toUpperCase()}</div><div><div style={st.resultName}>{u.displayName || 'Без имени'}</div><div style={st.resultEmail}>@{u.username || 'без username'}</div></div></button>)}</div>
                 )}
             </div>
 
@@ -204,9 +208,10 @@ const st = {
     searchWrapper: { position:'relative' },
     searchIcon: { position:'absolute', left:'10px', top:'50%', transform:'translateY(-50%)', color:'var(--text-tertiary)' },
     searchInput: { width:'100%', padding:'0.5rem 0.75rem 0.5rem 2rem', background:'rgba(255,255,255,0.03)', border:'1px solid var(--border-subtle)', borderRadius:'10px', color:'var(--text-primary)', fontSize:'0.85rem', outline:'none' },
+    clearSearch: { position:'absolute', right:'6px', top:'50%', transform:'translateY(-50%)', border:0, background:'transparent', color:'var(--text-secondary)', cursor:'pointer', padding:'4px 8px', fontSize:'1.25rem', lineHeight:1 },
     results: { background:'var(--bg-tertiary)', border:'1px solid var(--border-default)', borderRadius:'10px', marginTop:'4px', maxHeight:'260px', overflowY:'auto', position:'absolute', left:'0.75rem', right:'0.75rem', zIndex:50 },
     resultTitle: { padding:'0.4rem 0.75rem', fontSize:'0.65rem', fontWeight:600, color:'var(--text-tertiary)', textTransform:'uppercase' },
-    resultItem: { display:'flex', alignItems:'center', gap:'0.5rem', padding:'0.5rem 0.75rem', cursor:'pointer', borderBottom:'1px solid var(--border-subtle)' },
+    resultItem: { display:'flex', alignItems:'center', gap:'0.5rem', padding:'0.5rem 0.75rem', cursor:'pointer', border:0, borderBottom:'1px solid var(--border-subtle)', background:'transparent', color:'var(--text-primary)', textAlign:'left', width:'100%' },
     resultAvatar: { width:'36px', height:'36px', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontWeight:700, fontSize:'0.85rem', flexShrink:0 },
     resultName: { fontWeight:600, fontSize:'0.85rem' },
     resultEmail: { fontSize:'0.75rem', color:'var(--text-secondary)' },
