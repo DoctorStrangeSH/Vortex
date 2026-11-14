@@ -1,7 +1,8 @@
 import { useRef, useEffect } from 'preact/hooks';
 import { useSwipe } from '../../hooks/useSwipe';
+import { getMessageReadStatus } from '../../services/messageReadStatus.js';
 
-export function MessageBubble({ msg, own, other, avatarColor, isMobile, isPinned, onContextMenu, onDoubleClick, onImageClick, onReactionClick, onPlayAudio, onReply }) {
+export function MessageBubble({ msg, own, other, avatarColor, isMobile, isPinned, participants, onContextMenu, onDoubleClick, onImageClick, onReactionClick, onPlayAudio, onReply }) {
     const messageRef = useRef(null);
     const { attach, detach } = useSwipe(messageRef, 
         () => onReply?.(msg.id), // Свайп влево — ответить
@@ -25,6 +26,10 @@ export function MessageBubble({ msg, own, other, avatarColor, isMobile, isPinned
         const d = ts.toDate();
         return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
     };
+
+    const readStatus = own ? getMessageReadStatus(msg, participants, msg.senderId) : null;
+    const readTitle = !readStatus ? '' : readStatus.state === 'read' ? 'Прочитано всеми участниками' :
+        readStatus.state === 'partially_read' ? `Прочитали ${readStatus.readCount} из ${readStatus.recipientCount}` : 'Отправлено · прочтение не подтверждено';
 
     return (
         <div ref={messageRef} style={{ ...s.wrapper, justifyContent: own ? 'flex-end' : 'flex-start' }}>
@@ -98,11 +103,11 @@ export function MessageBubble({ msg, own, other, avatarColor, isMobile, isPinned
                         {msg.isEdited && <span style={s.editedSmall}>изм.</span>}
                         <span>{formatMessageTime(msg.createdAt)}</span>
                         {own && (
-                            <span style={{
-                                color: msg.readBy?.length > 0 ? 'var(--vortex-secondary)' : 'inherit',
+                            <span title={readTitle} aria-label={readTitle} style={{
+                                color: readStatus.state === 'read' ? 'var(--vortex-secondary)' : 'inherit',
                                 marginLeft: '2px'
                             }}>
-                                {msg.readBy?.length > 0 ? '✓✓' : '✓'}
+                                {readStatus.state === 'sent' ? '✓' : '✓✓'}
                             </span>
                         )}
                     </div>

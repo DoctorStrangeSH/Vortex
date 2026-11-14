@@ -470,7 +470,7 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
                              onClick={() => toggleSelection(msg.id)}
                              onTouchStart={(e) => { const t = setTimeout(() => handleLongPress(msg.id), 500); e.target.addEventListener('touchend', () => clearTimeout(t), { once:true }); }}
                              style={{ background: selectedMessages.includes(msg.id) ? 'rgba(124,58,237,0.15)' : 'transparent', borderRadius: '8px', cursor: selectionMode ? 'pointer' : 'default' }}>
-                            <MessageBubble msg={msg} own={msg.senderId === user.uid} other={other} avatarColor={avatarColor}
+                            <MessageBubble msg={msg} own={msg.senderId === user.uid} other={other} avatarColor={avatarColor} participants={chat.participants}
                                 isMobile={isMobile} isPinned={pinnedMessages.some(m => m.id === msg.id)}
                                 onContextMenu={handleContextMenu} onDoubleClick={handleDoubleClick}
                                 onImageClick={setPreviewImage} onReactionClick={handleReactionClick}
