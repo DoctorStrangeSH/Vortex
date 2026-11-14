@@ -1,4 +1,5 @@
 import { db } from './firebase';
+import { normalizeUsername } from './usernamePolicy.js';
 import {
     doc,
     setDoc,
@@ -7,40 +8,44 @@ import {
     query,
     collection,
     where,
-    limit
+    limit,
+    runTransaction
 } from 'firebase/firestore';
 
 class UserService {
     // Сохранить пользователя при регистрации
     async createUser(userData) {
         const { uid, email, displayName, username } = userData;
-        
-        await setDoc(doc(db, 'users', uid), {
+        const normalizedUsername = username ? normalizeUsername(username) : '';
+        const userRef = doc(db, 'users', uid);
+        const usernameRef = normalizedUsername ? doc(db, 'usernames', normalizedUsername) : null;
+        const profile = {
             uid,
             email,
             displayName,
-            username,
+            username: normalizedUsername,
             createdAt: new Date(),
             updatedAt: new Date()
+        };
+        await runTransaction(db, async transaction => {
+            if (usernameRef) {
+                const claim = await transaction.get(usernameRef);
+                if (claim.exists() && claim.data().uid !== uid) {
+                    throw new Error('Этот username уже занят');
+                }
+            }
+            const currentProfile = await transaction.get(userRef);
+            if (currentProfile.exists()) throw new Error('Профиль уже существует');
+            transaction.set(userRef, profile);
+            if (usernameRef) transaction.set(usernameRef, { username: normalizedUsername, uid, email });
         });
-        
-        if (username) {
-            await setDoc(doc(db, 'usernames', username), {
-                username,
-                uid,
-                email
-            });
-        }
     }
 
     // Проверить, свободен ли username
     async isUsernameAvailable(username) {
-        const q = query(
-            collection(db, 'usernames'),
-            where('username', '==', username)
-        );
-        const snapshot = await getDocs(q);
-        return snapshot.empty;
+        const normalized = normalizeUsername(username);
+        const snapshot = await getDoc(doc(db, 'usernames', normalized));
+        return !snapshot.exists();
     }
 
     // Найти пользователя по email или @username
@@ -49,15 +54,10 @@ class UserService {
         
         // Поиск по @username
         if (input.startsWith('@')) {
-            const username = input.substring(1).toLowerCase();
-            const q = query(
-                collection(db, 'usernames'),
-                where('username', '==', username)
-            );
-            const snapshot = await getDocs(q);
-            
-            if (!snapshot.empty) {
-                const data = snapshot.docs[0].data();
+            const username = normalizeUsername(input);
+            const snapshot = await getDoc(doc(db, 'usernames', username));
+            if (snapshot.exists()) {
+                const data = snapshot.data();
                 const userDoc = await getDoc(doc(db, 'users', data.uid));
                 return userDoc.exists() ? userDoc.data() : null;
             }
@@ -75,14 +75,10 @@ class UserService {
         }
         
         // Поиск по username без @
-        const q = query(
-            collection(db, 'usernames'),
-            where('username', '==', input.toLowerCase())
-        );
-        const snapshot = await getDocs(q);
-        
-        if (!snapshot.empty) {
-            const data = snapshot.docs[0].data();
+        const username = normalizeUsername(input);
+        const snapshot = await getDoc(doc(db, 'usernames', username));
+        if (snapshot.exists()) {
+            const data = snapshot.data();
             const userDoc = await getDoc(doc(db, 'users', data.uid));
             return userDoc.exists() ? userDoc.data() : null;
         }

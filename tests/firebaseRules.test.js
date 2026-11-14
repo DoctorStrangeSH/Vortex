@@ -1,7 +1,7 @@
 import test, { after } from 'node:test';
 import assert from 'node:assert/strict';
 import { initializeTestEnvironment, assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
-import { collection, doc, getDoc, getDocs, query, setDoc, updateDoc, where } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, query, runTransaction, setDoc, updateDoc, where } from 'firebase/firestore';
 import { ref, uploadString } from 'firebase/storage';
 
 const available = !!process.env.FIRESTORE_EMULATOR_HOST;
@@ -59,4 +59,18 @@ test('storage denies nonmember and wrong-owner uploads (positive path pending cr
     const eve = environment.authenticatedContext('eve').storage();
     await assertFails(uploadString(ref(alice, 'chats/chat-a/media/eve/photo2'), 'hello', 'raw', { contentType: 'text/plain' }));
     await assertFails(uploadString(ref(eve, 'chats/chat-a/media/eve/photo3'), 'hello', 'raw', { contentType: 'text/plain' }));
+});
+
+test('username and profile are claimed atomically; another user cannot take the name', { skip: !available }, async () => {
+    const alice = environment.authenticatedContext('alice').firestore();
+    const bob = environment.authenticatedContext('bob').firestore();
+    const claim = doc(alice, 'usernames/sherlock');
+    const profile = doc(alice, 'users/alice');
+    await assertSucceeds(runTransaction(alice, async tx => {
+        assert.equal((await tx.get(claim)).exists(), false);
+        tx.set(profile, { uid: 'alice', email: 'alice@example.test', username: 'sherlock' });
+        tx.set(claim, { uid: 'alice', username: 'sherlock', email: 'alice@example.test' });
+    }));
+    await assertFails(setDoc(doc(bob, 'usernames/sherlock'), { uid: 'bob', username: 'sherlock' }));
+    await assertFails(setDoc(doc(bob, 'users/bob'), { uid: 'bob', username: 'sherlock' }));
 });

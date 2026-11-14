@@ -12,14 +12,21 @@ service cloud.firestore {
     match /users/{userId} {
       // Profiles are searchable by signed-in users. Avoid storing private data here.
       allow read: if signedIn();
-      allow create: if signedIn() && request.auth.uid == userId && request.resource.data.uid == userId;
-      allow update: if signedIn() && request.auth.uid == userId && request.resource.data.uid == resource.data.uid;
+      allow create: if signedIn() && request.auth.uid == userId && request.resource.data.uid == userId &&
+        (request.resource.data.username == '' ||
+         (request.resource.data.username is string &&
+          getAfter(/databases/$(database)/documents/usernames/$(request.resource.data.username)).data.uid == userId));
+      allow update: if signedIn() && request.auth.uid == userId &&
+        request.resource.data.uid == resource.data.uid &&
+        request.resource.data.username == resource.data.username;
       allow delete: if false;
     }
 
     match /usernames/{username} {
       allow read: if signedIn();
-      allow create: if signedIn() && request.resource.data.uid == request.auth.uid && request.resource.data.username == username;
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid &&
+        request.resource.data.username == username &&
+        getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.username == username;
       allow update, delete: if false;
     }
 

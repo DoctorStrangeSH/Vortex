@@ -32,6 +32,9 @@ class AuthService {
     }
 
     async register(email, password, name, username = '') {
+        if (username && !(await userService.isUsernameAvailable(username))) {
+            throw new Error('Этот username уже занят');
+        }
         const result = await createUserWithEmailAndPassword(auth, email, password);
         await updateProfile(result.user, { displayName: name });
         await userService.createUser({ uid: result.user.uid, email, displayName: name, username });
