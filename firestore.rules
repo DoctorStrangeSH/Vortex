@@ -1,0 +1,65 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function member(chat) {
+      return signedIn() && request.auth.uid in chat.participants;
+    }
+    function chatMember(chatId) {
+      return member(get(/databases/$(database)/documents/chats/$(chatId)).data);
+    }
+
+    match /users/{userId} {
+      // Profiles are searchable by signed-in users. Avoid storing private data here.
+      allow read: if signedIn();
+      allow create: if signedIn() && request.auth.uid == userId && request.resource.data.uid == userId;
+      allow update: if signedIn() && request.auth.uid == userId && request.resource.data.uid == resource.data.uid;
+      allow delete: if false;
+    }
+
+    match /usernames/{username} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid && request.resource.data.username == username;
+      allow update, delete: if false;
+    }
+
+    match /chats/{chatId} {
+      // A transaction creating a deterministic DM first reads a missing doc.
+      // Read of an absent document reveals no contents; existing chats remain private.
+      allow get: if (signedIn() && !exists(/databases/$(database)/documents/chats/$(chatId))) || member(resource.data);
+      allow list: if member(resource.data);
+      allow create: if signedIn() && member(request.resource.data) &&
+        request.resource.data.participants.size() >= 1 &&
+        request.resource.data.participants.size() <= 100;
+      allow update: if member(resource.data) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'lastMessage', 'lastMessageTime', 'pinnedMessages',
+          'subscribers', 'subscriberCount'
+        ]);
+      allow delete: if signedIn() && resource.data.createdBy == request.auth.uid;
+
+      match /messages/{messageId} {
+        allow read: if chatMember(chatId);
+        allow create: if chatMember(chatId) &&
+          request.resource.data.senderId == request.auth.uid &&
+          request.resource.data.text is string &&
+          request.resource.data.text.size() <= 4096;
+        allow update: if chatMember(chatId) && (
+          (resource.data.senderId == request.auth.uid &&
+           request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+             'text', 'isEdited', 'editedAt', 'selfDestruct', 'destructAt'
+           ])) ||
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readBy', 'reactions'])
+        );
+        allow delete: if chatMember(chatId) && resource.data.senderId == request.auth.uid;
+      }
+
+      match /typing/{userId} {
+        allow read: if chatMember(chatId);
+        allow create, update, delete: if chatMember(chatId) && request.auth.uid == userId;
+      }
+    }
+
+    match /{document=**} { allow read, write: if false; }
+  }
+}

@@ -1,6 +1,10 @@
 # Firebase security gate (P0)
 
-**Не развёрнуто.** Правила доступа к production Firebase пока недоступны для проверки из этого репозитория. До публичного запуска необходимо проверить актуальные Firestore Rules в Firebase Console и протестировать новые правила в Emulator Suite.
+**Не развёрнуто.** Предложены `firestore.rules` и `storage.rules`. Эти правила проверяются локально через `npm run test:rules`; они не опубликованы в production и могут потребовать доработки под существующие документы.
+
+Для запуска Firebase Emulator Suite необходима Java. Запуск `npm run test:rules` создаёт только локальный демо-проект `demo-vortex`.
+
+**Открытый блокер для Storage:** негативные проверки запрета проходят, но разрешённая загрузка участника в эмуляторе пока отклоняется: `firestore.get` из Storage Rules возвращает `null`. Нельзя включать `VITE_USE_FIREBASE_STORAGE` до настройки связи Storage ↔ Firestore и прохождения положительного теста (в том числе в staging). При развёртывании cross-service rules Firebase может потребовать IAM разрешения для service agent.
 
 ## Угрозы, которые должны блокироваться сервером
 

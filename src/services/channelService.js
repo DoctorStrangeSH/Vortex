@@ -11,6 +11,7 @@ class ChannelService {
             createdBy: user.uid,
             ownerId: user.uid,
             admins: [user.uid],
+            participants: [user.uid],
             subscribers: [user.uid],
             subscriberCount: 1,
             createdAt: serverTimestamp(),
