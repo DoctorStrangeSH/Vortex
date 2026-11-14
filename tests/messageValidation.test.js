@@ -22,3 +22,9 @@ test('rejects oversized and malformed embedded attachments', () => {
     assert.throws(() => validateOutgoingMessage({ ...valid, attachment: { type: 'image', fileData: 'data:image/png;base64,AAAA', fileSize: MAX_LEGACY_ATTACHMENT_BYTES + 1 } }));
     assert.throws(() => validateOutgoingMessage({ ...valid, attachment: { type: 'image', fileData: 'https://example.com/', fileSize: 10 } }));
 });
+
+test('accepts a stored file reference and rejects mismatched owner', () => {
+    const stored = { type: 'image', fileData: 'https://firebasestorage.googleapis.com/example', fileSize: 1000000, storagePath: 'chats/chat-1/media/user-1/media123' };
+    assert.doesNotThrow(() => validateOutgoingMessage({ ...valid, text: '', attachment: stored }));
+    assert.throws(() => validateOutgoingMessage({ ...valid, attachment: { ...stored, storagePath: 'chats/chat-1/media/someone-else/media123' } }));
+});

@@ -19,11 +19,14 @@ export function validateOutgoingMessage({ chatId, user, text, attachment }) {
         throw new Error('Нельзя отправить пустое сообщение');
     }
     if (attachment) {
+        const stored = typeof attachment.storagePath === 'string' &&
+            attachment.storagePath.startsWith(`chats/${chatId}/media/${user.uid}/`);
         if (typeof attachment.type !== 'string' ||
             typeof attachment.fileData !== 'string' ||
-            !attachment.fileData.startsWith('data:') ||
+            !(stored ? attachment.fileData.startsWith('https://') : attachment.fileData.startsWith('data:')) ||
             !Number.isSafeInteger(attachment.fileSize) ||
-            attachment.fileSize < 0 || attachment.fileSize > MAX_LEGACY_ATTACHMENT_BYTES) {
+            attachment.fileSize < 0 ||
+            (stored ? attachment.fileSize > 25 * 1024 * 1024 : attachment.fileSize > MAX_LEGACY_ATTACHMENT_BYTES)) {
             throw new Error('Вложение слишком большое или имеет неверный формат');
         }
     }

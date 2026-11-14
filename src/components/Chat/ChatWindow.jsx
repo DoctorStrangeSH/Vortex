@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'preact/hooks';
 import { chatService } from '../../services/chatService';
 import { messageService } from '../../services/messageService';
 import { MAX_LEGACY_ATTACHMENT_BYTES } from '../../services/messageValidation';
+import { sendStoredAttachment, STORAGE_UPLOADS_ENABLED } from '../../services/mediaService.js';
+import { MAX_STORAGE_FILE_BYTES } from '../../services/mediaPolicy.js';
 import { presenceService } from '../../services/presenceService';
 import { voiceService } from '../../services/voiceService';
 import { aiService } from '../../services/aiService';
@@ -208,26 +210,33 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
 
     const handleTyping = () => { if (chat && user) typingService.startTyping(chat.id, user.uid); };
 
+    const sendAttachmentFile = async (file) => {
+        const maximum = STORAGE_UPLOADS_ENABLED ? MAX_STORAGE_FILE_BYTES : MAX_LEGACY_ATTACHMENT_BYTES;
+        if (file.size > maximum) throw new Error(`Файл слишком большой (максимум ${STORAGE_UPLOADS_ENABLED ? '25 МБ' : '350 КБ'})`);
+        const type = file.type.startsWith('image/') ? 'image' :
+            file.type.startsWith('video/') ? 'video' :
+            file.type.startsWith('audio/') ? 'audio' : 'file';
+        if (STORAGE_UPLOADS_ENABLED) {
+            await sendStoredAttachment(chat.id, user, file, type);
+            return;
+        }
+        const dataUrl = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = () => reject(new Error('Не удалось прочитать файл'));
+            reader.readAsDataURL(file);
+        });
+        await chatService.sendMessage(chat.id, '', user, {
+            type, fileData: dataUrl, fileName: file.name, fileSize: file.size
+        });
+    };
+
     // Файлы + Drag & Drop
     const handleFileSend = async (e) => {
         const file = e.target.files?.[0];
         if (!file || !chat) return;
-        if (file.size > MAX_LEGACY_ATTACHMENT_BYTES) {
-            alert('Вложение слишком большое. Поддержка больших файлов появится после перехода на файловое хранилище.');
-            e.target.value = '';
-            return;
-        }
-        let type = 'file';
-        if (file.type.startsWith('image/')) type = 'image';
-        else if (file.type.startsWith('video/')) type = 'video';
-        else if (file.type.startsWith('audio/')) type = 'audio';
-        const reader = new FileReader();
-        reader.onload = async (ev) => {
-            try {
-                await chatService.sendMessage(chat.id, '', user, { type, fileData: ev.target.result, fileName: file.name, fileSize: file.size });
-            } catch (error) { alert(error.message || 'Не удалось отправить файл'); }
-        };
-        reader.readAsDataURL(file);
+        try { await sendAttachmentFile(file); }
+        catch (error) { alert(error.message || 'Не удалось отправить файл'); }
         e.target.value = '';
     };
 
@@ -237,21 +246,8 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
         e.preventDefault();
         setIsDragOver(false);
         for (const file of e.dataTransfer.files) {
-            if (file.size > MAX_LEGACY_ATTACHMENT_BYTES) {
-                alert(`Файл «${file.name}» слишком большой для текущего хранилища`);
-                continue;
-            }
-            let type = 'file';
-            if (file.type.startsWith('image/')) type = 'image';
-            else if (file.type.startsWith('video/')) type = 'video';
-            else if (file.type.startsWith('audio/')) type = 'audio';
-            const reader = new FileReader();
-            reader.onload = async (ev) => {
-                try {
-                    await chatService.sendMessage(chat.id, '', user, { type, fileData: ev.target.result, fileName: file.name, fileSize: file.size });
-                } catch (error) { alert(error.message || 'Не удалось отправить файл'); }
-            };
-            reader.readAsDataURL(file);
+            try { await sendAttachmentFile(file); }
+            catch (error) { alert(`«${file.name}»: ${error.message || 'Не удалось отправить файл'}`); }
         }
     };
 

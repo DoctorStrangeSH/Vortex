@@ -64,6 +64,7 @@ class MessageService {
             messageData.fileData = attachment.fileData;
             messageData.fileName = attachment.fileName;
             messageData.fileSize = attachment.fileSize || 0;
+            if (attachment.storagePath) messageData.storagePath = attachment.storagePath;
         }
 
         const lastMsg = attachment 
