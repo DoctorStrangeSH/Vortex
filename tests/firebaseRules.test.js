@@ -1,7 +1,7 @@
 import test, { after } from 'node:test';
 import assert from 'node:assert/strict';
 import { initializeTestEnvironment, assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
-import { arrayRemove, arrayUnion, collection, deleteDoc, deleteField, doc, getDoc, getDocs, increment, query, runTransaction, setDoc, updateDoc, where } from 'firebase/firestore';
+import { arrayRemove, arrayUnion, collection, serverTimestamp, deleteDoc, deleteField, doc, getDoc, getDocs, increment, query, runTransaction, setDoc, updateDoc, where } from 'firebase/firestore';
 import { ref, uploadString } from 'firebase/storage';
 
 const available = !!process.env.FIRESTORE_EMULATOR_HOST;
@@ -310,4 +310,22 @@ test('private and secret chats require exactly two distinct participants', { ski
     await assertFails(setDoc(doc(chats), { ...base, participants: ['alice', 'bob', 'eve'] }));
     await assertFails(setDoc(doc(chats), { ...base, type: 'secret', participants: ['alice', 'bob', 'eve'] }));
     await assertSucceeds(setDoc(doc(chats), { ...base, type: 'secret' }));
+});
+
+
+test('typing presence allows only the owner and a fresh timestamp', { skip: !available }, async () => {
+    const alice = environment.authenticatedContext('alice').firestore();
+    const bob = environment.authenticatedContext('bob').firestore();
+    const eve = environment.authenticatedContext('eve').firestore();
+    const typing = doc(alice, 'chats/chat-a/typing/alice');
+    await assertFails(setDoc(doc(bob, 'chats/chat-a/typing/alice'), { userId: 'alice', timestamp: new Date() }));
+    await assertFails(setDoc(doc(eve, 'chats/chat-a/typing/eve'), { userId: 'eve', timestamp: new Date() }));
+    await assertFails(setDoc(typing, { userId: 'bob', timestamp: new Date() }));
+    await assertFails(setDoc(typing, { userId: 'alice', timestamp: new Date(), arbitrary: 'x' }));
+    await assertFails(setDoc(typing, { userId: 'alice', timestamp: 'yesterday' }));
+    await assertFails(setDoc(typing, { userId: 'alice', timestamp: new Date(0) }));
+    await assertSucceeds(setDoc(typing, { userId: 'alice', timestamp: serverTimestamp() }));
+    await assertFails(updateDoc(typing, { userId: 'bob' }));
+    await assertSucceeds(setDoc(typing, { userId: 'alice', timestamp: serverTimestamp() }));
+    await assertSucceeds(deleteDoc(typing));
 });

@@ -128,6 +128,13 @@ service cloud.firestore {
         (!('selfDestruct' in data) || (data.selfDestruct is int && data.selfDestruct >= 1 && data.selfDestruct <= 604800)) &&
         (!('destructAt' in data) || data.destructAt is timestamp);
     }
+    function validTyping(data, userId) {
+      return data.keys().hasAll(['userId','timestamp']) &&
+        data.keys().hasOnly(['userId','timestamp']) &&
+        data.userId == userId && data.timestamp is timestamp &&
+        data.timestamp >= request.time - duration.value(10, 's') &&
+        data.timestamp <= request.time;
+    }
     match /users/{userId} {
       allow read: if signedIn() && request.auth.uid == userId;
       allow create: if signedIn() && request.auth.uid == userId && request.resource.data.uid == userId &&
@@ -186,7 +193,9 @@ service cloud.firestore {
       }
       match /typing/{userId} {
         allow read: if chatMember(chatId);
-        allow create, update, delete: if chatMember(chatId) && request.auth.uid == userId;
+        allow create, update: if chatMember(chatId) && request.auth.uid == userId &&
+          validTyping(request.resource.data, userId);
+        allow delete: if chatMember(chatId) && request.auth.uid == userId;
       }
     }
     match /{document=**} { allow read, write: if false; }
