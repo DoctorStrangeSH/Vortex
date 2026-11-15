@@ -9,6 +9,17 @@ test('new incoming messages notify once, not on edits or receipt changes', () =>
     assert.deepEqual(getNewIncomingIds(new Set(messages.map(message => message.id)), messages, 'me'), []);
 });
 
+test('previously read messages resurfacing in a page do not trigger a second alert', () => {
+    const previous = new Set(['most-recent']);
+    const messages = [
+        { id: 'old-read', senderId: 'friend', readBy: ['me'] },
+        { id: 'most-recent', senderId: 'friend', readBy: ['me'] },
+        { id: 'new-unread', senderId: 'friend', readBy: [] },
+        { id: 'own', senderId: 'me', readBy: [] }
+    ];
+    assert.deepEqual(getNewIncomingIds(previous, messages, 'me'), ['new-unread']);
+});
+
 test('read receipts include only unread incoming messages not already attempted', () => {
     const messages = [{ id: 'a', senderId: 'friend' }, { id: 'b', senderId: 'friend', readBy: ['me'] }, { id: 'c', senderId: 'me' }, { id: 'd', senderId: 'friend' }];
     assert.deepEqual(getUnreadIncomingIds(messages, 'me', new Set(['d'])), ['a']);
