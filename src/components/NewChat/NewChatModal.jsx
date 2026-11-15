@@ -3,6 +3,7 @@ import { Icon } from '../UI/Icon';
 import { userService } from '../../services/userService';
 import { chatService } from '../../services/chatService';
 import { channelService } from '../../services/channelService';
+import { resolveGroupParticipants } from '../../services/groupParticipantSelection.js';
 
 export function NewChatModal({ user, onClose, onChatCreated, mode = 'personal' }) {
     const [searchInput, setSearchInput] = useState('');
@@ -20,6 +21,7 @@ export function NewChatModal({ user, onClose, onChatCreated, mode = 'personal' }
     }, [loading, onClose]);
 
     const handleSearch = async () => {
+        if (loading) return;
         if (!searchInput.trim()) { setError('Введите @username'); return; }
         setLoading(true); setError('');
         try {
@@ -32,7 +34,8 @@ export function NewChatModal({ user, onClose, onChatCreated, mode = 'personal' }
     };
 
     const handleCreatePersonal = async () => {
-        if (!searchResult) return;
+        if (loading || !searchResult) return;
+        setError('');
         setLoading(true);
         try { const id = await chatService.createChat(user, searchResult); onChatCreated?.(id); onClose?.(); }
         catch (err) { setError(err.message); }
@@ -42,22 +45,21 @@ export function NewChatModal({ user, onClose, onChatCreated, mode = 'personal' }
     const handleCreateGroup = async () => {
         const name = groupName.trim();
         if (!name) { setError('Введите название группы'); return; }
-        const participants = [...new Set(groupParticipants.split(',').map(s => s.trim()).filter(Boolean))];
-        if (participants.length === 0) { setError('Добавьте участников'); return; }
+        if (loading) return;
         setLoading(true);
+        setError('');
         try {
-            const ids = [];
-            const missing = [];
-            for (const p of participants) { const f = await userService.findUser(p); if (f && f.uid !== user.uid) ids.push(f.uid); else missing.push(p); }
-            if (missing.length) { setError(`Не удалось добавить: ${missing.join(', ')}`); return; }
-            const uniqueIds = [...new Set(ids)];
-            const id = await chatService.createGroupChat(user, uniqueIds, name);
+            const selection = await resolveGroupParticipants(groupParticipants, user.uid, username => userService.findUser(username));
+            if (selection.reason) { setError(selection.reason); return; }
+            const id = await chatService.createGroupChat(user, selection.ids, name);
             onChatCreated?.(id); onClose?.();
         } catch (err) { setError(err.message); }
         finally { setLoading(false); }
     };
 
     const handleCreateChannel = async () => {
+        if (loading) return;
+        setError('');
         const name = groupName.trim();
         if (!name) { setError('Введите название канала'); return; }
         setLoading(true);
@@ -93,7 +95,8 @@ export function NewChatModal({ user, onClose, onChatCreated, mode = 'personal' }
                                 <div style={{...st.avatar, background: getAvatarColor(searchResult.displayName || searchResult.username || '?')}}>{(searchResult.displayName || searchResult.username || '?').charAt(0).toUpperCase()}</div>
                                 <div><div style={st.userName}>{searchResult.displayName || 'Без имени'}</div><div style={st.userEmail}>@{searchResult.username || 'без username'}</div></div>
                             </div>
-                            <div style={st.actions}><button onClick={() => setStep('search')} style={st.backBtn} disabled={loading}>← Назад</button><button onClick={handleCreatePersonal} disabled={loading} style={st.createBtn}>{loading?'Создаём…':'Начать диалог'}</button></div>
+                            {error && <p style={st.error} role="alert">{error}</p>}
+                            <div style={st.actions}><button onClick={() => { setError(''); setStep('search'); }} style={st.backBtn} disabled={loading}>← Назад</button><button onClick={handleCreatePersonal} disabled={loading} style={st.createBtn}>{loading?'Создаём…':'Начать диалог'}</button></div>
                         </>
                     )}
                     {step === 'groupForm' && (
