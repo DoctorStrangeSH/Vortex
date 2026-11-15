@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { isNearChatBottom, getInitialChatScrollTarget, getMessageScrollTop } from '../src/services/chatScroll.js';
+import { isNearChatBottom, getInitialChatScrollTarget, getMessageScrollTop, getBottomScrollTop } from '../src/services/chatScroll.js';
 
 test('jump button stays hidden near the bottom and appears while reading history', () => {
     assert.equal(isNearChatBottom({ scrollHeight: 2000, scrollTop: 1400, clientHeight: 600 }), true);
@@ -16,4 +16,9 @@ test('opening a conversation starts at the first unread message when available',
 test('unread navigation places the divider beneath the top edge without negative scrolling', () => {
     assert.equal(getMessageScrollTop({ scrollTop: 500, containerTop: 100, messageTop: 350 }), 738);
     assert.equal(getMessageScrollTop({ scrollTop: 0, containerTop: 100, messageTop: 105 }), 0);
+});
+
+test('latest navigation targets the conversation scroll container', () => {
+    assert.equal(getBottomScrollTop({ scrollHeight: 2400, clientHeight: 600 }), 1800);
+    assert.equal(getBottomScrollTop({ scrollHeight: 400, clientHeight: 600 }), 0);
 });

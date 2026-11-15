@@ -3,7 +3,7 @@ import { useSwipe } from '../../hooks/useSwipe';
 import { getMessageReadStatus } from '../../services/messageReadStatus.js';
 import { useAttachmentSource } from '../../services/useAttachmentSource.js';
 
-export function MessageBubble({ msg, own, other, avatarColor, isMobile, isPinned, participants, onContextMenu, onDoubleClick, onImageClick, onReactionClick, onPlayAudio, onReply }) {
+export function MessageBubble({ msg, own, other, avatarColor, isMobile, isPinned, participants, onContextMenu, onDoubleClick, onImageClick, onReactionClick, onPlayAudio, onReply, onMediaReady }) {
     const messageRef = useRef(null);
     const { source: attachmentSource, status: attachmentStatus, error: attachmentError, retry: retryAttachment } = useAttachmentSource(msg);
     const { attach, detach } = useSwipe(messageRef, 
@@ -70,9 +70,9 @@ export function MessageBubble({ msg, own, other, avatarColor, isMobile, isPinned
                             {attachmentSource ? (
                                 msg.type === 'image' ? (
                                     <img src={attachmentSource} alt={msg.fileName || 'Изображение'} style={s.image}
-                                        onClick={() => onImageClick?.(attachmentSource)} />
+                                        onClick={() => onImageClick?.(attachmentSource)} onLoad={() => onMediaReady?.()} />
                                 ) : (
-                                    <video controls src={attachmentSource} style={s.video} preload="metadata" />
+                                    <video controls src={attachmentSource} style={s.video} preload="metadata" onLoadedMetadata={() => onMediaReady?.()} />
                                 )
                             ) : attachmentStatus === 'error' ? (
                                 <div role="alert" style={s.mediaPlaceholder}>

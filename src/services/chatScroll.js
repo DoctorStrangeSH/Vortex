@@ -9,3 +9,8 @@ export function getInitialChatScrollTarget(firstUnreadMessageId) {
 export function getMessageScrollTop({ scrollTop, containerTop, messageTop, margin = 12 }) {
     return Math.max(0, scrollTop + messageTop - containerTop - margin);
 }
+
+// Scroll only the conversation pane, never an outer page or modal.
+export function getBottomScrollTop({ scrollHeight, clientHeight }) {
+    return Math.max(0, scrollHeight - clientHeight);
+}

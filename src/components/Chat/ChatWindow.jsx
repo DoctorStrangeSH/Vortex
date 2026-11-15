@@ -27,7 +27,7 @@ import { PollMessage } from './PollMessage';
 import { ThemeCustomizer } from '../Theme/ThemeCustomizer';
 import { StatusPicker } from '../Status/StatusPicker';
 import { mergeMessagePages } from '../../services/messagePagination.js';
-import { isNearChatBottom, getInitialChatScrollTarget, getMessageScrollTop } from '../../services/chatScroll.js';
+import { isNearChatBottom, getInitialChatScrollTarget, getMessageScrollTop, getBottomScrollTop } from '../../services/chatScroll.js';
 import { shouldLoadOlderMessages } from '../../services/olderHistoryTrigger.js';
 import { getNewIncomingIds, getUnreadIncomingIds, getFirstUnreadIncomingId, shouldPlayIncomingSound, shouldMarkMessagesRead, isMessageVisible } from '../../services/messageActivity.js';
 import { createFrameScheduler } from '../../services/frameScheduler.js';
@@ -251,6 +251,20 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
         }
     };
 
+    const scrollToChatBottom = (behavior = 'auto') => {
+        const container = messagesContainerRef.current;
+        if (!container) return;
+        container.scrollTo({ top: getBottomScrollTop(container), behavior });
+    };
+
+    const handleMediaReady = () => {
+        // Late image/video decoding should follow the newest message only if
+        // the user has explicitly stayed at the bottom of this conversation.
+        if (shouldAutoScroll.current && initialScrollDoneRef.current) {
+            scrollToChatBottom();
+        }
+    };
+
     // Автоскролл
     const handleScroll = () => {
         const el = messagesContainerRef.current;
@@ -275,7 +289,7 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
         shouldAutoScroll.current = true;
         setShowJumpToLatest(false);
         setNewIncomingCount(0);
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        scrollToChatBottom('smooth');
     };
     const jumpToUnread = (behavior = 'smooth') => {
         const container = messagesContainerRef.current;
@@ -303,13 +317,13 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
         }
         initialScrollDoneRef.current = true;
         shouldAutoScroll.current = true;
-        messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+        scrollToChatBottom();
         requestAnimationFrame(() => markVisibleAsReadRef.current?.());
     }, [messagesLoading, firstUnreadMessageId]);
     useEffect(() => {
         if (!initialScrollDoneRef.current) return;
         if (shouldAutoScroll.current && messagesEndRef.current && !messagesLoading) {
-            messagesEndRef.current.scrollIntoView({ behavior: 'auto' });
+            scrollToChatBottom();
         }
         if (!messagesLoading) requestAnimationFrame(() => markVisibleAsReadRef.current?.());
     }, [messages, messagesLoading]);
@@ -664,7 +678,7 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
                                 isMobile={isMobile} isPinned={pinnedMessages.some(m => m.id === msg.id)}
                                 onContextMenu={handleContextMenu} onDoubleClick={handleDoubleClick}
                                 onImageClick={setPreviewImage} onReactionClick={handleReactionClick}
-                                onPlayAudio={setNowPlaying} onReply={handleReply} />
+                                onPlayAudio={setNowPlaying} onReply={handleReply} onMediaReady={handleMediaReady} />
                         </div>
                         </div>
                     );
