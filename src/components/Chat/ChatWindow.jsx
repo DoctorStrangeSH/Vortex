@@ -123,6 +123,19 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
         if (longPressRef.current?.timer) clearTimeout(longPressRef.current.timer);
         longPressRef.current = null;
         suppressClickRef.current = null;
+        // Dismiss overlays that may still hold object URLs or content from the previous chat.
+        setPreviewImage(null);
+        setShowGallery(false);
+        setNowPlaying(null);
+        setContextMenu(null);
+        setShowReactions(null);
+        setShowAllPinned(false);
+        setShowMembers(false);
+        setShowPollCreator(false);
+        setShowTheme(false);
+        setShowStatus(false);
+        setSelectionMode(false);
+        setSelectedMessages([]);
         if (pinnedHighlightRef.current) {
             clearTimeout(pinnedHighlightRef.current.timer);
             pinnedHighlightRef.current.element.style.outline = pinnedHighlightRef.current.previousOutline;
