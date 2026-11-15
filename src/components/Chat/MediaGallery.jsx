@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from 'preact/hooks';
+import { useState, useEffect, useRef, useMemo } from 'preact/hooks';
 import { useAttachmentSource } from '../../services/useAttachmentSource.js';
+import { getGalleryMedia, getSelectedGalleryMedia } from '../../services/mediaGallerySelection.js';
 
 function GalleryMedia({ message, style, preview = false }) {
     const containerRef = useRef(null);
@@ -26,7 +27,7 @@ function GalleryMedia({ message, style, preview = false }) {
     const { source, status, error, retry } = useAttachmentSource(message, visible);
     if (!message) return null;
     return (
-        <div ref={containerRef} style={{ ...style, display: 'grid', placeItems: 'center', overflow: 'hidden' }}>
+        <div ref={containerRef} onClick={preview ? event => event.stopPropagation() : undefined} style={{ ...style, display: 'grid', placeItems: 'center', overflow: 'hidden' }}>
             {!visible ? null : !source ? (
                 status === 'loading' || status === 'idle' ? <span role="status">Загрузка…</span> : (
                     <div role="alert" style={{ textAlign: 'center', padding: '0.5rem' }}>
@@ -42,13 +43,13 @@ function GalleryMedia({ message, style, preview = false }) {
 }
 
 export function MediaGallery({ messages, onClose }) {
-    const [media, setMedia] = useState([]);
-    const [selected, setSelected] = useState(null);
+    const media = useMemo(() => getGalleryMedia(messages), [messages]);
+    const [selectedId, setSelectedId] = useState(null);
+    const selectedMedia = getSelectedGalleryMedia(media, selectedId);
 
     useEffect(() => {
-        const images = messages.filter(m => m.type === 'image' || m.type === 'video');
-        setMedia(images);
-    }, [messages]);
+        if (selectedId && !selectedMedia) setSelectedId(null);
+    }, [selectedId, selectedMedia]);
 
     return (
         <div style={s.overlay} onClick={onClose}>
@@ -61,17 +62,17 @@ export function MediaGallery({ messages, onClose }) {
                     {media.length === 0 ? (
                         <p style={{ color: 'var(--text-tertiary)', textAlign: 'center', padding: '2rem' }}>Нет медиа</p>
                     ) : (
-                        media.map((msg, i) => (
-                            <div key={msg.id} style={s.item} onClick={() => setSelected(i)}>
+                        media.map(msg => (
+                            <div key={msg.id} style={s.item} onClick={() => setSelectedId(msg.id)}>
                                 <GalleryMedia message={msg} style={s.thumb} />
                             </div>
                         ))
                     )}
                 </div>
                 
-                {selected !== null && (
-                    <div style={s.preview} onClick={() => setSelected(null)}>
-                        <GalleryMedia message={media[selected]} style={s.previewMedia} preview />
+                {selectedMedia && (
+                    <div style={s.preview} onClick={() => setSelectedId(null)}>
+                        <GalleryMedia message={selectedMedia} style={s.previewMedia} preview />
                         <button style={s.previewClose}>✕</button>
                     </div>
                 )}
