@@ -12,6 +12,7 @@ import {
     setDoc,
     getDocs,
     getDoc,
+    getDocFromServer,
     arrayUnion,
     writeBatch,
     startAfter
@@ -93,7 +94,8 @@ class MessageService {
     }
 
     async messageExists(chatId, messageId) {
-        return (await getDoc(doc(db, 'chats', chatId, 'messages', messageId))).exists();
+        // An offline cached miss is not proof that the server lacks the message.
+        return (await getDocFromServer(doc(db, 'chats', chatId, 'messages', messageId))).exists();
     }
 
     async editMessage(chatId, messageId, newText) {

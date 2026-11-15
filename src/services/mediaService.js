@@ -2,7 +2,7 @@ import { deleteObject, ref, uploadBytes } from 'firebase/storage';
 import { storage } from './firebase.js';
 import { mediaStoragePath, validateMediaFile } from './mediaPolicy.js';
 import { messageService } from './messageService.js';
-import { assessAttachmentCommit } from './attachmentCommit.js';
+import { commitAttachmentWithRecovery } from './attachmentCommit.js';
 
 // Storage is deliberately opt-in until authenticated staging rules are tested.
 export const STORAGE_UPLOADS_ENABLED = import.meta.env.VITE_USE_FIREBASE_STORAGE === 'true';
@@ -19,23 +19,20 @@ export async function sendStoredAttachment(chatId, user, file, type, isStillActi
 
     let shouldCleanup = true;
     try {
-        if (!isStillActive()) return false;
         try {
-            await messageService.sendMessage(chatId, user, '', {
-                type, fileData: '', fileName: file.name, fileSize: file.size, storagePath: path
-            }, messageId);
-            shouldCleanup = false;
-            return true;
+            const outcome = await commitAttachmentWithRecovery(
+                () => messageService.sendMessage(chatId, user, '', {
+                    type, fileData: '', fileName: file.name, fileSize: file.size, storagePath: path
+                }, messageId),
+                () => messageService.messageExists(chatId, messageId),
+                isStillActive
+            );
+            shouldCleanup = outcome !== 'committed';
+            return outcome === 'committed';
         } catch (sendError) {
-            // A network timeout may happen AFTER the Firestore batch commits.
-            // Verify by stable ID before deciding whether the object is orphaned.
-            const status = await assessAttachmentCommit(() => messageService.messageExists(chatId, messageId));
-            if (status === 'committed') {
-                shouldCleanup = false;
-                return true;
-            }
-            // Unknown status: prefer a recoverable orphan over a broken attachment.
-            if (status === 'unknown') shouldCleanup = false;
+            // If the server cannot verify the write, never delete a potentially
+            // referenced file. The user can check the chat after reconnecting.
+            if (sendError.attachmentCommitUnknown) shouldCleanup = false;
             throw sendError;
         }
     } finally {
