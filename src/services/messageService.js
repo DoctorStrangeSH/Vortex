@@ -20,7 +20,7 @@ import {
 import { validateOutgoingMessage, MESSAGE_PAGE_SIZE } from './messageValidation.js';
 
 class MessageService {
-    subscribeToMessages(chatId, callback) {
+    subscribeToMessages(chatId, callback, onError) {
         const q = query(
             collection(db, 'chats', chatId, 'messages'),
             orderBy('createdAt', 'desc'),
@@ -32,7 +32,7 @@ class MessageService {
                 messages.push({ id: doc.id, ...doc.data() });
             });
             callback(messages.reverse(), snapshot.docs.at(-1) || null, snapshot.size === MESSAGE_PAGE_SIZE);
-        });
+        }, onError);
     }
 
     async fetchOlderMessages(chatId, cursor) {

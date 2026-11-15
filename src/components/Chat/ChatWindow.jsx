@@ -41,6 +41,8 @@ import { findPinnedInHistory } from '../../services/pinnedHistory.js';
 export function ChatWindow({ chat, user, onBack, isMobile }) {
     const [messages, setMessages] = useState([]);
     const [messagesLoading, setMessagesLoading] = useState(true);
+    const [messageLoadError, setMessageLoadError] = useState(false);
+    const [subscriptionRetry, setSubscriptionRetry] = useState(0);
     const [olderMessagesLoading, setOlderMessagesLoading] = useState(false);
     const [hasOlderMessages, setHasOlderMessages] = useState(false);
     const [pinnedNavigationNotice, setPinnedNavigationNotice] = useState('');
@@ -98,6 +100,7 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
     const initialScrollDoneRef = useRef(false);
     const readAttemptIdsRef = useRef(new Set());
     const markVisibleAsReadRef = useRef(null);
+    const retryingSubscriptionRef = useRef(false);
 
     useEffect(() => {
         if (!isRecording) return;
@@ -166,6 +169,7 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
         const currentUserId = user.uid;
         setMessages([]);
         setMessagesLoading(true);
+        setMessageLoadError(false);
         setOlderMessagesLoading(false);
         setHasOlderMessages(false);
         setPinnedNavigationNotice('');
@@ -182,7 +186,8 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
         shouldAutoScroll.current = true;
         setShowJumpToLatest(false);
         setNewIncomingCount(0);
-        setText('');
+        if (!retryingSubscriptionRef.current) setText('');
+        retryingSubscriptionRef.current = false;
         aiRequestRef.current += 1;
         setShowAI(false);
         setEditingMessage(null);
@@ -255,6 +260,11 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
             }
             setMessages(loadedMessages);
             setMessagesLoading(false);
+        }, error => {
+            if (activeSubscriptionRef.current !== subscriptionToken) return;
+            console.warn('Не удалось подписаться на сообщения', error);
+            setMessagesLoading(false);
+            setMessageLoadError(true);
         });
         return () => {
             voiceAttemptRef.current += 1;
@@ -272,7 +282,7 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
             setMessages([]);
             typingService.stopTyping(currentChatId, currentUserId);
         };
-    }, [chat?.id, user.uid]);
+    }, [chat?.id, user.uid, subscriptionRetry]);
 
     const loadOlderMessages = async () => {
         if (!chat || !oldestCursorRef.current || loadingOlderRef.current || !hasOlderMessages) return;
@@ -852,12 +862,16 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
                 <button type="button" onClick={() => setPinnedNavigationNotice('')} style={{ marginLeft: '8px' }} aria-label="Скрыть уведомление">×</button>
             </div>}
 
+            {messageLoadError && <div role="alert" style={{ padding: '12px 16px', color: 'var(--text-primary)', background: 'var(--bg-secondary)', display: 'flex', gap: '12px', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap' }}>
+                Не удалось загрузить сообщения. Проверьте подключение и попробуйте снова.
+                <button type="button" onClick={() => { retryingSubscriptionRef.current = true; setSubscriptionRetry(count => count + 1); }} style={{ padding: '7px 12px', borderRadius: '9px', cursor: 'pointer' }}>Повторить</button>
+            </div>}
             <div class="vortex-chat-feed" style={{ ...s.messagesContainer, background: wallpaper || 'var(--bg-primary)' }} ref={messagesContainerRef} onScroll={handleScroll}>
                 {!messagesLoading && hasOlderMessages && <button type="button" disabled={olderMessagesLoading} onClick={loadOlderMessages} style={{ display:'block', margin:'12px auto', padding:'9px 16px', borderRadius:'12px', cursor:'pointer' }}>
                     {olderMessagesLoading ? 'Загружаем историю…' : '↑ Загрузить ранние сообщения'}
                 </button>}
                 {messagesLoading ? <div style={s.loading}>Загрузка...</div> :
-                 grouped.length === 0 ? <div style={s.emptyChat}><div style={{ fontSize:'3rem' }}>💬</div><p>Нет сообщений</p></div> :
+                 messageLoadError ? null : grouped.length === 0 ? <div style={s.emptyChat}><div style={{ fontSize:'3rem' }}>💬</div><p>Нет сообщений</p></div> :
                  grouped.map((item, i) => {
                     if (item.type === 'date') return <div key={`d${i}`} style={s.dateDivider}><span style={s.dateText}>{item.date}</span></div>;
                     const msg = item.data;
