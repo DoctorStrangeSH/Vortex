@@ -69,29 +69,23 @@ export function AuthScreen({ pendingUser = null }) {
         }
     };
 
-    const handleKeyDown = (e) => {
-        if (e.key === 'Enter') {
-            handleSubmit(e);
-        }
-    };
-
     return (
-        <div style={styles.wrapper}>
-            <div style={styles.card}>
+        <div class="vortex-auth-screen" style={styles.wrapper}>
+            <div class="vortex-auth-card" style={styles.card}>
                 {/* Логотип */}
                 <div style={styles.logoSection}>
-                    <div style={styles.logoIcon}>🌪️</div>
+                    <div class="vortex-auth-mark" style={styles.logoIcon}>✦</div>
                     <h1 style={styles.logoTitle}>Vortex</h1>
-                    <p style={styles.logoSubtitle}>В центре общения</p>
+                    <p style={styles.logoSubtitle}>Ближе к тем, кто важен</p>
                 </div>
 
                 {/* Табы */}
                 {mode === 'complete' && <p style={{ marginBottom: '1rem', color: 'var(--text-secondary)' }}>
                     Аккаунт уже создан. Выберите свободный @username, чтобы завершить регистрацию.
                 </p>}
-                {mode !== 'complete' && <div style={styles.tabs}>
+                {mode !== 'complete' && <div class="vortex-auth-tabs" role="tablist" aria-label="Режим авторизации" style={styles.tabs}>
                     <button
-                        onClick={() => { setMode('login'); setError(''); }}
+                        type="button" role="tab" aria-selected={mode === "login"} onClick={() => { setMode('login'); setError(''); }}
                         style={{
                             ...styles.tab,
                             background: mode === 'login' ? 'var(--bg-active)' : 'transparent',
@@ -101,7 +95,7 @@ export function AuthScreen({ pendingUser = null }) {
                         Вход
                     </button>
                     <button
-                        onClick={() => { setMode('register'); setError(''); }}
+                        type="button" role="tab" aria-selected={mode === "register"} onClick={() => { setMode('register'); setError(''); }}
                         style={{
                             ...styles.tab,
                             background: mode === 'register' ? 'var(--bg-active)' : 'transparent',
@@ -123,7 +117,7 @@ export function AuthScreen({ pendingUser = null }) {
                                     value={name}
                                     onInput={(e) => setName(e.target.value)}
                                     placeholder="Ваше имя"
-                                    style={styles.input}
+                                    class="vortex-form-input" style={styles.input}
                                     required
                                 />
                             </div>
@@ -137,7 +131,7 @@ export function AuthScreen({ pendingUser = null }) {
                                         value={username}
                                         onInput={(e) => checkUsername(e.target.value)}
                                         placeholder="username"
-                                        style={{
+                                        class="vortex-form-input" style={{
                                             ...styles.input,
                                             paddingLeft: '2rem'
                                         }}
@@ -164,8 +158,7 @@ export function AuthScreen({ pendingUser = null }) {
                             value={email}
                             onInput={(e) => setEmail(e.target.value)}
                             placeholder="user@example.com"
-                            onKeyDown={handleKeyDown}
-                            style={styles.input}
+                                                        class="vortex-form-input" style={styles.input}
                             required
                         />
                     </div>
@@ -177,14 +170,13 @@ export function AuthScreen({ pendingUser = null }) {
                             value={password}
                             onInput={(e) => setPassword(e.target.value)}
                             placeholder="••••••••"
-                            onKeyDown={handleKeyDown}
-                            style={styles.input}
+                                                        class="vortex-form-input" style={styles.input}
                             required
                         />
                     </div></>}
 
                     {error && (
-                        <div style={styles.error}>
+                        <div role="alert" style={styles.error}>
                             ⚠️ {error}
                         </div>
                     )}
@@ -192,7 +184,7 @@ export function AuthScreen({ pendingUser = null }) {
                     <button
                         type="submit"
                         disabled={loading || (mode !== 'login' && usernameStatus.includes('❌'))}
-                        style={{
+                        class="vortex-primary-button" style={{
                             ...styles.submitBtn,
                             opacity: loading ? 0.7 : 1
                         }}
@@ -203,21 +195,21 @@ export function AuthScreen({ pendingUser = null }) {
 
                 {/* Переключение режима */}
                 {mode === 'complete' ? <div style={styles.switchText}>
-                    <span onClick={() => authService.logout()} style={styles.switchLink}>Выйти из аккаунта</span>
+                    <button type="button" onClick={() => authService.logout()} style={styles.switchLink}>Выйти из аккаунта</button>
                 </div> : <div style={styles.switchText}>
                     {mode === 'login' ? (
                         <>
                             Нет аккаунта?{' '}
-                            <span onClick={() => setMode('register')} style={styles.switchLink}>
+                            <button type="button" onClick={() => setMode('register')} style={styles.switchLink}>
                                 Зарегистрироваться
-                            </span>
+                            </button>
                         </>
                     ) : (
                         <>
                             Уже есть аккаунт?{' '}
-                            <span onClick={() => setMode('login')} style={styles.switchLink}>
+                            <button type="button" onClick={() => setMode('login')} style={styles.switchLink}>
                                 Войти
-                            </span>
+                            </button>
                         </>
                     )}
                 </div>}
@@ -237,24 +229,24 @@ const styles = {
     card: {
         background: 'var(--bg-secondary)',
         border: '1px solid var(--border-default)',
-        borderRadius: '20px',
-        padding: '2.5rem',
-        width: '420px',
+        borderRadius: '26px',
+        padding: '2.65rem',
+        width: '460px',
         maxWidth: '90vw',
-        boxShadow: '0 20px 60px rgba(0,0,0,0.4)'
+        boxShadow: '0 30px 90px rgba(0,0,0,0.45)'
     },
     logoSection: {
         textAlign: 'center',
         marginBottom: '2rem'
     },
     logoIcon: {
-        fontSize: '3rem'
+        fontSize: '2.4rem'
     },
     logoTitle: {
         background: 'var(--gradient-brand)',
         WebkitBackgroundClip: 'text',
         WebkitTextFillColor: 'transparent',
-        fontSize: '2rem',
+        fontSize: '2.3rem',
         fontWeight: 800,
         margin: '0.5rem 0 0 0'
     },
@@ -265,7 +257,7 @@ const styles = {
     },
     tabs: {
         display: 'flex',
-        background: 'rgba(255,255,255,0.03)',
+        background: 'var(--bg-tertiary)',
         borderRadius: '14px',
         padding: '4px',
         marginBottom: '1.5rem'
@@ -300,10 +292,10 @@ const styles = {
     },
     input: {
         width: '100%',
-        padding: '0.75rem 1rem',
+        padding: '0.9rem 1rem',
         background: 'rgba(255,255,255,0.03)',
         border: '1px solid var(--border-default)',
-        borderRadius: '12px',
+        borderRadius: '14px',
         color: 'var(--text-primary)',
         fontSize: '0.95rem',
         outline: 'none',
@@ -356,6 +348,7 @@ const styles = {
         color: 'var(--text-secondary)'
     },
     switchLink: {
+        border: 'none', background: 'transparent', fontSize: 'inherit', padding: '2px',
         color: 'var(--vortex-primary-light)',
         cursor: 'pointer',
         fontWeight: 500
