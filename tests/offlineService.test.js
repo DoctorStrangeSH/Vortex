@@ -179,8 +179,8 @@ test('two tabs share one queue and send each queued action only once with Web Lo
     const a = new OfflineService({ storage, network: { onLine: true }, locks, createId: () => 'a' });
     const b = new OfflineService({ storage, network: { onLine: true }, locks, createId: () => 'b' });
     await Promise.all([
-        a.addToQueue({ type: 'sendMessage', text: 'Первое' }),
-        b.addToQueue({ type: 'sendMessage', text: 'Второе' })
+        a.addToQueue({ type: 'sendMessage', user: { uid: 'alice' }, text: 'Первое' }),
+        b.addToQueue({ type: 'sendMessage', user: { uid: 'alice' }, text: 'Второе' })
     ]);
     assert.deepEqual(JSON.parse(storage.getItem('offlineQueue')).map(x => x.id), ['a', 'b']);
     const delivered = [];
