@@ -333,15 +333,17 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
 
     const handleTyping = () => { if (chat && user) typingService.startTyping(chat.id, user.uid); };
 
-    const sendAttachmentFile = async (file) => {
+    const sendAttachmentFile = async (file, expectedSubscription = activeSubscriptionRef.current) => {
+        const targetChatId = chat?.id;
+        if (!targetChatId || activeSubscriptionRef.current !== expectedSubscription) return false;
         const maximum = STORAGE_UPLOADS_ENABLED ? MAX_STORAGE_FILE_BYTES : MAX_LEGACY_ATTACHMENT_BYTES;
         if (file.size > maximum) throw new Error(`Файл слишком большой (максимум ${STORAGE_UPLOADS_ENABLED ? '25 МБ' : '350 КБ'})`);
         const type = file.type.startsWith('image/') ? 'image' :
             file.type.startsWith('video/') ? 'video' :
             file.type.startsWith('audio/') ? 'audio' : 'file';
         if (STORAGE_UPLOADS_ENABLED) {
-            await sendStoredAttachment(chat.id, user, file, type);
-            return;
+            await sendStoredAttachment(targetChatId, user, file, type);
+            return true;
         }
         const dataUrl = await new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -349,17 +351,23 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
             reader.onerror = () => reject(new Error('Не удалось прочитать файл'));
             reader.readAsDataURL(file);
         });
-        await chatService.sendMessage(chat.id, '', user, {
+        // Reading a large file may finish after the user leaves this conversation.
+        if (activeSubscriptionRef.current !== expectedSubscription) return false;
+        await chatService.sendMessage(targetChatId, '', user, {
             type, fileData: dataUrl, fileName: file.name, fileSize: file.size
         });
+        return true;
     };
 
     // Файлы + Drag & Drop
     const handleFileSend = async (e) => {
         const file = e.target.files?.[0];
         if (!file || !chat) return;
-        try { await sendAttachmentFile(file); }
-        catch (error) { alert(error.message || 'Не удалось отправить файл'); }
+        const expectedSubscription = activeSubscriptionRef.current;
+        try { await sendAttachmentFile(file, expectedSubscription); }
+        catch (error) {
+            if (activeSubscriptionRef.current === expectedSubscription) alert(error.message || 'Не удалось отправить файл');
+        }
         e.target.value = '';
     };
 
@@ -368,9 +376,16 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
     const handleDrop = async (e) => {
         e.preventDefault();
         setIsDragOver(false);
+        const expectedSubscription = activeSubscriptionRef.current;
         for (const file of e.dataTransfer.files) {
-            try { await sendAttachmentFile(file); }
-            catch (error) { alert(`«${file.name}»: ${error.message || 'Не удалось отправить файл'}`); }
+            if (activeSubscriptionRef.current !== expectedSubscription) break;
+            try {
+                const sent = await sendAttachmentFile(file, expectedSubscription);
+                if (!sent) break;
+            } catch (error) {
+                if (activeSubscriptionRef.current !== expectedSubscription) break;
+                alert(`«${file.name}»: ${error.message || 'Не удалось отправить файл'}`);
+            }
         }
     };
 
