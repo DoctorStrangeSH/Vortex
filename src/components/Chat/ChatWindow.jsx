@@ -195,26 +195,29 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
         loadingOlderRef.current = true;
         setOlderMessagesLoading(true);
         const currentChatId = chat.id;
+        const expectedSubscription = activeSubscriptionRef.current;
         const container = messagesContainerRef.current;
         const previousHeight = container?.scrollHeight || 0;
         shouldAutoScroll.current = false;
         setShowJumpToLatest(true);
         try {
             const page = await messageService.fetchOlderMessages(currentChatId, oldestCursorRef.current);
-            if (activeChatIdRef.current !== currentChatId) return;
+            if (activeSubscriptionRef.current !== expectedSubscription) return;
             oldestCursorRef.current = page.cursor;
             olderMessagesRef.current = mergeMessagePages(page.messages, olderMessagesRef.current);
             setHasOlderMessages(page.hasMore);
             setMessages(mergeMessagePages(olderMessagesRef.current, latestMessagesRef.current));
             requestAnimationFrame(() => {
-                if (container) container.scrollTop += container.scrollHeight - previousHeight;
+                if (container && activeSubscriptionRef.current === expectedSubscription) {
+                    container.scrollTop += container.scrollHeight - previousHeight;
+                }
             });
         } catch (error) {
-            if (activeChatIdRef.current === currentChatId) {
+            if (activeSubscriptionRef.current === expectedSubscription) {
                 alert(error.message || 'Не удалось загрузить историю');
             }
         } finally {
-            if (activeChatIdRef.current === currentChatId) {
+            if (activeSubscriptionRef.current === expectedSubscription) {
                 loadingOlderRef.current = false;
                 setOlderMessagesLoading(false);
             }
