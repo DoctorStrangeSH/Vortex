@@ -7,9 +7,10 @@ export class OfflineService {
         this.createId = createId;
         this.locks = locks;
         this.isOnline = network?.onLine ?? false;
-        this.queue = JSON.parse(this.storage?.getItem('offlineQueue') || '[]');
         this.listeners = [];
         this.queueListeners = [];
+        this.queue = [];
+        this.refreshQueue();
         this.processingPromise = null;
         this.initialized = false;
     }
@@ -93,6 +94,8 @@ export class OfflineService {
                     action.status = 'failed';
                     this.saveQueue();
                     console.warn('Сообщение осталось в очереди отправки', error);
+                    // Later messages must not overtake the failed one after a reconnect.
+                    break;
                 }
             }
         }).finally(() => { this.processingPromise = null; });
@@ -108,6 +111,8 @@ export class OfflineService {
                 const { chatService } = await import('./chatService.js');
                 await chatService.sendMessage(action.chatId, action.text, action.user, null, action.id);
                 break;
+            default:
+                throw new Error(`Неизвестное действие в очереди: ${action.type}`);
         }
     }
 

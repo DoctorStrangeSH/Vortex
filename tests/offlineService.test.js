@@ -62,6 +62,44 @@ test('queue stops on disconnection and resumes with unchanged IDs', async () => 
     assert.equal(calls, 1);
 });
 
+test('a corrupted stored queue cannot prevent the messenger from starting', async () => {
+    const { storage } = createService();
+    storage.setItem('offlineQueue', '{broken-json');
+    const originalWarn = console.warn;
+    console.warn = () => {};
+    try {
+        const recovered = new OfflineService({ storage, network: { onLine: false } });
+        assert.deepEqual(recovered.getQueue(), []);
+        await recovered.addToQueue({ type: 'sendMessage', text: 'Новое сообщение' });
+        assert.equal(JSON.parse(storage.getItem('offlineQueue')).length, 1);
+    } finally { console.warn = originalWarn; }
+});
+
+test('later offline messages wait behind a failed send and preserve delivery order', async () => {
+    const values = new Map();
+    let id = 0;
+    const storage = { getItem: key => values.get(key) ?? null, setItem: (key, value) => values.set(key, value) };
+    const service = new OfflineService({ storage, network: { onLine: false }, createId: () => String(++id) });
+    await service.addToQueue({ type: 'sendMessage', text: 'Первое' });
+    await service.addToQueue({ type: 'sendMessage', text: 'Второе' });
+    service.isOnline = true;
+    const delivered = [];
+    let failOnce = true;
+    service.executeAction = async action => {
+        if (failOnce) { failOnce = false; throw new Error('temporary'); }
+        delivered.push(action.text);
+    };
+    const originalWarn = console.warn;
+    console.warn = () => {};
+    try { await service.processQueue(); }
+    finally { console.warn = originalWarn; }
+    assert.deepEqual(delivered, []);
+    assert.deepEqual(service.getQueue().map(item => item.text), ['Первое', 'Второе']);
+    await service.processQueue();
+    assert.deepEqual(delivered, ['Первое', 'Второе']);
+    assert.deepEqual(service.getQueue(), []);
+});
+
 test('initialization registers connectivity handlers once and flushes persisted work', async () => {
     const listeners = new Map();
     const target = { addEventListener: (name, callback) => {
