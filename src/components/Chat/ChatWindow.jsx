@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'preact/hooks';
+import { useState, useEffect, useRef, useMemo } from 'preact/hooks';
 import { chatService } from '../../services/chatService';
 import { messageService } from '../../services/messageService';
 import { MAX_LEGACY_ATTACHMENT_BYTES } from '../../services/messageValidation';
@@ -31,6 +31,7 @@ import { isNearChatBottom, getInitialChatScrollTarget, getMessageScrollTop, getB
 import { shouldLoadOlderMessages } from '../../services/olderHistoryTrigger.js';
 import { getNewIncomingIds, getUnreadIncomingIds, getFirstUnreadIncomingId, shouldPlayIncomingSound, shouldMarkMessagesRead, isMessageVisible } from '../../services/messageActivity.js';
 import { createFrameScheduler } from '../../services/frameScheduler.js';
+import { groupChatMessages } from '../../services/chatGrouping.js';
 
 export function ChatWindow({ chat, user, onBack, isMobile }) {
     const [messages, setMessages] = useState([]);
@@ -583,6 +584,8 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
 
     // Закрепление
     const pinnedMessages = chat?.pinnedMessages || [];
+    const pinnedMessageIds = useMemo(() => new Set(chat?.pinnedMessages?.map(message => message.id) || []), [chat?.pinnedMessages]);
+    const selectedMessageIds = useMemo(() => new Set(selectedMessages), [selectedMessages]);
     const handleScrollToPinned = (messageId) => {
         const el = messagesContainerRef.current?.querySelector(`[data-msg-id="${messageId}"]`);
         if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.style.background = 'rgba(124, 58, 237, 0.2)'; setTimeout(() => el.style.background = '', 2000); }
@@ -601,17 +604,7 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
         return colors[Math.abs(hash) % colors.length];
     };
 
-    const groupMessages = (msgs) => {
-        const g = []; let c = '';
-        msgs.forEach(m => {
-            const d = m.createdAt?.toDate?.();
-            const s = d?.toLocaleDateString('ru-RU', { day:'2-digit', month:'long', year:'numeric' }) || '';
-            if (s !== c) { c = s; g.push({ type:'date', date:s }); }
-            g.push({ type:'message', data:m });
-        });
-        return g;
-    };
-
+    const grouped = useMemo(() => groupChatMessages(messages), [messages]);
     const wallpaper = wallpaperService.getWallpaper(chat?.id);
 
     if (!chat) {
@@ -628,7 +621,6 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
 
     const other = getOtherParticipant();
     const avatarColor = getAvatarColor(other.name);
-    const grouped = groupMessages(messages);
 
     return (
         <div style={{ ...s.container, opacity: isDragOver ? 0.8 : 1 }} onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}>
@@ -673,9 +665,9 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
                         <div data-msg-id={msg.id}
                              onClick={() => toggleSelection(msg.id)}
                              onTouchStart={(e) => { const t = setTimeout(() => handleLongPress(msg.id), 500); e.target.addEventListener('touchend', () => clearTimeout(t), { once:true }); }}
-                             style={{ background: selectedMessages.includes(msg.id) ? 'rgba(124,58,237,0.15)' : 'transparent', borderRadius: '8px', cursor: selectionMode ? 'pointer' : 'default' }}>
+                             style={{ background: selectedMessageIds.has(msg.id) ? 'rgba(124,58,237,0.15)' : 'transparent', borderRadius: '8px', cursor: selectionMode ? 'pointer' : 'default' }}>
                             <MessageBubble msg={msg} own={msg.senderId === user.uid} other={other} avatarColor={avatarColor} participants={chat.participants}
-                                isMobile={isMobile} isPinned={pinnedMessages.some(m => m.id === msg.id)}
+                                isMobile={isMobile} isPinned={pinnedMessageIds.has(msg.id)}
                                 onContextMenu={handleContextMenu} onDoubleClick={handleDoubleClick}
                                 onImageClick={setPreviewImage} onReactionClick={handleReactionClick}
                                 onPlayAudio={setNowPlaying} onReply={handleReply} onMediaReady={handleMediaReady} />
@@ -706,7 +698,7 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
                 </div>
             )}
 
-            {contextMenu && <ContextMenu x={contextMenu.x} y={contextMenu.y} messageId={contextMenu.messageId} text={contextMenu.text} isOwn={contextMenu.isOwn} isPinned={pinnedMessages.some(m => m.id === contextMenu.messageId)} onCopy={handleCopy} onEdit={contextMenu.isOwn ? handleEdit : null} onPin={handlePin} onDelete={contextMenu.isOwn ? handleDelete : null} onReply={handleReply} onSelfDestruct={handleSelfDestruct} />}
+            {contextMenu && <ContextMenu x={contextMenu.x} y={contextMenu.y} messageId={contextMenu.messageId} text={contextMenu.text} isOwn={contextMenu.isOwn} isPinned={pinnedMessageIds.has(contextMenu.messageId)} onCopy={handleCopy} onEdit={contextMenu.isOwn ? handleEdit : null} onPin={handlePin} onDelete={contextMenu.isOwn ? handleDelete : null} onReply={handleReply} onSelfDestruct={handleSelfDestruct} />}
             {showReactions && <ReactionPicker x={Math.min(showReactions.x, window.innerWidth - 200)} y={showReactions.y} onReaction={(emoji) => handleReaction(showReactions.messageId, emoji)} />}
             {showAI && <div style={s.aiMenu}><button onClick={handleSmartReply} style={s.aiItem}>💡 Умный ответ</button><button onClick={handleTranslate} style={s.aiItem}>🌍 Перевести</button><button onClick={handleSummarize} style={s.aiItem}>📊 Саммари</button></div>}
             {micDenied && <div style={s.micOverlay} onClick={() => setMicDenied(false)}><div style={s.micPrompt}><div>🎙️</div><h3>Микрофон запрещён</h3><p>📱 iPhone: Настройки → Safari → Микрофон<br/>📱 Android: Настройки → Приложения → Браузер → Разрешения</p><button onClick={retryMicAccess} style={s.micAllowBtn}>🔄 Попробовать снова</button></div></div>}
