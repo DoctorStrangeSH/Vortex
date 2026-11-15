@@ -64,19 +64,34 @@ export function MessageBubble({ msg, own, other, avatarColor, isMobile, isPinned
                         <div style={s.pinnedBadge} title="Закреплено">📌</div>
                     )}
 
-                    {/* Контент сообщения */}
-                    {msg.storagePath && attachmentStatus === 'loading' && <span role="status" style={{ fontSize: '0.75rem' }}>Загрузка вложения…</span>}
-                    {msg.storagePath && attachmentStatus === 'error' && (
+                    {/* Размер медиа зарезервирован до получения файла, чтобы чат не прыгал. */}
+                    {(msg.type === 'image' || msg.type === 'video') && (
+                        <div style={s.mediaFrame}>
+                            {attachmentSource ? (
+                                msg.type === 'image' ? (
+                                    <img src={attachmentSource} alt={msg.fileName || 'Изображение'} style={s.image}
+                                        onClick={() => onImageClick?.(attachmentSource)} />
+                                ) : (
+                                    <video controls src={attachmentSource} style={s.video} preload="metadata" />
+                                )
+                            ) : attachmentStatus === 'error' ? (
+                                <div role="alert" style={s.mediaPlaceholder}>
+                                    <span>{attachmentError || 'Не удалось загрузить вложение'}</span>
+                                    <button type="button" onClick={(event) => { event.stopPropagation(); retryAttachment(); }}>Повторить</button>
+                                </div>
+                            ) : (
+                                <span role="status" style={s.mediaPlaceholder}>
+                                    {attachmentStatus === 'loading' ? 'Загрузка вложения…' : 'Вложение недоступно'}
+                                </span>
+                            )}
+                        </div>
+                    )}
+                    {msg.type !== 'image' && msg.type !== 'video' && msg.storagePath && attachmentStatus === 'loading' && <span role="status" style={{ fontSize: '0.75rem' }}>Загрузка вложения…</span>}
+                    {msg.type !== 'image' && msg.type !== 'video' && msg.storagePath && attachmentStatus === 'error' && (
                         <div role="alert" style={{ fontSize: '0.75rem' }}>
                             <span>{attachmentError}</span>{' '}
                             <button type="button" onClick={(event) => { event.stopPropagation(); retryAttachment(); }}>Повторить</button>
                         </div>
-                    )}
-                    {msg.type === 'image' && attachmentSource && (
-                        <img src={attachmentSource} alt={msg.fileName} style={s.image} onClick={() => attachmentSource && onImageClick?.(attachmentSource)} />
-                    )}
-                    {msg.type === 'video' && attachmentSource && (
-                        <video controls src={attachmentSource} style={{ ...s.image, maxWidth: '280px', borderRadius: '10px' }} preload="metadata" />
                     )}
                     {msg.type === 'voice' && attachmentSource && (
                         <audio controls src={attachmentSource} style={s.audio} />
@@ -170,7 +185,10 @@ const s = {
     bubble: { padding: '0.5rem 0.75rem', borderRadius: '14px', animation: 'messageIn 0.2s ease', boxShadow: '0 1px 2px rgba(0,0,0,0.1)' },
     pinnedBadge: { position: 'absolute', top: '-8px', right: '-4px', fontSize: '0.9rem', filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))', zIndex: 1 },
     text: { fontSize: '0.9rem', lineHeight: 1.45, wordBreak: 'break-word' },
-    image: { maxWidth: '260px', borderRadius: '10px', cursor: 'pointer' },
+    mediaFrame: { width: '260px', maxWidth: '100%', height: '180px', borderRadius: '10px', overflow: 'hidden', display: 'flex', justifyContent: 'center', alignItems: 'center', background: 'rgba(0,0,0,0.12)' },
+    mediaPlaceholder: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px', textAlign: 'center', fontSize: '0.75rem' },
+    image: { display: 'block', width: '100%', height: '100%', objectFit: 'contain', cursor: 'pointer' },
+    video: { display: 'block', width: '100%', height: '100%', objectFit: 'contain' },
     audio: { maxWidth: '240px', height: '30px' },
     fileLink: { color: 'inherit', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' },
     edited: { fontSize: '0.7rem', opacity: 0.7, fontStyle: 'italic' },
