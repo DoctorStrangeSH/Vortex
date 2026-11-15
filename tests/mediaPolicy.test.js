@@ -12,4 +12,7 @@ test('media size and MIME metadata are validated', () => {
     assert.doesNotThrow(() => validateMediaFile({ size: MAX_STORAGE_FILE_BYTES, type: 'image/png' }));
     assert.throws(() => validateMediaFile({ size: MAX_STORAGE_FILE_BYTES + 1, type: 'image/png' }));
     assert.throws(() => validateMediaFile({ size: 42, type: '' }));
+    assert.throws(() => validateMediaFile({ size: 42, type: 'not-a-mime' }));
+    assert.throws(() => validateMediaFile({ size: 42, type: 'image/png; charset=utf-8' }));
+    assert.doesNotThrow(() => validateMediaFile({ size: 42, type: 'application/pdf' }));
 });

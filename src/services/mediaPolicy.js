@@ -7,6 +7,10 @@ export function validateMediaFile(file) {
     if (typeof file.type !== 'string' || !file.type || file.type.length > 128) {
         throw new Error('Не удалось определить тип файла');
     }
+    // Keep the client-side MIME constraints aligned with Storage Rules.
+    if (!/^[a-z0-9][a-z0-9.+-]*\/[a-z0-9][a-z0-9.+-]*$/.test(file.type)) {
+        throw new Error('Некорректный MIME-тип файла');
+    }
     return file;
 }
 
