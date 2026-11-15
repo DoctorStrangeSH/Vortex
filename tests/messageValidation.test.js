@@ -24,7 +24,8 @@ test('rejects oversized and malformed embedded attachments', () => {
 });
 
 test('accepts a stored file reference and rejects mismatched owner', () => {
-    const stored = { type: 'image', fileData: 'https://firebasestorage.googleapis.com/example', fileSize: 1000000, storagePath: 'chats/chat-1/media/user-1/media123' };
+    const stored = { type: 'image', fileData: '', fileSize: 1000000, storagePath: 'chats/chat-1/media/user-1/media123' };
     assert.doesNotThrow(() => validateOutgoingMessage({ ...valid, text: '', attachment: stored }));
     assert.throws(() => validateOutgoingMessage({ ...valid, attachment: { ...stored, storagePath: 'chats/chat-1/media/someone-else/media123' } }));
+    assert.throws(() => validateOutgoingMessage({ ...valid, attachment: { ...stored, fileData: 'https://example.com/token' } }));
 });

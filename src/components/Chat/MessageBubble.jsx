@@ -1,9 +1,11 @@
 import { useRef, useEffect } from 'preact/hooks';
 import { useSwipe } from '../../hooks/useSwipe';
 import { getMessageReadStatus } from '../../services/messageReadStatus.js';
+import { useAttachmentSource } from '../../services/useAttachmentSource.js';
 
 export function MessageBubble({ msg, own, other, avatarColor, isMobile, isPinned, participants, onContextMenu, onDoubleClick, onImageClick, onReactionClick, onPlayAudio, onReply }) {
     const messageRef = useRef(null);
+    const attachmentSource = useAttachmentSource(msg);
     const { attach, detach } = useSwipe(messageRef, 
         () => onReply?.(msg.id), // Свайп влево — ответить
         null // Свайп вправо
@@ -63,23 +65,24 @@ export function MessageBubble({ msg, own, other, avatarColor, isMobile, isPinned
                     )}
 
                     {/* Контент сообщения */}
+                    {msg.storagePath && !attachmentSource && <span style={{ fontSize: '0.75rem' }}>Вложение загружается или недоступно</span>}
                     {msg.type === 'image' && (
-                        <img src={msg.fileData} alt={msg.fileName} style={s.image} onClick={() => onImageClick?.(msg.fileData)} />
+                        <img src={attachmentSource} alt={msg.fileName} style={s.image} onClick={() => attachmentSource && onImageClick?.(attachmentSource)} />
                     )}
                     {msg.type === 'video' && (
-                        <video controls src={msg.fileData} style={{ ...s.image, maxWidth: '280px', borderRadius: '10px' }} preload="metadata" />
+                        <video controls src={attachmentSource} style={{ ...s.image, maxWidth: '280px', borderRadius: '10px' }} preload="metadata" />
                     )}
                     {msg.type === 'voice' && (
-                        <audio controls src={msg.fileData} style={s.audio} />
+                        <audio controls src={attachmentSource} style={s.audio} />
                     )}
                     {msg.type === 'audio' && (
                         <div>
                             <div style={{ marginBottom: '4px', fontSize: '0.8rem' }}>🎵 {msg.fileName || 'Аудио'}</div>
-                            <audio controls src={msg.fileData} style={s.audio} onClick={() => onPlayAudio?.({ src: msg.fileData, name: msg.fileName })} />
+                            <audio controls src={attachmentSource} style={s.audio} onClick={() => onPlayAudio?.({ src: attachmentSource, name: msg.fileName })} />
                         </div>
                     )}
                     {msg.type === 'file' && (
-                        <a href={msg.fileData} download={msg.fileName} style={s.fileLink}>
+                        <a href={attachmentSource || undefined} download={msg.fileName} style={s.fileLink}>
                             <span style={{ fontSize: '1.5rem' }}>📄</span>
                             <div>
                                 <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>{msg.fileName || 'Файл'}</div>

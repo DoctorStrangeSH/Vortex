@@ -1,4 +1,15 @@
 import { useState, useEffect } from 'preact/hooks';
+import { useAttachmentSource } from '../../services/useAttachmentSource.js';
+
+function GalleryMedia({ message, style, preview = false }) {
+    const source = useAttachmentSource(message);
+    if (!message) return null;
+    if (!source) return <div style={{ ...style, display: 'grid', placeItems: 'center' }}>Вложение загружается или недоступно</div>;
+    return message.type === 'video'
+        ? <video controls={preview} src={source} style={style} preload="metadata" autoPlay={preview} />
+        : <img src={source} alt={message.fileName || ''} style={style} loading={preview ? 'eager' : 'lazy'} />;
+}
+
 
 export function MediaGallery({ messages, onClose }) {
     const [media, setMedia] = useState([]);
@@ -22,11 +33,7 @@ export function MediaGallery({ messages, onClose }) {
                     ) : (
                         media.map((msg, i) => (
                             <div key={msg.id} style={s.item} onClick={() => setSelected(i)}>
-                                {msg.type === 'video' ? (
-                                    <video src={msg.fileData} style={s.thumb} preload="metadata" />
-                                ) : (
-                                    <img src={msg.fileData} alt="" style={s.thumb} loading="lazy" />
-                                )}
+                                <GalleryMedia message={msg} style={s.thumb} />
                             </div>
                         ))
                     )}
@@ -34,11 +41,7 @@ export function MediaGallery({ messages, onClose }) {
                 
                 {selected !== null && (
                     <div style={s.preview} onClick={() => setSelected(null)}>
-                        {media[selected]?.type === 'video' ? (
-                            <video controls src={media[selected].fileData} style={s.previewMedia} autoPlay />
-                        ) : (
-                            <img src={media[selected]?.fileData} alt="" style={s.previewMedia} />
-                        )}
+                        <GalleryMedia message={media[selected]} style={s.previewMedia} preview />
                         <button style={s.previewClose}>✕</button>
                     </div>
                 )}

@@ -1,4 +1,4 @@
-import { deleteObject, getDownloadURL, ref, uploadBytes } from 'firebase/storage';
+import { deleteObject, ref, uploadBytes } from 'firebase/storage';
 import { storage } from './firebase.js';
 import { mediaStoragePath, validateMediaFile } from './mediaPolicy.js';
 import { messageService } from './messageService.js';
@@ -18,10 +18,8 @@ export async function sendStoredAttachment(chatId, user, file, type, isStillActi
     let shouldCleanup = true;
     try {
         if (!isStillActive()) return false;
-        const fileData = await getDownloadURL(objectRef);
-        if (!isStillActive()) return false;
         await messageService.sendMessage(chatId, user, '', {
-            type, fileData, fileName: file.name, fileSize: file.size, storagePath: path
+            type, fileData: '', fileName: file.name, fileSize: file.size, storagePath: path
         });
         shouldCleanup = false;
         return true;

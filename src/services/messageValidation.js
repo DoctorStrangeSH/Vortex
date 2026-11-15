@@ -23,7 +23,7 @@ export function validateOutgoingMessage({ chatId, user, text, attachment }) {
             attachment.storagePath.startsWith(`chats/${chatId}/media/${user.uid}/`);
         if (typeof attachment.type !== 'string' ||
             typeof attachment.fileData !== 'string' ||
-            !(stored ? attachment.fileData.startsWith('https://') : attachment.fileData.startsWith('data:')) ||
+            !(stored ? attachment.fileData === '' : attachment.fileData.startsWith('data:')) ||
             !Number.isSafeInteger(attachment.fileSize) ||
             attachment.fileSize < 0 ||
             (stored ? attachment.fileSize > 25 * 1024 * 1024 : attachment.fileSize > MAX_LEGACY_ATTACHMENT_BYTES)) {
