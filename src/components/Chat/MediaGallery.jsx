@@ -1,24 +1,45 @@
-import { useState, useEffect } from 'preact/hooks';
+import { useState, useEffect, useRef } from 'preact/hooks';
 import { useAttachmentSource } from '../../services/useAttachmentSource.js';
 
 function GalleryMedia({ message, style, preview = false }) {
-    const { source, status, error, retry } = useAttachmentSource(message);
+    const containerRef = useRef(null);
+    const [visible, setVisible] = useState(preview);
+
+    useEffect(() => {
+        if (preview) {
+            setVisible(true);
+            return;
+        }
+        const element = containerRef.current;
+        if (!element || typeof IntersectionObserver === 'undefined') {
+            setVisible(true);
+            return;
+        }
+        const observer = new IntersectionObserver(
+            entries => setVisible(entries.some(entry => entry.isIntersecting)),
+            { rootMargin: '120px 0px', threshold: 0 }
+        );
+        observer.observe(element);
+        return () => observer.disconnect();
+    }, [preview, message?.id]);
+
+    const { source, status, error, retry } = useAttachmentSource(message, visible);
     if (!message) return null;
-    if (!source) return (
-        <div style={{ ...style, display: 'grid', placeItems: 'center', textAlign: 'center', padding: '0.5rem' }}>
-            {status === 'loading' ? <span role="status">Загрузка…</span> : (
-                <div role="alert">
-                    <span>{error || 'Вложение недоступно'}</span>{' '}
-                    <button type="button" onClick={event => { event.stopPropagation(); retry(); }}>Повторить</button>
-                </div>
-            )}
+    return (
+        <div ref={containerRef} style={{ ...style, display: 'grid', placeItems: 'center', overflow: 'hidden' }}>
+            {!visible ? null : !source ? (
+                status === 'loading' || status === 'idle' ? <span role="status">Загрузка…</span> : (
+                    <div role="alert" style={{ textAlign: 'center', padding: '0.5rem' }}>
+                        <span>{error || 'Вложение недоступно'}</span>{' '}
+                        <button type="button" onClick={event => { event.stopPropagation(); retry(); }}>Повторить</button>
+                    </div>
+                )
+            ) : message.type === 'video'
+                ? <video controls={preview} src={source} style={{ ...style, width: '100%', height: '100%' }} preload="metadata" autoPlay={preview} />
+                : <img src={source} alt={message.fileName || ''} style={{ ...style, width: '100%', height: '100%' }} loading={preview ? 'eager' : 'lazy'} />}
         </div>
     );
-    return message.type === 'video'
-        ? <video controls={preview} src={source} style={style} preload="metadata" autoPlay={preview} />
-        : <img src={source} alt={message.fileName || ''} style={style} loading={preview ? 'eager' : 'lazy'} />;
 }
-
 
 export function MediaGallery({ messages, onClose }) {
     const [media, setMedia] = useState([]);
