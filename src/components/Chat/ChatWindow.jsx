@@ -813,7 +813,7 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
     return (
         <div style={{ ...s.container, opacity: isDragOver ? 0.8 : 1 }} onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}>
             {!isOnline && (
-                <div style={s.offlineBar}>📴 Нет соединения. Сообщения отправятся при подключении.</div>
+                <div style={s.offlineBar}>📴 Нет соединения. Текстовые сообщения сохраняются в очереди; вложения отправляйте после подключения.</div>
             )}
             {queuedForChat.length > 0 && (
                 <div style={s.queueBar} role="status">

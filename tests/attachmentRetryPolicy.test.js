@@ -15,3 +15,14 @@ test('retry notice describes already sent files', () => {
     assert.match(text, /Отправлено 2 из 3/);
     assert.match(text, /повторить оставшиеся файлы/);
 });
+
+test('permission errors are actionable and never suggest retry', () => {
+    const denied = Object.assign(new Error('Permission denied'), { code: 'permission-denied' });
+    assert.equal(mayRetryAttachment(denied), false);
+    assert.match(attachmentRetryNotice('secret.pdf', denied, 0, 1), /Проверьте авторизацию/);
+    assert.doesNotMatch(attachmentRetryNotice('secret.pdf', denied, 0, 1), /дубликат/);
+});
+test('storage authorization errors also disable retry', () => {
+    assert.equal(mayRetryAttachment({ code: 'storage/unauthorized' }), false);
+    assert.equal(mayRetryAttachment({ code: 'storage/unauthenticated' }), false);
+});
