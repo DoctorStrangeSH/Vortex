@@ -33,3 +33,14 @@ export function getVisibleMessageRange(offsets, scrollTop, viewportHeight, overs
 export function indexMessagesById(messages) {
     return new Map(messages.map((message, index) => [message.id, index]));
 }
+
+export function shouldUpdateMeasuredHeight(height, previousHeight) {
+    return Number.isFinite(height) && height > 0 &&
+        Number.isFinite(previousHeight) && Math.abs(height - previousHeight) >= 0.5;
+}
+
+export function scrollAnchorAdjustment(rowBottom, scrollTop, oldHeight, newHeight) {
+    if (!Number.isFinite(rowBottom) || !Number.isFinite(scrollTop) ||
+        !shouldUpdateMeasuredHeight(newHeight, oldHeight)) return 0;
+    return rowBottom <= scrollTop ? newHeight - oldHeight : 0;
+}

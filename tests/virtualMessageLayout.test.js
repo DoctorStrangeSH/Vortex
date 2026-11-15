@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildMessageOffsets, getVisibleMessageRange, indexMessagesById } from '../src/services/virtualMessageLayout.js';
+import { buildMessageOffsets, getVisibleMessageRange, indexMessagesById, shouldUpdateMeasuredHeight, scrollAnchorAdjustment } from '../src/services/virtualMessageLayout.js';
 
 test('uses measured heights and falls back to estimates', () => {
     const messages = [{ id: 'a' }, { id: 'b' }, { id: 'c' }];
@@ -31,4 +31,21 @@ test('message index resolves late measurements without scanning large histories'
     assert.equal(byId.get('message-9999'), 9999);
     assert.equal(byId.get('message-0'), 0);
     assert.equal(byId.get('missing'), undefined);
+});
+
+test('invalid resize observations cannot repeatedly invalidate virtual layout', () => {
+    assert.equal(shouldUpdateMeasuredHeight(NaN, 72), false);
+    assert.equal(shouldUpdateMeasuredHeight(Infinity, 72), false);
+    assert.equal(shouldUpdateMeasuredHeight(0, 72), false);
+    assert.equal(shouldUpdateMeasuredHeight(-20, 72), false);
+    assert.equal(shouldUpdateMeasuredHeight(72.2, 72), false);
+    assert.equal(shouldUpdateMeasuredHeight(120, 72), true);
+    assert.equal(shouldUpdateMeasuredHeight(52, 72), true);
+});
+
+test('resizing rows above the viewport preserves scroll anchoring', () => {
+    assert.equal(scrollAnchorAdjustment(200, 300, 72, 120), 48);
+    assert.equal(scrollAnchorAdjustment(300, 300, 120, 70), -50);
+    assert.equal(scrollAnchorAdjustment(340, 300, 72, 120), 0);
+    assert.equal(scrollAnchorAdjustment(200, 300, 72, NaN), 0);
 });

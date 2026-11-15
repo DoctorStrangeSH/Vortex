@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useLayoutEffect } from 'preact/hooks';
-import { buildMessageOffsets, getVisibleMessageRange, indexMessagesById } from '../../services/virtualMessageLayout.js';
+import { buildMessageOffsets, getVisibleMessageRange, indexMessagesById, shouldUpdateMeasuredHeight, scrollAnchorAdjustment } from '../../services/virtualMessageLayout.js';
 
 // Prepared for integration after scroll-anchor, unread and pinned navigation checks.
 export function VirtualMessageList({ messages, renderMessage, loading, onScrollToBottom }) {
@@ -45,10 +45,10 @@ export function VirtualMessageList({ messages, renderMessage, loading, onScrollT
                 if (index === undefined) continue;
                 const height = entry.borderBoxSize?.[0]?.blockSize ?? entry.target.getBoundingClientRect().height;
                 const previous = measuredHeights.current.get(id) ?? 72;
-                if (height <= 0 || Math.abs(height - previous) < 0.5) continue;
+                if (!shouldUpdateMeasuredHeight(height, previous)) continue;
                 measuredHeights.current.set(id, height);
                 changed = true;
-                if (offsets[index + 1] <= container.scrollTop) adjustment += height - previous;
+                adjustment += scrollAnchorAdjustment(offsets[index + 1], container.scrollTop, previous, height);
             }
             if (changed) {
                 if (adjustment) container.scrollTop += adjustment;
