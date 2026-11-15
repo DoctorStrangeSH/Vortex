@@ -9,6 +9,8 @@ export function Icon({ name, size = 20, strokeWidth = 1.8 }) {
         close: <><path d="M5 5 19 19M19 5 5 19" /></>,
         plus: <><path d="M12 5v14M5 12h14" /></>,
         broadcast: <><path d="M4 10v4h4l10 5V5L8 10H4Z" /><path d="M8 14 10 21M21 9a5 5 0 0 1 0 6" /></>,
+        check: <path d="m4 12 5 5L20 6" />,
+        trash: <><path d="M4 7h16M10 3h4M6 7l1 14h10l1-14M10 11v6M14 11v6" /></>,
         tasks: <><rect x="5" y="4" width="14" height="17" rx="2" /><path d="M9 4.5h6M9 10h6M9 15h6" /></>,
         moon: <path d="M20 15.8A8 8 0 0 1 8.2 4a8 8 0 1 0 11.8 11.8Z" />,
         sun: <><circle cx="12" cy="12" r="4" /><path d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></>,

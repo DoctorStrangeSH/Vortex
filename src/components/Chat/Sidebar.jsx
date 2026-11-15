@@ -8,6 +8,7 @@ import { NewChatFAB } from '../NewChat/NewChatFAB';
 import { NewChatModal } from '../NewChat/NewChatModal';
 import { ProfileModal } from '../Profile/ProfileModal';
 import { ContactsModal } from '../Contacts/ContactsModal';
+import { TasksModal } from '../Tasks/TasksModal';
 import { Icon } from '../UI/Icon';
 import { ThemeCustomizer } from '../Theme/ThemeCustomizer';
 import { filterChats, orderPinnedChats } from '../../services/chatList.js';
@@ -24,6 +25,7 @@ export function Sidebar({ user, activeChat, onSelectChat }) {
     const [newChatMode, setNewChatMode] = useState('personal');
     const [showProfile, setShowProfile] = useState(false);
     const [showContacts, setShowContacts] = useState(false);
+    const [showTasks, setShowTasks] = useState(false);
     const [searchState, setSearchState] = useState('idle');
     const [searchError, setSearchError] = useState('');
     const [creatingSearchId, setCreatingSearchId] = useState(null);
@@ -163,7 +165,7 @@ export function Sidebar({ user, activeChat, onSelectChat }) {
     return (
         <div class="vortex-sidebar" style={st.container}>
             <div class="vortex-sidebar-header" style={st.header}>
-                <BurgerMenu user={user} onLogout={handleLogout} onProfile={() => setShowProfile(true)} onContacts={() => setShowContacts(true)} onTheme={() => setShowTheme(true)} />
+                <BurgerMenu user={user} onLogout={handleLogout} onProfile={() => setShowProfile(true)} onContacts={() => setShowContacts(true)} onTasks={() => setShowTasks(true)} onTheme={() => setShowTheme(true)} />
                 <h2 class="vortex-brand" style={st.logo}><BrandMark size={29} /><span>Vortex</span></h2>
                 <div style={{ width: 40 }} />
             </div>
@@ -227,6 +229,7 @@ export function Sidebar({ user, activeChat, onSelectChat }) {
             <NewChatFAB onPersonalChat={() => { setNewChatMode('personal'); setShowNewChatModal(true); }} onGroupChat={() => { setNewChatMode('group'); setShowNewChatModal(true); }} onChannel={() => { setNewChatMode('channel'); setShowNewChatModal(true); }} />
             {showNewChatModal && <NewChatModal user={user} onClose={() => setShowNewChatModal(false)} onChatCreated={(id) => { setShowNewChatModal(false); onSelectChat?.({ id }); }} mode={newChatMode} />}
             {showProfile && <ProfileModal onClose={() => setShowProfile(false)} />}
+            {showTasks && <TasksModal user={user} onClose={() => setShowTasks(false)} />}
             {showContacts && <ContactsModal user={user} onClose={() => setShowContacts(false)} onChatCreated={id => { setShowContacts(false); onSelectChat?.({ id }); }} />}
             {showTheme && <ThemeCustomizer onClose={() => setShowTheme(false)} />}
         </div>
