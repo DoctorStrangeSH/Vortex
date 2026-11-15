@@ -27,7 +27,7 @@ import { PollMessage } from './PollMessage';
 import { ThemeCustomizer } from '../Theme/ThemeCustomizer';
 import { StatusPicker } from '../Status/StatusPicker';
 import { mergeMessagePages } from '../../services/messagePagination.js';
-import { isNearChatBottom, getInitialChatScrollTarget, getMessageScrollTop, getBottomScrollTop } from '../../services/chatScroll.js';
+import { isNearChatBottom, getInitialChatScrollTarget, getMessageScrollTop, getBottomScrollTop, getCenteredMessageScrollTop } from '../../services/chatScroll.js';
 import { shouldLoadOlderMessages } from '../../services/olderHistoryTrigger.js';
 import { getNewIncomingIds, getUnreadIncomingIds, getFirstUnreadIncomingId, shouldPlayIncomingSound, shouldMarkMessagesRead, isMessageVisible } from '../../services/messageActivity.js';
 import { createFrameScheduler } from '../../services/frameScheduler.js';
@@ -83,6 +83,7 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
     const messagesContainerRef = useRef(null);
     const longPressRef = useRef(null);
     const suppressClickRef = useRef(null);
+    const pinnedHighlightRef = useRef(null);
     const seenMessageIdsRef = useRef(null);
     const unreadBoundaryCapturedRef = useRef(false);
     const initialScrollDoneRef = useRef(false);
@@ -107,6 +108,11 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
 
     useEffect(() => () => {
         if (longPressRef.current?.timer) clearTimeout(longPressRef.current.timer);
+        if (pinnedHighlightRef.current) {
+            clearTimeout(pinnedHighlightRef.current.timer);
+            pinnedHighlightRef.current.element.style.outline = pinnedHighlightRef.current.previousOutline;
+            pinnedHighlightRef.current = null;
+        }
     }, []);
 
     // Очистка при смене чата
@@ -114,6 +120,11 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
         if (longPressRef.current?.timer) clearTimeout(longPressRef.current.timer);
         longPressRef.current = null;
         suppressClickRef.current = null;
+        if (pinnedHighlightRef.current) {
+            clearTimeout(pinnedHighlightRef.current.timer);
+            pinnedHighlightRef.current.element.style.outline = pinnedHighlightRef.current.previousOutline;
+            pinnedHighlightRef.current = null;
+        }
         if (!chat) {
             setMessages([]);
             setMessagesLoading(false);
@@ -630,8 +641,41 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
     const pinnedMessageIds = useMemo(() => new Set(chat?.pinnedMessages?.map(message => message.id) || []), [chat?.pinnedMessages]);
     const selectedMessageIds = useMemo(() => new Set(selectedMessages), [selectedMessages]);
     const handleScrollToPinned = (messageId) => {
-        const el = messagesContainerRef.current?.querySelector(`[data-msg-id="${messageId}"]`);
-        if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.style.background = 'rgba(124, 58, 237, 0.2)'; setTimeout(() => el.style.background = '', 2000); }
+        const container = messagesContainerRef.current;
+        if (!container) return;
+        // Match IDs as plain values; never interpolate them into a CSS selector.
+        const element = Array.from(container.querySelectorAll('[data-msg-id]'))
+            .find(item => item.dataset.msgId === messageId);
+        if (!element) return;
+
+        const containerBounds = container.getBoundingClientRect();
+        const messageBounds = element.getBoundingClientRect();
+        shouldAutoScroll.current = false;
+        container.scrollTo({
+            top: getCenteredMessageScrollTop({
+                scrollTop: container.scrollTop,
+                scrollHeight: container.scrollHeight,
+                clientHeight: container.clientHeight,
+                containerTop: containerBounds.top,
+                messageTop: messageBounds.top,
+                messageHeight: messageBounds.height
+            }),
+            behavior: 'smooth'
+        });
+
+        if (pinnedHighlightRef.current) {
+            clearTimeout(pinnedHighlightRef.current.timer);
+            pinnedHighlightRef.current.element.style.outline = pinnedHighlightRef.current.previousOutline;
+        }
+        const previousOutline = element.style.outline;
+        element.style.outline = '2px solid rgba(124, 58, 237, 0.65)';
+        const highlight = { element, previousOutline, timer: null };
+        highlight.timer = setTimeout(() => {
+            if (pinnedHighlightRef.current !== highlight) return;
+            element.style.outline = previousOutline;
+            pinnedHighlightRef.current = null;
+        }, 2000);
+        pinnedHighlightRef.current = highlight;
     };
 
     const getOtherParticipant = () => {

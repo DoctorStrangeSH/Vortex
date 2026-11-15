@@ -14,3 +14,8 @@ export function getMessageScrollTop({ scrollTop, containerTop, messageTop, margi
 export function getBottomScrollTop({ scrollHeight, clientHeight }) {
     return Math.max(0, scrollHeight - clientHeight);
 }
+
+export function getCenteredMessageScrollTop({ scrollTop, scrollHeight, clientHeight, containerTop, messageTop, messageHeight }) {
+    const desired = scrollTop + messageTop - containerTop - (clientHeight - messageHeight) / 2;
+    return Math.min(Math.max(0, desired), Math.max(0, scrollHeight - clientHeight));
+}
