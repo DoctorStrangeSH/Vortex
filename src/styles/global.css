@@ -377,3 +377,12 @@ button:disabled { cursor: not-allowed !important; }
     .vortex-auth-card { padding: 1.7rem !important; border-radius: 20px !important; }
     .vortex-auth-screen { padding: 16px 12px; }
 }
+
+/* Ownable brand identity: no emoji font dependency */
+.vortex-brand { display: inline-flex; align-items: center; gap: 9px; }
+.vortex-brand svg { flex-shrink: 0; filter: drop-shadow(0 2px 10px rgba(151,118,255,.23)); }
+.vortex-auth-mark svg { filter: drop-shadow(0 2px 8px rgba(0,0,0,.14)); }
+.vortex-loading-mark { display: grid; place-items: center; animation: vortexPulse 2.7s ease-in-out infinite; }
+.vortex-empty-mark { display: grid; place-items: center; opacity: .85; filter: drop-shadow(0 12px 25px rgba(128,104,230,.18)); }
+@keyframes vortexPulse { 0%, 100% { transform: scale(.96); opacity: .8; } 50% { transform: scale(1.055); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .vortex-loading-mark { animation: none; } }

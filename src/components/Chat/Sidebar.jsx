@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'preact/hooks';
+import { BrandMark } from '../UI/BrandMark';
 import { chatService } from '../../services/chatService';
 import { authService } from '../../services/authService';
 import { userService } from '../../services/userService';
@@ -149,7 +150,7 @@ export function Sidebar({ user, activeChat, onSelectChat }) {
         <div class="vortex-sidebar" style={st.container}>
             <div class="vortex-sidebar-header" style={st.header}>
                 <BurgerMenu user={user} onLogout={handleLogout} onProfile={() => setShowProfile(true)} onTheme={() => setShowTheme(true)} />
-                <h2 class="vortex-brand" style={st.logo}>✦ Vortex</h2>
+                <h2 class="vortex-brand" style={st.logo}><BrandMark size={29} /><span>Vortex</span></h2>
                 <div style={{ width: 40 }} />
             </div>
 

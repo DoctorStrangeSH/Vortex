@@ -1,3 +1,4 @@
+import { BrandMark } from './BrandMark';
 export function LoadingScreen() {
     return (
         <div class="vortex-auth-screen" style={{
@@ -8,7 +9,7 @@ export function LoadingScreen() {
             background: 'var(--bg-primary)'
         }}>
             <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: '4rem', animation: 'vortexSpin 2s ease-in-out infinite' }}>✦</div>
+                <div class="vortex-loading-mark"><BrandMark size={78} /></div>
                 <h1 style={{
                     background: 'var(--gradient-brand)',
                     WebkitBackgroundClip: 'text',

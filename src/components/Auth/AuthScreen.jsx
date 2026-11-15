@@ -1,4 +1,5 @@
 import { useState } from 'preact/hooks';
+import { BrandMark } from '../UI/BrandMark';
 import { authService } from '../../services/authService';
 import { userService } from '../../services/userService';
 
@@ -74,7 +75,7 @@ export function AuthScreen({ pendingUser = null }) {
             <div class="vortex-auth-card" style={styles.card}>
                 {/* Логотип */}
                 <div style={styles.logoSection}>
-                    <div class="vortex-auth-mark" style={styles.logoIcon}>✦</div>
+                    <div class="vortex-auth-mark" style={styles.logoIcon}><BrandMark size={58} /></div>
                     <h1 style={styles.logoTitle}>Vortex</h1>
                     <p style={styles.logoSubtitle}>Ближе к тем, кто важен</p>
                 </div>

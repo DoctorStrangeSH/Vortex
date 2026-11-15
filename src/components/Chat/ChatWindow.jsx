@@ -15,6 +15,7 @@ import { selfDestructService } from '../../services/selfDestructService';
 import { exportService } from '../../services/exportService';
 import { wallpaperService } from '../../services/wallpaperService';
 import { ChatHeader } from './ChatHeader';
+import { BrandMark } from '../UI/BrandMark';
 import { GroupMembersPanel } from './GroupMembersPanel';
 import { MessageBubble } from './MessageBubble';
 import { MessageInput } from './MessageInput';
@@ -773,7 +774,7 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
         return (
             <div style={s.emptyContainer}>
                 <div style={s.emptyContent}>
-                    <div style={s.emptyLogo}>🌪️</div>
+                    <div class="vortex-empty-mark" style={s.emptyLogo}><BrandMark size={96} /></div>
                     <h2 style={s.emptyTitle}>Vortex</h2>
                     <p style={s.emptyText}>Выберите чат или создайте новый</p>
                 </div>
