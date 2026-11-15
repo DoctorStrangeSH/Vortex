@@ -111,11 +111,26 @@ export class OfflineService {
                     action.status = 'sending';
                     this.notifyQueue();
                     await this.executeAction(action);
-                    this.queue = this.queue.filter(item => item.id !== action.id);
-                    this.saveQueue();
+                    const previousQueue = this.queue;
+                    this.queue = previousQueue.filter(item => item.id !== action.id);
+                    try {
+                        this.saveQueue();
+                    } catch (error) {
+                        // A successful remote write is not enough to discard the
+                        // durable local entry if its removal could not be saved.
+                        // Retrying with the same message ID is idempotent.
+                        this.queue = previousQueue;
+                        throw error;
+                    }
                 } catch (error) {
                     action.status = 'failed';
-                    this.saveQueue();
+                    try {
+                        this.saveQueue();
+                    } catch (storageError) {
+                        // Preserve the in-memory entry even if localStorage is full.
+                        this.notifyQueue();
+                        console.warn('Не удалось обновить офлайн-очередь', storageError);
+                    }
                     console.warn('Сообщение осталось в очереди отправки', error);
                     break;
                 }

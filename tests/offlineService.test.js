@@ -280,3 +280,35 @@ test('an unavailable local store rejects offline delivery instead of pretending 
     );
     assert.equal(service.getQueue().length, 0);
 });
+
+test('failed persistence after remote send retains the message with its original ID', async () => {
+    const values = new Map();
+    let failRemoval = false;
+    const storage = {
+        getItem: key => values.get(key) ?? null,
+        setItem: (key, value) => {
+            if (failRemoval && JSON.parse(value).length === 0) throw new Error('QuotaExceededError');
+            values.set(key, value);
+        }
+    };
+    const service = new OfflineService({
+        storage, network: { onLine: false }, createId: () => 'stable-message-id'
+    });
+    await service.addToQueue({ type: 'sendMessage', user: { uid: 'alice' }, text: 'Один раз' });
+    service.activeUid = 'alice';
+    service.isOnline = true;
+    let attempts = 0;
+    service.executeAction = async () => { attempts++; };
+    failRemoval = true;
+    const warn = console.warn;
+    console.warn = () => {};
+    try { await service.processQueue(); }
+    finally { console.warn = warn; }
+    assert.equal(attempts, 1);
+    assert.equal(service.getQueue()[0].id, 'stable-message-id');
+    assert.equal(JSON.parse(storage.getItem('offlineQueue'))[0].id, 'stable-message-id');
+    failRemoval = false;
+    await service.processQueue();
+    assert.equal(attempts, 2);
+    assert.deepEqual(service.getQueue(), []);
+});
