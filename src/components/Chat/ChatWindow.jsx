@@ -41,6 +41,7 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
     const latestMessagesRef = useRef([]);
     const loadingOlderRef = useRef(false);
     const activeChatIdRef = useRef(null);
+    const activeSubscriptionRef = useRef(null);
     const [text, setText] = useState('');
     const [editingMessage, setEditingMessage] = useState(null);
     const [otherStatus, setOtherStatus] = useState({ isOnline: false, lastSeen: null });
@@ -94,6 +95,8 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
             return;
         }
         const currentChatId = chat.id;
+        const subscriptionToken = Symbol('chat-subscription');
+        activeSubscriptionRef.current = subscriptionToken;
         activeChatIdRef.current = currentChatId;
         const currentUserId = user.uid;
         setMessages([]);
@@ -117,7 +120,7 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
         setOtherStatus({ isOnline: false, lastSeen: null });
         const readAttempts = readAttemptIdsRef.current;
         const markVisibleAsRead = () => {
-            if (activeChatIdRef.current !== currentChatId || !initialScrollDoneRef.current || !shouldMarkMessagesRead({ visibilityState: document.visibilityState, hasFocus: document.hasFocus() })) return;
+            if (activeSubscriptionRef.current !== subscriptionToken || !initialScrollDoneRef.current || !shouldMarkMessagesRead({ visibilityState: document.visibilityState, hasFocus: document.hasFocus() })) return;
             const container = messagesContainerRef.current;
             if (!container) return;
             const loadedMessages = mergeMessagePages(olderMessagesRef.current, latestMessagesRef.current);
@@ -140,6 +143,9 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
         document.addEventListener('visibilitychange', readScheduler.schedule);
         window.addEventListener('focus', readScheduler.schedule);
         const unsubscribe = messageService.subscribeToMessages(chat.id, (msgs, cursor, hasMore) => {
+            // A queued Firestore callback may arrive after the user switched chats.
+            // Never apply data or notifications from the previous subscription.
+            if (activeSubscriptionRef.current !== subscriptionToken) return;
             if (!unreadBoundaryCapturedRef.current && msgs.length) {
                 unreadBoundaryCapturedRef.current = true;
                 setFirstUnreadMessageId(getFirstUnreadIncomingId(msgs, currentUserId));
@@ -166,6 +172,7 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
             setMessagesLoading(false);
         });
         return () => {
+            activeSubscriptionRef.current = null;
             activeChatIdRef.current = null;
             markVisibleAsReadRef.current = null;
             readScheduler.cancel();
@@ -175,7 +182,7 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
             setMessages([]);
             typingService.stopTyping(currentChatId, currentUserId);
         };
-    }, [chat?.id]);
+    }, [chat?.id, user.uid]);
 
     const loadOlderMessages = async () => {
         if (!chat || !oldestCursorRef.current || loadingOlderRef.current || !hasOlderMessages) return;
@@ -197,10 +204,14 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
                 if (container) container.scrollTop += container.scrollHeight - previousHeight;
             });
         } catch (error) {
-            alert(error.message || 'Не удалось загрузить историю');
+            if (activeChatIdRef.current === currentChatId) {
+                alert(error.message || 'Не удалось загрузить историю');
+            }
         } finally {
-            loadingOlderRef.current = false;
-            setOlderMessagesLoading(false);
+            if (activeChatIdRef.current === currentChatId) {
+                loadingOlderRef.current = false;
+                setOlderMessagesLoading(false);
+            }
         }
     };
 
