@@ -48,6 +48,7 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
     const [contextMenu, setContextMenu] = useState(null);
     const [isRecording, setIsRecording] = useState(false);
     const [showAI, setShowAI] = useState(false);
+    const aiRequestRef = useRef(0);
     const [micDenied, setMicDenied] = useState(false);
     const [isTyping, setIsTyping] = useState(false);
     const [isDragOver, setIsDragOver] = useState(false);
@@ -119,6 +120,8 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
         setShowJumpToLatest(false);
         setNewIncomingCount(0);
         setText('');
+        aiRequestRef.current += 1;
+        setShowAI(false);
         setEditingMessage(null);
         sendingRef.current = false;
         setSending(false);
@@ -178,6 +181,7 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
             setMessagesLoading(false);
         });
         return () => {
+            aiRequestRef.current += 1;
             activeSubscriptionRef.current = null;
             activeChatIdRef.current = null;
             markVisibleAsReadRef.current = null;
@@ -445,9 +449,38 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
     };
 
     // AI
-    const handleSmartReply = async () => { try { const r = await aiService.getSmartReplies(messages); if (r.length) setText(r[0]); } catch(e){} setShowAI(false); };
-    const handleTranslate = async () => { const m = messages[messages.length-1]; if(m) { try { alert(await aiService.translate(m.text)); } catch(e){} } setShowAI(false); };
-    const handleSummarize = async () => { try { alert(await aiService.summarize(messages)); } catch(e){} setShowAI(false); };
+    const handleSmartReply = async () => {
+        const request = ++aiRequestRef.current;
+        const subscription = activeSubscriptionRef.current;
+        const originalDraft = text;
+        setShowAI(false);
+        try {
+            const replies = await aiService.getSmartReplies(messages);
+            if (replies.length && activeSubscriptionRef.current === subscription && aiRequestRef.current === request) {
+                setText(current => current === originalDraft ? replies[0] : current);
+            }
+        } catch (error) { console.error('Не удалось получить умный ответ', error); }
+    };
+    const handleTranslate = async () => {
+        const message = messages[messages.length - 1];
+        if (!message) return;
+        const request = ++aiRequestRef.current;
+        const subscription = activeSubscriptionRef.current;
+        setShowAI(false);
+        try {
+            const translation = await aiService.translate(message.text);
+            if (activeSubscriptionRef.current === subscription && aiRequestRef.current === request) alert(translation);
+        } catch (error) { console.error('Не удалось перевести сообщение', error); }
+    };
+    const handleSummarize = async () => {
+        const request = ++aiRequestRef.current;
+        const subscription = activeSubscriptionRef.current;
+        setShowAI(false);
+        try {
+            const summary = await aiService.summarize(messages);
+            if (activeSubscriptionRef.current === subscription && aiRequestRef.current === request) alert(summary);
+        } catch (error) { console.error('Не удалось составить краткое содержание', error); }
+    };
 
     // Опрос
     const handlePollSend = async (pollData) => {
