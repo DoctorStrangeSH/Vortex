@@ -73,8 +73,8 @@ export function NewChatModal({ user, onClose, onChatCreated, mode = 'personal' }
     };
 
     return (
-        <div style={st.overlay} onClick={() => { if (!loading) onClose?.(); }}>
-            <div style={st.modal} role="dialog" aria-modal="true" aria-labelledby="new-chat-heading" onClick={e => e.stopPropagation()}>
+        <div class="vortex-dialog-overlay" style={st.overlay} onClick={() => { if (!loading) onClose?.(); }}>
+            <div class="vortex-dialog-surface vortex-newchat-dialog" style={st.modal} role="dialog" aria-modal="true" aria-labelledby="new-chat-heading" onClick={e => e.stopPropagation()}>
                 <div style={st.header}>
                     <div><div style={st.eyebrow}>VORTEX · НОВОЕ</div><h3 id="new-chat-heading" style={st.title}>{mode === 'group' ? 'Новая группа' : mode === 'channel' ? 'Новый канал' : 'Новый чат'}</h3></div>
                     <button type="button" onClick={onClose} disabled={loading} aria-label="Закрыть окно" style={st.closeBtn}><Icon name="close" size={20}/></button>

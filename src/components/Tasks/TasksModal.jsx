@@ -51,13 +51,13 @@ export function TasksModal({ user, onClose }) {
     const deleteTask = id => setTasks(current => current.filter(task => task.id !== id));
     const visible = useMemo(() => tasks.filter(task => filter === 'all' || (filter === 'done' ? task.done : !task.done)), [tasks,filter]);
     const done = tasks.filter(task => task.done).length;
-    return <div style={s.overlay} onClick={onClose}>
-        <section role="dialog" aria-modal="true" aria-labelledby="vortex-tasks-title" style={s.modal} onClick={event => event.stopPropagation()}>
+    return <div class="vortex-dialog-overlay" style={s.overlay} onClick={onClose}>
+        <section class="vortex-dialog-surface vortex-tasks-dialog" role="dialog" aria-modal="true" aria-labelledby="vortex-tasks-title" style={s.modal} onClick={event => event.stopPropagation()}>
             <header style={s.header}>
                 <div><div style={s.eyebrow}>VORTEX / МОЙ ПЛАН</div><h2 id="vortex-tasks-title" style={s.title}>Задачи</h2><p style={s.description}>Маленькие шаги к большим результатам.</p></div>
                 <button type="button" style={s.close} aria-label="Закрыть задачи" onClick={onClose}><Icon name="close"/></button>
             </header>
-            <div style={s.content}>
+            <div class="vortex-tasks-content" style={s.content}>
                 <div style={s.summary}>
                     <span style={s.summaryIcon}><Icon name="tasks" size={25}/></span>
                     <div><div style={s.summaryValue}>{done} <span style={s.summaryOf}>/ {tasks.length}</span></div><div style={s.summaryCaption}>задач выполнено</div></div>
@@ -65,9 +65,9 @@ export function TasksModal({ user, onClose }) {
                 </div>
                 <form onSubmit={addTask} style={s.form}>
                     <label for="vortex-new-task" style={s.label}>НОВАЯ ЗАДАЧА</label>
-                    <div style={s.inputRow}>
+                    <div class="vortex-tasks-input-row" style={s.inputRow}>
                         <input id="vortex-new-task" value={title} maxLength={160} onInput={e => {setTitle(e.currentTarget.value);setError('');}} placeholder="Что нужно сделать?" style={s.input}/>
-                        <button type="submit" aria-label="Добавить задачу" disabled={!title.trim()} class="vortex-primary-button" style={s.add}><Icon name="plus" size={21}/><span>Добавить</span></button>
+                        <button type="submit" aria-label="Добавить задачу" disabled={!title.trim()} class="vortex-primary-button vortex-tasks-add" style={s.add}><Icon name="plus" size={21}/><span>Добавить</span></button>
                     </div>
                     <div style={s.dateRow}><label for="vortex-task-date">Срок (необязательно)</label><input id="vortex-task-date" type="date" value={dueDate} onInput={e => setDueDate(e.currentTarget.value)} style={s.date}/></div>
                 </form>

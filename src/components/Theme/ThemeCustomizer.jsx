@@ -35,8 +35,8 @@ export function ThemeCustomizer({ onClose }) {
     };
 
     return (
-        <div style={s.overlay} onClick={onClose}>
-            <div class="vortex-settings-modal" role="dialog" aria-modal="true" aria-label="Настройка темы" style={s.modal} onClick={e => e.stopPropagation()}>
+        <div class="vortex-dialog-overlay" style={s.overlay} onClick={onClose}>
+            <div class="vortex-settings-modal vortex-dialog-surface" role="dialog" aria-modal="true" aria-label="Настройка темы" style={s.modal} onClick={e => e.stopPropagation()}>
                 <div style={s.header}>
                     <h3>✦ Оформление</h3>
                     <button type="button" aria-label="Закрыть настройки" onClick={onClose} style={s.closeBtn}>✕</button>

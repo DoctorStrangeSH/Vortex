@@ -61,8 +61,8 @@ export function ContactsModal({ user, onClose, onChatCreated }) {
         }
     };
 
-    return <div style={styles.overlay} onClick={() => { if (!creatingId) onClose?.(); }}>
-        <div role="dialog" aria-modal="true" aria-labelledby="vortex-contacts-title" style={styles.modal} onClick={event => event.stopPropagation()}>
+    return <div class="vortex-dialog-overlay" style={styles.overlay} onClick={() => { if (!creatingId) onClose?.(); }}>
+        <div class="vortex-dialog-surface vortex-contacts-dialog" role="dialog" aria-modal="true" aria-labelledby="vortex-contacts-title" style={styles.modal} onClick={event => event.stopPropagation()}>
             <header style={styles.header}>
                 <div><div style={styles.eyebrow}>VORTEX / ЛЮДИ</div><h2 id="vortex-contacts-title" style={styles.title}>Найти собеседника</h2><p style={styles.description}>Ищите людей по @username. Email остаётся приватным.</p></div>
                 <button type="button" aria-label="Закрыть контакты" disabled={Boolean(creatingId)} onClick={onClose} style={styles.close}><Icon name="close" size={19}/></button>

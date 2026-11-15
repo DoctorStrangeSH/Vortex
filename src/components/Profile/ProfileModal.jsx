@@ -59,8 +59,8 @@ export function ProfileModal({ onClose }) {
     const user = authService.getCurrentUser();
 
     return (
-        <div style={styles.overlay} onClick={onClose}>
-            <div class="vortex-profile-modal" role="dialog" aria-modal="true" aria-label="Профиль" style={styles.modal} onClick={(e) => e.stopPropagation()}>
+        <div class="vortex-dialog-overlay" style={styles.overlay} onClick={onClose}>
+            <div class="vortex-profile-modal vortex-dialog-surface" role="dialog" aria-modal="true" aria-label="Профиль" style={styles.modal} onClick={(e) => e.stopPropagation()}>
                 {/* Заголовок */}
                 <div style={styles.header}>
                     <h3 style={styles.title}>👤 Профиль</h3>

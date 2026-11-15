@@ -386,3 +386,56 @@ button:disabled { cursor: not-allowed !important; }
 .vortex-empty-mark { display: grid; place-items: center; opacity: .85; filter: drop-shadow(0 12px 25px rgba(128,104,230,.18)); }
 @keyframes vortexPulse { 0%, 100% { transform: scale(.96); opacity: .8; } 50% { transform: scale(1.055); opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .vortex-loading-mark { animation: none; } }
+
+/* Obsidian Iris — responsive dialogs and tactile navigation */
+.vortex-dialog-overlay { animation: fadeIn 180ms ease-out; overscroll-behavior: contain; }
+.vortex-dialog-surface { animation: vortexDialogEnter 220ms cubic-bezier(.2,.75,.3,1); min-width: 0; }
+.vortex-dialog-surface input, .vortex-dialog-surface textarea { min-width: 0; }
+.vortex-dialog-surface button:not(:disabled):focus-visible,
+.vortex-action-fab:focus-visible { outline-color: var(--focus-ring) !important; }
+.vortex-menu-item:focus-visible { background: var(--bg-hover) !important; }
+.vortex-action-fab:hover:not(:disabled) { box-shadow: 0 14px 38px rgba(122,90,232,.46) !important; transform: translateY(-2px); }
+@keyframes vortexDialogEnter {
+    from { opacity: 0; transform: translateY(12px) scale(.985); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@media (max-width: 560px) {
+    .vortex-dialog-overlay {
+        align-items: flex-end !important;
+        padding: 0 !important;
+        padding-top: max(12px, env(safe-area-inset-top, 0px)) !important;
+    }
+    .vortex-dialog-surface {
+        width: 100% !important;
+        max-width: 100% !important;
+        max-height: calc(100dvh - max(12px, env(safe-area-inset-top, 0px))) !important;
+        border-radius: 24px 24px 0 0 !important;
+        border-bottom: 0 !important;
+        overflow-y: auto !important;
+        overscroll-behavior: contain;
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    .vortex-dialog-surface > header,
+    .vortex-dialog-surface > div:first-child {
+        padding-left: 20px !important;
+        padding-right: 20px !important;
+    }
+    .vortex-tasks-content { padding: 18px 17px 22px !important; }
+    .vortex-tasks-input-row { flex-direction: column; }
+    .vortex-tasks-input-row > input { flex: none !important; width: 100% !important; }
+    .vortex-tasks-add { width: 100% !important; min-height: 44px; }
+    .vortex-newchat-dialog input { width: 100%; }
+    .vortex-contacts-dialog { min-height: min(460px, 88dvh); }
+}
+@media (max-width: 350px) {
+    .vortex-dialog-surface > header { padding: 18px 15px !important; }
+    .vortex-dialog-surface button { max-width: 100%; }
+}
+@media (max-height: 540px) and (min-width: 561px) {
+    .vortex-dialog-overlay { align-items: flex-start !important; overflow-y: auto; }
+    .vortex-dialog-surface { margin: auto 0; max-height: calc(100dvh - 24px) !important; overflow-y: auto !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .vortex-dialog-overlay, .vortex-dialog-surface { animation: none !important; }
+    .vortex-action-fab:hover:not(:disabled) { transform: none; }
+}
