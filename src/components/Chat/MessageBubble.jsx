@@ -1,11 +1,35 @@
-import { useRef } from 'preact/hooks';
+import { useRef, useState, useEffect } from 'preact/hooks';
 import { useSwipe } from '../../hooks/useSwipe';
 import { getMessageReadStatus } from '../../services/messageReadStatus.js';
 import { useAttachmentSource } from '../../services/useAttachmentSource.js';
+import { shouldDeferStoredMedia } from '../../services/attachmentVisibility.js';
 
 export function MessageBubble({ msg, own, other, avatarColor, isMobile, isPinned, participants, onContextMenu, onDoubleClick, onImageClick, onReactionClick, onPlayAudio, onReply, onMediaReady }) {
     const messageRef = useRef(null);
-    const { source: attachmentSource, status: attachmentStatus, error: attachmentError, retry: retryAttachment } = useAttachmentSource(msg);
+    const deferMedia = shouldDeferStoredMedia(msg);
+    const [attachmentVisible, setAttachmentVisible] = useState(!deferMedia);
+
+    useEffect(() => {
+        if (!deferMedia) {
+            setAttachmentVisible(true);
+            return undefined;
+        }
+        const element = messageRef.current;
+        if (!element || typeof IntersectionObserver === 'undefined') {
+            setAttachmentVisible(true);
+            return undefined;
+        }
+        const observer = new IntersectionObserver(entries => {
+            if (!entries.some(entry => entry.isIntersecting)) return;
+            // Keep a viewed attachment available for open image previews.
+            setAttachmentVisible(true);
+            observer.disconnect();
+        }, { rootMargin: '360px 0px', threshold: 0 });
+        observer.observe(element);
+        return () => observer.disconnect();
+    }, [deferMedia, msg.id, msg.storagePath]);
+
+    const { source: attachmentSource, status: attachmentStatus, error: attachmentError, retry: retryAttachment } = useAttachmentSource(msg, !deferMedia || attachmentVisible);
     useSwipe(messageRef, () => onReply?.(msg.id), null);
 
     const formatFileSize = (bytes) => {
@@ -73,7 +97,7 @@ export function MessageBubble({ msg, own, other, avatarColor, isMobile, isPinned
                                 </div>
                             ) : (
                                 <span role="status" style={s.mediaPlaceholder}>
-                                    {attachmentStatus === 'loading' ? 'Загрузка вложения…' : 'Вложение недоступно'}
+                                    {!attachmentVisible && deferMedia ? 'Вложение загрузится при прокрутке' : attachmentStatus === 'loading' || attachmentStatus === 'idle' ? 'Загрузка вложения…' : 'Вложение недоступно'}
                                 </span>
                             )}
                         </div>
