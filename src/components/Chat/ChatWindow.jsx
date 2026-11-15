@@ -28,6 +28,7 @@ import { ThemeCustomizer } from '../Theme/ThemeCustomizer';
 import { StatusPicker } from '../Status/StatusPicker';
 import { mergeMessagePages } from '../../services/messagePagination.js';
 import { isNearChatBottom, getInitialChatScrollTarget, getMessageScrollTop } from '../../services/chatScroll.js';
+import { shouldLoadOlderMessages } from '../../services/olderHistoryTrigger.js';
 import { getNewIncomingIds, getUnreadIncomingIds, getFirstUnreadIncomingId, shouldPlayIncomingSound, shouldMarkMessagesRead, isMessageVisible } from '../../services/messageActivity.js';
 import { createFrameScheduler } from '../../services/frameScheduler.js';
 
@@ -258,6 +259,15 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
         shouldAutoScroll.current = atBottom;
         setShowJumpToLatest(!atBottom);
         if (atBottom) setNewIncomingCount(0);
+        if (shouldLoadOlderMessages({
+            scrollTop: el.scrollTop,
+            initialized: initialScrollDoneRef.current,
+            loading: loadingOlderRef.current || messagesLoading,
+            hasMore: hasOlderMessages,
+            hasCursor: !!oldestCursorRef.current
+        })) {
+            void loadOlderMessages();
+        }
         markVisibleAsReadRef.current?.();
     };
 
