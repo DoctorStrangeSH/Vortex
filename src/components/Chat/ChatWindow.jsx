@@ -47,6 +47,9 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
     const [otherStatus, setOtherStatus] = useState({ isOnline: false, lastSeen: null });
     const [contextMenu, setContextMenu] = useState(null);
     const [isRecording, setIsRecording] = useState(false);
+    const [voiceStarting, setVoiceStarting] = useState(false);
+    const [recordSeconds, setRecordSeconds] = useState(0);
+    const voiceAttemptRef = useRef(0);
     const voiceStartingRef = useRef(false);
     const [showAI, setShowAI] = useState(false);
     const aiRequestRef = useRef(0);
@@ -81,6 +84,13 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
     const readAttemptIdsRef = useRef(new Set());
     const markVisibleAsReadRef = useRef(null);
 
+    useEffect(() => {
+        if (!isRecording) return;
+        const started = Date.now();
+        const timer = setInterval(() => setRecordSeconds(Math.floor((Date.now() - started) / 1000)), 250);
+        return () => clearInterval(timer);
+    }, [isRecording]);
+
     // Offline listener
     useEffect(() => {
         offlineService.init();
@@ -94,6 +104,9 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
         if (!chat) {
             setMessages([]);
             setMessagesLoading(false);
+            setIsRecording(false);
+            setVoiceStarting(false);
+            setRecordSeconds(0);
             sendingRef.current = false;
             setSending(false);
             setSendNotice('');
@@ -128,6 +141,8 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
         setSending(false);
         setSendNotice('');
         setIsRecording(false);
+        setVoiceStarting(false);
+        setRecordSeconds(0);
         voiceStartingRef.current = false;
         setOtherStatus({ isOnline: false, lastSeen: null });
         const readAttempts = readAttemptIdsRef.current;
@@ -184,6 +199,7 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
             setMessagesLoading(false);
         });
         return () => {
+            voiceAttemptRef.current += 1;
             voiceService.cancelRecording();
             voiceStartingRef.current = false;
             aiRequestRef.current += 1;
@@ -447,29 +463,41 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
     const startVoiceRecording = async () => {
         if (voiceStartingRef.current || isRecording || !chat) return;
         const subscription = activeSubscriptionRef.current;
+        const attempt = ++voiceAttemptRef.current;
         voiceStartingRef.current = true;
+        setVoiceStarting(true);
         const result = await voiceService.startRecording();
-        if (activeSubscriptionRef.current !== subscription) {
-            if (result === true) voiceService.cancelRecording();
-            return;
-        }
+        if (activeSubscriptionRef.current !== subscription || voiceAttemptRef.current !== attempt) return;
         voiceStartingRef.current = false;
+        setVoiceStarting(false);
         if (result === true) { setIsRecording(true); setMicDenied(false); }
         else if (result?.error === 'denied') setMicDenied(true);
         else if (result?.error && result.error !== 'cancelled') alert(result.message);
     };
     const retryMicAccess = () => { setMicDenied(false); startVoiceRecording(); };
+    const cancelVoiceRecording = () => {
+        voiceAttemptRef.current += 1;
+        voiceService.cancelRecording();
+        voiceStartingRef.current = false;
+        setVoiceStarting(false);
+        setIsRecording(false);
+        setRecordSeconds(0);
+    };
     const stopVoiceRecording = async () => {
         if (!isRecording) return;
         const subscription = activeSubscriptionRef.current;
         const targetChatId = chat?.id;
         setIsRecording(false);
+        setRecordSeconds(0);
         try {
             const base64 = await voiceService.stopRecording();
             if (base64 && targetChatId && activeSubscriptionRef.current === subscription) {
                 await chatService.sendMessage(targetChatId, '', user, { type: 'voice', fileData: base64, fileName: 'voice.webm' });
             }
-        } catch (e) { console.error(e); }
+        } catch (e) {
+            console.error(e);
+            if (activeSubscriptionRef.current === subscription) setSendNotice('Не удалось отправить голосовое сообщение');
+        }
     };
 
     // AI
@@ -666,7 +694,7 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
             {nowPlaying && <div style={s.miniPlayer}><span>🎵</span><div>{nowPlaying.name}</div><audio controls src={nowPlaying.src} autoPlay /><button onClick={() => setNowPlaying(null)}>✕</button></div>}
 
             {sendNotice && <div style={s.sendNotice} role="status">{sendNotice}</div>}
-            <MessageInput text={text} onTextChange={setText} onSend={handleSend} sending={sending} onTyping={handleTyping} isRecording={isRecording} onStartVoice={startVoiceRecording} onStopVoice={stopVoiceRecording} onShowAI={() => setShowAI(!showAI)} onFileSend={handleFileSend} editingMessage={editingMessage} onCancelEdit={cancelEdit} onShowPoll={() => setShowPollCreator(true)} />
+            <MessageInput text={text} onTextChange={setText} onSend={handleSend} sending={sending} onTyping={handleTyping} isRecording={isRecording} voiceStarting={voiceStarting} recordSeconds={recordSeconds} onStartVoice={startVoiceRecording} onStopVoice={stopVoiceRecording} onCancelVoice={cancelVoiceRecording} onShowAI={() => setShowAI(!showAI)} onFileSend={handleFileSend} editingMessage={editingMessage} onCancelEdit={cancelEdit} onShowPoll={() => setShowPollCreator(true)} />
         </div>
     );
 }
