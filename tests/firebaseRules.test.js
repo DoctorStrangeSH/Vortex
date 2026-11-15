@@ -1,7 +1,7 @@
 import test, { after } from 'node:test';
 import assert from 'node:assert/strict';
 import { initializeTestEnvironment, assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
-import { arrayRemove, arrayUnion, collection, deleteField, doc, getDoc, getDocs, increment, query, runTransaction, setDoc, updateDoc, where } from 'firebase/firestore';
+import { arrayRemove, arrayUnion, collection, deleteDoc, deleteField, doc, getDoc, getDocs, increment, query, runTransaction, setDoc, updateDoc, where } from 'firebase/firestore';
 import { ref, uploadString } from 'firebase/storage';
 
 const available = !!process.env.FIRESTORE_EMULATOR_HOST;
@@ -41,6 +41,31 @@ test('only authenticated participants can create messages in a chat', { skip: !a
     await assertSucceeds(setDoc(doc(collection(alice, 'chats/chat-a/messages')), { senderId: 'alice', text: 'hello' }));
     await assertFails(setDoc(doc(collection(alice, 'chats/chat-a/messages')), { senderId: 'bob', text: 'forged' }));
     await assertFails(setDoc(doc(collection(eve, 'chats/chat-a/messages')), { senderId: 'eve', text: 'intruder' }));
+});
+
+test('two participants can complete a message lifecycle: send, receive, read and author delete', { skip: !available }, async () => {
+    const alice = environment.authenticatedContext('alice').firestore();
+    const bob = environment.authenticatedContext('bob').firestore();
+    const aliceMessage = doc(alice, 'chats/chat-a/messages/roundtrip-alice-to-bob');
+    const bobMessage = doc(bob, 'chats/chat-a/messages/roundtrip-alice-to-bob');
+
+    await assertSucceeds(setDoc(aliceMessage, { senderId: 'alice', text: 'Привет, Боб!', readBy: [] }));
+    const received = await assertSucceeds(getDoc(bobMessage));
+    assert.equal(received.data().text, 'Привет, Боб!');
+    assert.deepEqual(received.data().readBy, []);
+
+    await assertSucceeds(updateDoc(bobMessage, { readBy: arrayUnion('bob') }));
+    const readReceipt = await assertSucceeds(getDoc(aliceMessage));
+    assert.deepEqual(readReceipt.data().readBy, ['bob']);
+
+    await assertFails(updateDoc(bobMessage, { text: 'Подмена текста' }));
+    await assertSucceeds(updateDoc(aliceMessage, { text: 'Исправлено', isEdited: true }));
+    assert.equal((await assertSucceeds(getDoc(bobMessage))).data().text, 'Исправлено');
+
+    // Only the author may delete their own message.
+    await assertFails(deleteDoc(bobMessage));
+    await assertSucceeds(deleteDoc(aliceMessage));
+    assert.equal((await assertSucceeds(getDoc(bobMessage))).exists(), false);
 });
 
 test('other participants cannot edit the author content', { skip: !available }, async () => {
