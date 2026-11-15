@@ -361,3 +361,29 @@ test('focus never flushes pending actions while offline or signed out', async ()
     assert.equal(sends, 0);
     assert.equal(service.getQueue().length, 1);
 });
+
+test('focused tab discovers persisted work even if its storage event was missed', async () => {
+    const listeners = new Map();
+    const target = { addEventListener: (event, callback) => listeners.set(event, callback) };
+    const values = new Map([['offlineQueue', '[]']]);
+    const storage = {
+        getItem: key => values.get(key) ?? null,
+        setItem: (key, value) => values.set(key, value)
+    };
+    const service = new OfflineService({ storage, network: { onLine: true }, eventTarget: target });
+    service.init();
+    service.activeUid = 'alice';
+    assert.deepEqual(service.getQueue(), []);
+
+    // A suspended tab missed the cross-tab storage event.
+    storage.setItem('offlineQueue', JSON.stringify([
+        { id: 'other-tab-id', type: 'sendMessage', user: { uid: 'alice' }, text: 'Из второй вкладки' }
+    ]));
+    const sent = [];
+    service.executeAction = async action => { sent.push(action.id); };
+    listeners.get('focus')();
+    await service.processingPromise;
+    assert.deepEqual(sent, ['other-tab-id']);
+    assert.deepEqual(service.getQueue(), []);
+    assert.deepEqual(JSON.parse(storage.getItem('offlineQueue')), []);
+});

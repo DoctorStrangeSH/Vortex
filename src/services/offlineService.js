@@ -25,7 +25,7 @@ export class OfflineService {
         // A transient Firestore failure may clear without a browser 'online'
         // transition. Retry when the user returns to this tab.
         this.eventTarget?.addEventListener('focus', () => {
-            if (this.isOnline && this.activeUid && this.queue.length) this.processQueue();
+            if (this.isOnline && this.activeUid) this.processQueue();
         });
         this.eventTarget?.addEventListener('storage', event => {
             if (event.key !== 'offlineQueue') return;
