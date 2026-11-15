@@ -298,3 +298,16 @@ test('chat preview and pinned metadata reject invalid types and oversized values
     await assertFails(updateDoc(chat, { pinnedMessages: Array.from({ length: 31 }, (_, i) => ({ id: String(i) })) }));
     await assertSucceeds(updateDoc(chat, { lastMessage: 'Привет', pinnedMessages: [{ id: 'm1', text: 'Привет' }] }));
 });
+
+
+test('private and secret chats require exactly two distinct participants', { skip: !available }, async () => {
+    const alice = environment.authenticatedContext('alice').firestore();
+    const chats = collection(alice, 'chats');
+    const base = { type: 'private', createdBy: 'alice', participants: ['alice', 'bob'] };
+    await assertSucceeds(setDoc(doc(chats), base));
+    await assertFails(setDoc(doc(chats), { ...base, participants: ['alice'] }));
+    await assertFails(setDoc(doc(chats), { ...base, participants: ['alice', 'alice'] }));
+    await assertFails(setDoc(doc(chats), { ...base, participants: ['alice', 'bob', 'eve'] }));
+    await assertFails(setDoc(doc(chats), { ...base, type: 'secret', participants: ['alice', 'bob', 'eve'] }));
+    await assertSucceeds(setDoc(doc(chats), { ...base, type: 'secret' }));
+});
