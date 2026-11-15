@@ -5,6 +5,7 @@ import { getGalleryMedia, getSelectedGalleryMedia } from '../../services/mediaGa
 function GalleryMedia({ message, style, preview = false }) {
     const containerRef = useRef(null);
     const [visible, setVisible] = useState(preview);
+    const [decodeFailedSource, setDecodeFailedSource] = useState('');
 
     useEffect(() => {
         if (preview) {
@@ -25,19 +26,21 @@ function GalleryMedia({ message, style, preview = false }) {
     }, [preview, message?.id]);
 
     const { source, status, error, retry } = useAttachmentSource(message, visible);
+    const mediaFailed = !!source && decodeFailedSource === source;
+    const retryMedia = () => { setDecodeFailedSource(''); retry(); };
     if (!message) return null;
     return (
         <div ref={containerRef} onClick={preview ? event => event.stopPropagation() : undefined} style={{ ...style, display: 'grid', placeItems: 'center', overflow: 'hidden' }}>
-            {!visible ? null : !source ? (
+            {!visible ? null : !source || mediaFailed ? (
                 status === 'loading' || status === 'idle' ? <span role="status">Загрузка…</span> : (
                     <div role="alert" style={{ textAlign: 'center', padding: '0.5rem' }}>
-                        <span>{error || 'Вложение недоступно'}</span>{' '}
-                        <button type="button" onClick={event => { event.stopPropagation(); retry(); }}>Повторить</button>
+                        <span>{mediaFailed ? 'Не удалось открыть файл. Формат повреждён или не поддерживается.' : error || 'Вложение недоступно'}</span>{' '}
+                        <button type="button" onClick={event => { event.stopPropagation(); retryMedia(); }}>Повторить</button>
                     </div>
                 )
             ) : message.type === 'video'
-                ? <video controls={preview} src={source} style={{ ...style, width: '100%', height: '100%' }} preload="metadata" autoPlay={preview} />
-                : <img src={source} alt={message.fileName || ''} style={{ ...style, width: '100%', height: '100%' }} loading={preview ? 'eager' : 'lazy'} />}
+                ? <video controls={preview} src={source} style={{ ...style, width: '100%', height: '100%' }} preload="metadata" autoPlay={preview} onError={() => setDecodeFailedSource(source)} />
+                : <img src={source} alt={message.fileName || ''} style={{ ...style, width: '100%', height: '100%' }} loading={preview ? 'eager' : 'lazy'} onError={() => setDecodeFailedSource(source)} />}
         </div>
     );
 }

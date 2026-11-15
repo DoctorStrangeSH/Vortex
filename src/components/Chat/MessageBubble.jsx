@@ -8,6 +8,7 @@ export function MessageBubble({ msg, own, other, avatarColor, isMobile, isPinned
     const messageRef = useRef(null);
     const deferMedia = shouldDeferStoredMedia(msg);
     const [attachmentVisible, setAttachmentVisible] = useState(!deferMedia);
+    const [decodeFailedSource, setDecodeFailedSource] = useState('');
 
     useEffect(() => {
         if (!deferMedia) {
@@ -31,6 +32,8 @@ export function MessageBubble({ msg, own, other, avatarColor, isMobile, isPinned
 
     const { source: attachmentSource, status: attachmentStatus, error: attachmentError, retry: retryAttachment } = useAttachmentSource(msg, !deferMedia || attachmentVisible);
     useSwipe(messageRef, () => onReply?.(msg.id), null);
+    const mediaFailed = attachmentSource && decodeFailedSource === attachmentSource;
+    const retryMedia = () => { setDecodeFailedSource(''); retryAttachment(); };
 
     const formatFileSize = (bytes) => {
         if (!bytes) return '';
@@ -83,17 +86,19 @@ export function MessageBubble({ msg, own, other, avatarColor, isMobile, isPinned
                     {/* Размер медиа зарезервирован до получения файла, чтобы чат не прыгал. */}
                     {(msg.type === 'image' || msg.type === 'video') && (
                         <div style={s.mediaFrame}>
-                            {attachmentSource ? (
+                            {attachmentSource && !mediaFailed ? (
                                 msg.type === 'image' ? (
                                     <img src={attachmentSource} alt={msg.fileName || 'Изображение'} style={s.image}
-                                        onClick={() => onImageClick?.(attachmentSource)} onLoad={() => onMediaReady?.()} />
+                                        onClick={() => onImageClick?.(attachmentSource)} onLoad={() => onMediaReady?.()}
+                                        onError={() => setDecodeFailedSource(attachmentSource)} />
                                 ) : (
-                                    <video controls src={attachmentSource} style={s.video} preload="metadata" onLoadedMetadata={() => onMediaReady?.()} />
+                                    <video controls src={attachmentSource} style={s.video} preload="metadata" onLoadedMetadata={() => onMediaReady?.()}
+                                        onError={() => setDecodeFailedSource(attachmentSource)} />
                                 )
-                            ) : attachmentStatus === 'error' ? (
+                            ) : mediaFailed || attachmentStatus === 'error' ? (
                                 <div role="alert" style={s.mediaPlaceholder}>
-                                    <span>{attachmentError || 'Не удалось загрузить вложение'}</span>
-                                    <button type="button" onClick={(event) => { event.stopPropagation(); retryAttachment(); }}>Повторить</button>
+                                    <span>{mediaFailed ? 'Не удалось открыть файл. Возможно, формат повреждён или не поддерживается.' : attachmentError || 'Не удалось загрузить вложение'}</span>
+                                    <button type="button" onClick={(event) => { event.stopPropagation(); retryMedia(); }}>Повторить</button>
                                 </div>
                             ) : (
                                 <span role="status" style={s.mediaPlaceholder}>
