@@ -34,7 +34,8 @@ export class OfflineService {
     goOnline() {
         this.isOnline = true;
         this.listeners.forEach(fn => fn(true));
-        this.processQueue();
+        // Wait for an authenticated account before attempting queued writes.
+        if (this.activeUid) this.processQueue();
     }
 
     goOffline() {

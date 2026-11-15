@@ -236,3 +236,20 @@ test('a storage event refreshes the queue and schedules delivery for the active 
     await service.processingPromise;
     assert.deepEqual(service.getQueue(), []);
 });
+
+test('coming online before authentication leaves queued messages untouched until sign-in', async () => {
+    const { service } = createService();
+    service.goOffline();
+    await service.addToQueue({ type: 'sendMessage', user: { uid: 'alice' }, text: 'После входа' });
+    let sends = 0;
+    service.executeAction = async () => { sends++; };
+
+    service.goOnline();
+    assert.equal(sends, 0);
+    assert.equal(service.getQueue().length, 1);
+
+    service.setActiveUser('alice');
+    await service.processingPromise;
+    assert.equal(sends, 1);
+    assert.deepEqual(service.getQueue(), []);
+});
