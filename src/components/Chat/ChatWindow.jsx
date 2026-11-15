@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo } from 'preact/hooks';
 import { chatService } from '../../services/chatService';
 import { messageService } from '../../services/messageService';
 import { MAX_LEGACY_ATTACHMENT_BYTES } from '../../services/messageValidation';
+import { dataUrlByteLength } from '../../services/dataUrlBytes.js';
 import { sendStoredAttachment, STORAGE_UPLOADS_ENABLED } from '../../services/mediaService.js';
 import { MAX_STORAGE_FILE_BYTES } from '../../services/mediaPolicy.js';
 import { presenceService } from '../../services/presenceService';
@@ -558,11 +559,20 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
         try {
             const base64 = await voiceService.stopRecording();
             if (base64 && targetChatId && activeSubscriptionRef.current === subscription) {
-                await chatService.sendMessage(targetChatId, '', user, { type: 'voice', fileData: base64, fileName: 'voice.webm' });
+                const size = dataUrlByteLength(base64);
+                if (size > MAX_LEGACY_ATTACHMENT_BYTES) {
+                    throw new Error('Голосовое слишком длинное для текущего режима хранения. Запишите сообщение покороче.');
+                }
+                await chatService.sendMessage(targetChatId, '', user, {
+                    type: 'voice',
+                    fileData: base64,
+                    fileName: base64.startsWith('data:audio/mp4;') ? 'voice.m4a' : 'voice.webm',
+                    fileSize: size
+                });
             }
         } catch (e) {
             console.error(e);
-            if (activeSubscriptionRef.current === subscription) setSendNotice('Не удалось отправить голосовое сообщение');
+            if (activeSubscriptionRef.current === subscription) setSendNotice(e.message || 'Не удалось отправить голосовое сообщение');
         }
     };
 
