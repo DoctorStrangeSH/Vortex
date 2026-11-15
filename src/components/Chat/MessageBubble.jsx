@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'preact/hooks';
+import { useRef } from 'preact/hooks';
 import { useSwipe } from '../../hooks/useSwipe';
 import { getMessageReadStatus } from '../../services/messageReadStatus.js';
 import { useAttachmentSource } from '../../services/useAttachmentSource.js';
@@ -6,15 +6,7 @@ import { useAttachmentSource } from '../../services/useAttachmentSource.js';
 export function MessageBubble({ msg, own, other, avatarColor, isMobile, isPinned, participants, onContextMenu, onDoubleClick, onImageClick, onReactionClick, onPlayAudio, onReply, onMediaReady }) {
     const messageRef = useRef(null);
     const { source: attachmentSource, status: attachmentStatus, error: attachmentError, retry: retryAttachment } = useAttachmentSource(msg);
-    const { attach, detach } = useSwipe(messageRef, 
-        () => onReply?.(msg.id), // Свайп влево — ответить
-        null // Свайп вправо
-    );
-
-    useEffect(() => {
-        attach();
-        return detach;
-    }, []);
+    useSwipe(messageRef, () => onReply?.(msg.id), null);
 
     const formatFileSize = (bytes) => {
         if (!bytes) return '';
