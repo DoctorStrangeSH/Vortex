@@ -253,3 +253,30 @@ test('coming online before authentication leaves queued messages untouched until
     assert.equal(sends, 1);
     assert.deepEqual(service.getQueue(), []);
 });
+
+test('storage quota failure never leaves a phantom queued message', async () => {
+    const values = new Map([['offlineQueue', '[]']]);
+    const storage = {
+        getItem: key => values.get(key) ?? null,
+        setItem: () => { throw new Error('QuotaExceededError'); }
+    };
+    const service = new OfflineService({ storage, network: { onLine: false } });
+    const snapshots = [];
+    service.onQueueChange(queue => snapshots.push(queue.length));
+    await assert.rejects(
+        service.addToQueue({ type: 'sendMessage', user: { uid: 'alice' }, text: 'Сохранить черновик' }),
+        /Не удалось сохранить сообщение/
+    );
+    assert.deepEqual(service.getQueue(), []);
+    assert.equal(storage.getItem('offlineQueue'), '[]');
+    assert.deepEqual(snapshots, [0, 0]);
+});
+
+test('an unavailable local store rejects offline delivery instead of pretending to queue', async () => {
+    const service = new OfflineService({ storage: null, network: { onLine: false } });
+    await assert.rejects(
+        service.addToQueue({ type: 'sendMessage', user: { uid: 'alice' }, text: 'Важное сообщение' }),
+        /Не удалось сохранить сообщение/
+    );
+    assert.equal(service.getQueue().length, 0);
+});

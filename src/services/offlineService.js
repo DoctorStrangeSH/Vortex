@@ -53,8 +53,16 @@ export class OfflineService {
     async addToQueue(action) {
         await this.withQueueLock(async () => {
             this.refreshQueue();
-            this.queue.push({ ...action, id: this.createId(), timestamp: Date.now() });
-            this.saveQueue();
+            const previousQueue = this.queue;
+            this.queue = [...previousQueue, { ...action, id: this.createId(), timestamp: Date.now() }];
+            try {
+                // A queued message must be durable before the composer clears it.
+                this.saveQueue();
+            } catch (error) {
+                this.queue = previousQueue;
+                this.notifyQueue();
+                throw new Error('Не удалось сохранить сообщение в офлайн-очереди. Освободите место в браузере и повторите отправку.', { cause: error });
+            }
         });
         if (this.isOnline && this.activeUid) this.processQueue();
     }
@@ -80,7 +88,8 @@ export class OfflineService {
     }
 
     saveQueue() {
-        this.storage?.setItem('offlineQueue', JSON.stringify(this.queue));
+        if (!this.storage?.setItem) throw new Error('Локальное хранилище недоступно');
+        this.storage.setItem('offlineQueue', JSON.stringify(this.queue));
         this.notifyQueue();
     }
 
