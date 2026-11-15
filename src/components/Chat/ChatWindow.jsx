@@ -219,6 +219,8 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
         markVisibleAsReadRef.current = readScheduler.schedule;
         document.addEventListener('visibilitychange', readScheduler.schedule);
         window.addEventListener('focus', readScheduler.schedule);
+        // A failed read receipt is eligible for retry once the connection returns.
+        window.addEventListener('online', readScheduler.schedule);
         const unsubscribe = messageService.subscribeToMessages(chat.id, (msgs, cursor, hasMore) => {
             // A queued Firestore callback may arrive after the user switched chats.
             // Never apply data or notifications from the previous subscription.
@@ -245,7 +247,13 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
                 oldestCursorRef.current = cursor;
                 setHasOlderMessages(hasMore);
             }
-            setMessages(mergeMessagePages(olderMessagesRef.current, msgs));
+            const loadedMessages = mergeMessagePages(olderMessagesRef.current, msgs);
+            // Keep the original unread anchor until initial navigation completes.
+            // Afterwards follow server read receipts so cleared unread markers vanish.
+            if (initialScrollDoneRef.current) {
+                setFirstUnreadMessageId(getFirstUnreadIncomingId(loadedMessages, currentUserId));
+            }
+            setMessages(loadedMessages);
             setMessagesLoading(false);
         });
         return () => {
@@ -259,6 +267,7 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
             readScheduler.cancel();
             document.removeEventListener('visibilitychange', readScheduler.schedule);
             window.removeEventListener('focus', readScheduler.schedule);
+            window.removeEventListener('online', readScheduler.schedule);
             unsubscribe?.();
             setMessages([]);
             typingService.stopTyping(currentChatId, currentUserId);

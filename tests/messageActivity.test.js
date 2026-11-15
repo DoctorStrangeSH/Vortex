@@ -40,3 +40,16 @@ test('a message outside the scroll viewport must not be marked read', () => {
     assert.equal(isMessageVisible({ top: 497, bottom: 540 }, viewport), false);
     assert.equal(isMessageVisible({ top: 200, bottom: 400 }, viewport), true);
 });
+
+test('unread boundary advances and disappears as server receipts arrive', () => {
+    const messages = [
+        { id: 'first', senderId: 'friend', readBy: [] },
+        { id: 'second', senderId: 'friend', readBy: [] },
+        { id: 'own', senderId: 'me', readBy: [] }
+    ];
+    assert.equal(getFirstUnreadIncomingId(messages, 'me'), 'first');
+    messages[0].readBy = ['me'];
+    assert.equal(getFirstUnreadIncomingId(messages, 'me'), 'second');
+    messages[1].readBy = ['me'];
+    assert.equal(getFirstUnreadIncomingId(messages, 'me'), null);
+});
