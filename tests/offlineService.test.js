@@ -3,19 +3,20 @@ import assert from 'node:assert/strict';
 import { OfflineService } from '../src/services/offlineService.js';
 
 function createService() {
+    let nextId = 0;
     const values = new Map();
     const storage = {
         getItem: key => values.get(key) ?? null,
         setItem: (key, value) => values.set(key, value)
     };
-    const service = new OfflineService({ storage, network: { onLine: true }, createId: () => 'stable-message-id' });
+    const service = new OfflineService({ storage, network: { onLine: true }, createId: () => `test-message-${++nextId}` });
     return { service, storage };
 }
 
 test('offline messages remain persisted when sending fails and disappear after confirmation', async () => {
     const { service, storage } = createService();
     await service.addToQueue({ type: 'sendMessage', text: 'Привет' });
-    assert.equal(service.queue[0].id, 'stable-message-id');
+    assert.equal(service.queue[0].id, 'test-message-1');
     service.executeAction = async () => { throw new Error('network unavailable'); };
     const originalWarn = console.warn;
     console.warn = () => {};
@@ -56,7 +57,7 @@ test('queue stops on disconnection and resumes with unchanged IDs', async () => 
     service.executeAction = async () => { calls++; };
     await service.processQueue();
     assert.equal(calls, 0);
-    assert.equal(service.queue[0].id, 'stable-message-id');
+    assert.equal(service.queue[0].id, 'test-message-1');
     service.isOnline = true;
     await service.processQueue();
     assert.equal(calls, 1);
