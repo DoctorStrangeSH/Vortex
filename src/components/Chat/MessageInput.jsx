@@ -1,4 +1,5 @@
 import { useRef } from 'preact/hooks';
+import { Icon } from '../UI/Icon';
 
 export function MessageInput({ text, onTextChange, onSend, sending = false, onTyping, isRecording, voiceStarting = false, recordSeconds = 0, onStartVoice, onStopVoice, onCancelVoice, onShowAI, onFileSend, editingMessage, onCancelEdit }) {
     const fileInputRef = useRef(null);
@@ -17,7 +18,7 @@ export function MessageInput({ text, onTextChange, onSend, sending = false, onTy
                 </div>
             )}
             <div style={s.wrapper}>
-                <button class="vortex-icon-button" style={s.btn} onClick={() => fileInputRef.current?.click()}>📎</button>
+                <button type="button" class="vortex-icon-button" aria-label="Прикрепить файл" title="Прикрепить файл" style={s.btn} onClick={() => fileInputRef.current?.click()}><Icon name="paperclip" /></button>
                 <input type="file" ref={fileInputRef} onChange={onFileSend} accept="*/*" multiple style={{ display: 'none' }} />
                 
                 <button type="button" title={isRecording ? 'Отправить запись' : voiceStarting ? 'Ожидаем микрофон' : 'Начать запись'}
@@ -25,7 +26,7 @@ export function MessageInput({ text, onTextChange, onSend, sending = false, onTy
                     class="vortex-icon-button" style={{ ...s.btn, background: isRecording ? 'var(--vortex-danger)' : 'transparent', color: isRecording ? '#fff' : 'var(--text-secondary)' }}
                     onClick={isRecording ? onStopVoice : voiceStarting ? undefined : onStartVoice}
                     disabled={voiceStarting}
-                >{isRecording ? '➤' : voiceStarting ? '⏳' : '🎙️'}</button>
+                >{isRecording ? <Icon name="send" /> : voiceStarting ? <Icon name="loader" /> : <Icon name="microphone" />}</button>
                 {(isRecording || voiceStarting) && <div style={s.voiceStatus} role="status">
                     {voiceStarting ? 'Микрофон…' : `🔴 ${Math.floor(recordSeconds / 60).toString().padStart(2, '0')}:${(recordSeconds % 60).toString().padStart(2, '0')}`}
                     <button type="button" onClick={onCancelVoice} aria-label="Отменить запись" title="Отменить запись" style={s.cancelVoice}>✕</button>
@@ -40,9 +41,9 @@ export function MessageInput({ text, onTextChange, onSend, sending = false, onTy
                     class="vortex-composer-input" style={s.input}
                 />
 
-                <button style={s.btn} onClick={onShowAI}>🤖</button>
+                <button type="button" class="vortex-icon-button" aria-label="Подсказки помощника" title="Подсказки помощника" style={s.btn} onClick={onShowAI}><Icon name="sparkles" /></button>
                 <button onClick={onSend} disabled={!text.trim() || sending} aria-label={sending ? 'Отправка сообщения' : 'Отправить сообщение'}
-                    class="vortex-send-button" style={{ ...s.sendBtn, opacity: text.trim() && !sending ? 1 : 0.4 }}>{sending ? '…' : '➤'}</button>
+                    class="vortex-send-button" style={{ ...s.sendBtn, opacity: text.trim() && !sending ? 1 : 0.4 }}>{sending ? <Icon name="loader" /> : <Icon name="send" />}</button>
             </div>
         </div>
     );

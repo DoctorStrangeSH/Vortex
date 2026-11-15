@@ -1,3 +1,4 @@
+import { Icon } from '../UI/Icon';
 export function ChatHeader({ chat, user, other, avatarColor, otherStatus, isTyping, isMobile, onBack, onShowGallery, onShowTheme, onShowStatus, onShowMembers, onExport }) {
     const formatLastSeen = (date) => {
         if (!date) return '';
@@ -22,11 +23,11 @@ export function ChatHeader({ chat, user, other, avatarColor, otherStatus, isTypi
                 </div>
             </div>
             <div style={s.actions}>
-                {chat.type === 'group' && <button type="button" class="vortex-icon-button" style={s.btn} onClick={onShowMembers} title="Участники группы" aria-label="Участники группы">👥</button>}
-                <button style={s.btn} onClick={onShowTheme} title="Тема">🎨</button>
-                <button style={s.btn} onClick={onShowStatus} title="Статус">😊</button>
-                <button style={s.btn} onClick={onShowGallery} title="Галерея">🖼️</button>
-                <button style={s.btn} onClick={onExport} title="Экспорт">📤</button>
+                {chat.type === 'group' && <button type="button" class="vortex-icon-button" style={s.btn} onClick={onShowMembers} title="Участники группы" aria-label="Участники группы"><Icon name="users" /></button>}
+                <button type="button" class="vortex-icon-button" style={s.btn} onClick={onShowTheme} title="Оформление" aria-label="Настройки оформления"><Icon name="palette" /></button>
+                <button type="button" class="vortex-icon-button" style={s.btn} onClick={onShowStatus} title="Статус" aria-label="Настроить статус"><Icon name="smile" /></button>
+                <button type="button" class="vortex-icon-button" style={s.btn} onClick={onShowGallery} title="Галерея" aria-label="Открыть галерею"><Icon name="image" /></button>
+                <button type="button" class="vortex-icon-button" style={s.btn} onClick={onExport} title="Экспорт" aria-label="Экспортировать чат"><Icon name="download" /></button>
             </div>
         </div>
     );
