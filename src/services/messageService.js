@@ -92,6 +92,10 @@ class MessageService {
         await batch.commit();
     }
 
+    async messageExists(chatId, messageId) {
+        return (await getDoc(doc(db, 'chats', chatId, 'messages', messageId))).exists();
+    }
+
     async editMessage(chatId, messageId, newText) {
         await updateDoc(doc(db, 'chats', chatId, 'messages', messageId), {
             text: newText,
