@@ -342,3 +342,21 @@ test('stored attachments are readable only by chat participants and deletable by
     await assertFails(deleteObject(ref(bob, path)));
     await assertSucceeds(deleteObject(ref(alice, path)));
 });
+
+
+test('removed group member immediately loses Storage access', { skip: !available || !process.env.FIREBASE_STORAGE_EMULATOR_HOST }, async () => {
+    const aliceDb = environment.authenticatedContext('alice').firestore();
+    const aliceStorage = environment.authenticatedContext('alice').storage();
+    const bobStorage = environment.authenticatedContext('bob').storage();
+    const groupId = 'group-storage-revoke';
+    await assertSucceeds(setDoc(doc(aliceDb, 'chats', groupId), {
+        type: 'group', createdBy: 'alice', participants: ['alice', 'bob'], admins: ['alice']
+    }));
+    const path = `chats/${groupId}/media/alice/revoke-test`;
+    await assertSucceeds(uploadString(ref(aliceStorage, path), 'hello', 'raw', { contentType: 'text/plain' }));
+    await assertSucceeds(getMetadata(ref(bobStorage, path)));
+    await assertSucceeds(updateDoc(doc(aliceDb, 'chats', groupId), { participants: arrayRemove('bob') }));
+    await assertFails(getMetadata(ref(bobStorage, path)));
+    await assertSucceeds(getMetadata(ref(aliceStorage, path)));
+    await assertSucceeds(deleteObject(ref(aliceStorage, path)));
+});
