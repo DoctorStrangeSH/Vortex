@@ -310,3 +310,19 @@ button:disabled { cursor: not-allowed !important; }
     .vortex-chat-header { min-height: 64px; }
     .vortex-composer { padding: .65rem .6rem !important; }
 }
+
+/* Conversation surfaces */
+.vortex-bubble { border: 1px solid rgba(184,197,244,.1); max-width: 100%; }
+.vortex-bubble-own { border-color: rgba(219,205,255,.18); box-shadow: 0 8px 24px rgba(81,58,171,.19) !important; }
+.vortex-bubble-other { background: linear-gradient(145deg, var(--bg-tertiary), var(--bg-secondary)) !important; }
+.vortex-message-row { transition: filter .15s ease; }
+.vortex-reaction { color: var(--text-primary); line-height: 1.2; min-height: 29px; }
+.vortex-reaction:hover { background: rgba(137,104,255,.25) !important; border-color: var(--vortex-primary-light) !important; transform: translateY(-1px); }
+.vortex-reaction-picker { backdrop-filter: blur(22px); }
+.vortex-reaction-choice:hover { background: var(--bg-hover) !important; }
+.vortex-context-menu { backdrop-filter: blur(22px); }
+.vortex-menu-item:hover { background: var(--bg-hover) !important; }
+.vortex-gallery-item { transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease; }
+.vortex-gallery-item:hover { border-color: var(--vortex-primary-light) !important; transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.25); }
+.vortex-pinned { border-left: 3px solid var(--vortex-primary); }
+[data-theme="light"] .vortex-bubble-other { background: #fff !important; }

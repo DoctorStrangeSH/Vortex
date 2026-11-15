@@ -56,17 +56,17 @@ export function MediaGallery({ messages, onClose }) {
 
     return (
         <div style={s.overlay} onClick={onClose}>
-            <div style={s.modal} onClick={e => e.stopPropagation()}>
+            <div class="vortex-gallery" role="dialog" aria-modal="true" aria-label="Галерея медиа" style={s.modal} onClick={e => e.stopPropagation()}>
                 <div style={s.header}>
                     <h3>🖼️ Галерея ({media.length})</h3>
-                    <button onClick={onClose} style={s.closeBtn}>✕</button>
+                    <button type="button" class="vortex-icon-button" aria-label="Закрыть галерею" onClick={onClose} style={s.closeBtn}>✕</button>
                 </div>
                 <div style={s.grid}>
                     {media.length === 0 ? (
                         <p style={{ color: 'var(--text-tertiary)', textAlign: 'center', padding: '2rem' }}>Нет медиа</p>
                     ) : (
                         media.map(msg => (
-                            <div key={msg.id} style={s.item} onClick={() => setSelectedId(msg.id)}>
+                            <div role="button" tabIndex={0} aria-label={`Открыть ${msg.type === "video" ? "видео" : "изображение"} ${msg.fileName || ""}`} key={msg.id} class="vortex-gallery-item" style={s.item} onClick={() => setSelectedId(msg.id)} onKeyDown={event => { if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); setSelectedId(msg.id); } }}>
                                 <GalleryMedia message={msg} style={s.thumb} />
                             </div>
                         ))
@@ -76,7 +76,7 @@ export function MediaGallery({ messages, onClose }) {
                 {selectedMedia && (
                     <div style={s.preview} onClick={() => setSelectedId(null)}>
                         <GalleryMedia message={selectedMedia} style={s.previewMedia} preview />
-                        <button style={s.previewClose}>✕</button>
+                        <button type="button" aria-label="Закрыть просмотр" onClick={() => setSelectedId(null)} style={s.previewClose}>✕</button>
                     </div>
                 )}
             </div>
@@ -86,11 +86,11 @@ export function MediaGallery({ messages, onClose }) {
 
 const s = {
     overlay: { position:'fixed', inset:0, background:'rgba(0,0,0,0.8)', zIndex:1000, display:'flex', alignItems:'center', justifyContent:'center' },
-    modal: { background:'var(--bg-secondary)', borderRadius:'16px', width:'90vw', maxWidth:'600px', maxHeight:'80vh', display:'flex', flexDirection:'column', overflow:'hidden' },
+    modal: { background:'var(--bg-secondary)', border:'1px solid var(--border-default)', boxShadow:'0 28px 90px rgba(0,0,0,.58)', borderRadius:'22px', width:'90vw', maxWidth:'720px', maxHeight:'80vh', display:'flex', flexDirection:'column', overflow:'hidden' },
     header: { display:'flex', justifyContent:'space-between', alignItems:'center', padding:'1rem 1.5rem', borderBottom:'1px solid var(--border-subtle)' },
     closeBtn: { background:'none', border:'none', color:'var(--text-secondary)', cursor:'pointer', fontSize:'1.2rem' },
-    grid: { display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:'4px', padding:'4px', overflowY:'auto', flex:1 },
-    item: { aspectRatio:'1', overflow:'hidden', borderRadius:'8px', cursor:'pointer' },
+    grid: { display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:'10px', padding:'14px', overflowY:'auto', flex:1 },
+    item: { aspectRatio:'1', overflow:'hidden', borderRadius:'14px', border:'1px solid var(--border-default)', background:'var(--bg-tertiary)', cursor:'pointer', padding:0 },
     thumb: { width:'100%', height:'100%', objectFit:'cover' },
     preview: { position:'fixed', inset:0, background:'rgba(0,0,0,0.95)', zIndex:2000, display:'flex', alignItems:'center', justifyContent:'center' },
     previewMedia: { maxWidth:'95vw', maxHeight:'95vh', objectFit:'contain', borderRadius:'8px' },

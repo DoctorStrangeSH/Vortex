@@ -23,7 +23,7 @@ export function PinnedMessage({ messages, onUnpin, onScrollTo, currentUserId }) 
     };
 
     return (
-        <div style={s.container} onClick={handleClick}>
+        <div class="vortex-pinned" style={s.container} onClick={handleClick}>
             <div style={s.content}>
                 <div style={s.info}>
                     <div style={s.topRow}>
@@ -79,7 +79,7 @@ export function PinnedMessage({ messages, onUnpin, onScrollTo, currentUserId }) 
 
 const s = {
     container: {
-        background: 'rgba(124, 58, 237, 0.08)',
+        background: 'rgba(137, 104, 255, 0.075)',
         borderBottom: '1px solid var(--border-subtle)',
         cursor: 'pointer',
         transition: 'background 0.15s',
@@ -89,7 +89,7 @@ const s = {
         display: 'flex',
         alignItems: 'center',
         gap: '6px',
-        padding: '0.5rem 0.75rem'
+        padding: '0.65rem 1rem'
     },
     info: {
         flex: 1,

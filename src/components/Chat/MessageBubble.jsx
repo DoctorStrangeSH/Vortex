@@ -53,7 +53,7 @@ export function MessageBubble({ msg, own, other, avatarColor, isMobile, isPinned
         readStatus.state === 'partially_read' ? `Прочитали ${readStatus.readCount} из ${readStatus.recipientCount}` : 'Отправлено · прочтение не подтверждено';
 
     return (
-        <div ref={messageRef} style={{ ...s.wrapper, justifyContent: own ? 'flex-end' : 'flex-start' }}>
+        <div ref={messageRef} class="vortex-message-row" style={{ ...s.wrapper, justifyContent: own ? 'flex-end' : 'flex-start' }}>
             {!own && (
                 <div style={{ ...s.avatar, background: avatarColor, marginRight: 6 }}>
                     {other.name.charAt(0).toUpperCase()}
@@ -63,6 +63,7 @@ export function MessageBubble({ msg, own, other, avatarColor, isMobile, isPinned
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: own ? 'flex-end' : 'flex-start', maxWidth: isMobile ? '82%' : '65%' }}>
                 {/* Пузырёк сообщения */}
                 <div
+                    class={own ? "vortex-bubble vortex-bubble-own" : "vortex-bubble vortex-bubble-other"}
                     style={{
                         ...s.bubble,
                         background: own ? 'var(--gradient-brand)' : 'var(--bg-tertiary)',
@@ -168,12 +169,15 @@ export function MessageBubble({ msg, own, other, avatarColor, isMobile, isPinned
                         justifyContent: own ? 'flex-end' : 'flex-start'
                     }}>
                         {Object.entries(msg.reactions).map(([emoji, users]) => (
-                            <span
+                            <button
+                                type="button"
+                                class="vortex-reaction"
                                 key={emoji}
+                                aria-label={`Реакция ${emoji}: ${users?.length || 0}`}
                                 onClick={() => onReactionClick?.(msg.id, emoji)}
                                 style={{
-                                    background: 'rgba(124, 58, 237, 0.12)',
-                                    border: '1px solid rgba(124, 58, 237, 0.2)',
+                                    background: 'rgba(137, 104, 255, 0.12)',
+                                    border: '1px solid rgba(172, 150, 255, 0.22)',
                                     padding: '2px 8px',
                                     borderRadius: '12px',
                                     fontSize: '0.8rem',
@@ -189,7 +193,7 @@ export function MessageBubble({ msg, own, other, avatarColor, isMobile, isPinned
                                 <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
                                     {users?.length || 0}
                                 </span>
-                            </span>
+                            </button>
                         ))}
                     </div>
                 )}
@@ -201,12 +205,12 @@ export function MessageBubble({ msg, own, other, avatarColor, isMobile, isPinned
 }
 
 const s = {
-    wrapper: { display: 'flex', alignItems: 'flex-end', marginBottom: '2px' },
-    avatar: { width: '28px', height: '28px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 600, fontSize: '0.7rem', flexShrink: 0 },
-    bubble: { padding: '0.5rem 0.75rem', borderRadius: '14px', animation: 'messageIn 0.2s ease', boxShadow: '0 1px 2px rgba(0,0,0,0.1)' },
+    wrapper: { display: 'flex', alignItems: 'flex-end', marginBottom: '8px' },
+    avatar: { width: '30px', height: '30px', borderRadius: '11px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 600, fontSize: '0.7rem', flexShrink: 0 },
+    bubble: { padding: '0.65rem 0.9rem', borderRadius: '17px', animation: 'messageIn 0.2s ease', boxShadow: '0 7px 20px rgba(0,0,0,0.12)' },
     pinnedBadge: { position: 'absolute', top: '-8px', right: '-4px', fontSize: '0.9rem', filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))', zIndex: 1 },
-    text: { fontSize: '0.9rem', lineHeight: 1.45, wordBreak: 'break-word' },
-    mediaFrame: { width: '260px', maxWidth: '100%', height: '180px', borderRadius: '10px', overflow: 'hidden', display: 'flex', justifyContent: 'center', alignItems: 'center', background: 'rgba(0,0,0,0.12)' },
+    text: { fontSize: '0.92rem', lineHeight: 1.54, wordBreak: 'break-word' },
+    mediaFrame: { width: '260px', maxWidth: '100%', height: '180px', borderRadius: '12px', overflow: 'hidden', display: 'flex', justifyContent: 'center', alignItems: 'center', background: 'rgba(0,0,0,0.12)' },
     mediaPlaceholder: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px', textAlign: 'center', fontSize: '0.75rem' },
     image: { display: 'block', width: '100%', height: '100%', objectFit: 'contain', cursor: 'pointer' },
     video: { display: 'block', width: '100%', height: '100%', objectFit: 'contain' },
@@ -215,5 +219,5 @@ const s = {
     edited: { fontSize: '0.7rem', opacity: 0.7, fontStyle: 'italic' },
     editedSmall: { fontSize: '0.6rem', opacity: 0.5, fontStyle: 'italic', marginRight: '4px' },
     destruct: { fontSize: '0.7rem', opacity: 0.7, marginRight: '4px' },
-    meta: { display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '2px', marginTop: '3px', fontSize: '0.65rem', opacity: 0.7 }
+    meta: { display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '4px', marginTop: '6px', fontSize: '0.66rem', opacity: 0.75 }
 };
