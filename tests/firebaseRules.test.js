@@ -286,3 +286,15 @@ test('only group creator can manage admins and owner is never removed', { skip: 
     await assertSucceeds(updateDoc(doc(alice, 'chats', groupId), { admins: arrayRemove('bob') }));
     await assertSucceeds(updateDoc(doc(alice, 'chats', groupId), { participants: arrayRemove('bob') }));
 });
+
+
+test('chat preview and pinned metadata reject invalid types and oversized values', { skip: !available }, async () => {
+    const alice = environment.authenticatedContext('alice').firestore();
+    const chat = doc(alice, 'chats/chat-a');
+    await assertFails(updateDoc(chat, { lastMessage: { text: 'forged' } }));
+    await assertFails(updateDoc(chat, { lastMessage: 'x'.repeat(4097) }));
+    await assertFails(updateDoc(chat, { lastMessageTime: 'not-a-timestamp' }));
+    await assertFails(updateDoc(chat, { pinnedMessages: 'invalid' }));
+    await assertFails(updateDoc(chat, { pinnedMessages: Array.from({ length: 31 }, (_, i) => ({ id: String(i) })) }));
+    await assertSucceeds(updateDoc(chat, { lastMessage: 'Привет', pinnedMessages: [{ id: 'm1', text: 'Привет' }] }));
+});

@@ -26,6 +26,9 @@ service cloud.firestore {
         data.participants is list && data.participants.size() >= 1 && data.participants.size() <= 100 &&
         (!('name' in data) || (data.name is string && data.name.size() >= 1 && data.name.size() <= 100)) &&
         (!('description' in data) || (data.description is string && data.description.size() <= 500)) &&
+        (!('lastMessage' in data) || (data.lastMessage is string && data.lastMessage.size() <= 4096)) &&
+        (!('lastMessageTime' in data) || data.lastMessageTime is timestamp) &&
+        (!('pinnedMessages' in data) || (data.pinnedMessages is list && data.pinnedMessages.size() <= 30)) &&
         (data.type != 'group' || (data.admins is list && data.admins.size() >= 1 &&
           data.admins.size() <= 10 && data.admins[0] == data.createdBy &&
           data.participants.hasAll(data.admins))) &&
