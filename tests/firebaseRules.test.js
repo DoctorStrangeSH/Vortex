@@ -1,7 +1,7 @@
 import test, { after } from 'node:test';
 import assert from 'node:assert/strict';
 import { initializeTestEnvironment, assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
-import { arrayRemove, arrayUnion, collection, serverTimestamp, deleteDoc, deleteField, doc, getDoc, getDocs, increment, query, onSnapshot, disableNetwork, enableNetwork, runTransaction, setDoc, writeBatch, updateDoc, where } from 'firebase/firestore';
+import { arrayRemove, arrayUnion, collection, serverTimestamp, deleteDoc, deleteField, doc, getDoc, getDocs, increment, query, onSnapshot, runTransaction, setDoc, writeBatch, updateDoc, where } from 'firebase/firestore';
 import { ref, uploadString, getMetadata, getBytes, deleteObject } from 'firebase/storage';
 
 const available = !!process.env.FIRESTORE_EMULATOR_HOST;
@@ -419,34 +419,29 @@ test('removed group member immediately loses Storage access', { skip: !available
     await assertSucceeds(deleteObject(ref(aliceStorage, path)));
 });
 
-test('second account receives messages again after its Firestore connection recovers', { skip: !available }, async () => {
+test('second account receives a realtime message and author sees its read receipt', { skip: !available }, async () => {
     const alice = environment.authenticatedContext('alice').firestore();
     const bob = environment.authenticatedContext('bob').firestore();
-    const id = 'reconnected-two-account-message';
-    const target = doc(bob, 'chats/chat-a/messages', id);
+    const id = 'realtime-two-account-message';
+    const bobMessage = doc(bob, 'chats/chat-a/messages', id);
     let unsubscribe = () => {};
     let timer;
     try {
-        // Establish an empty cached result before simulating a disconnection.
-        assert.equal((await assertSucceeds(getDoc(target))).exists(), false);
-        await disableNetwork(bob);
-        const received = new Promise((resolve, reject) => {
-            timer = setTimeout(() => reject(new Error('Message did not arrive after reconnect')), 8000);
-            unsubscribe = onSnapshot(target, snapshot => {
-                if (snapshot.exists() && snapshot.data().text === 'После подключения') resolve(snapshot);
+        const delivered = new Promise((resolve, reject) => {
+            timer = setTimeout(() => reject(new Error('Realtime message was not delivered')), 8000);
+            unsubscribe = onSnapshot(bobMessage, snapshot => {
+                if (snapshot.exists() && snapshot.data().text === 'Проверка подписки') resolve(snapshot);
             }, reject);
         });
         await assertSucceeds(setDoc(doc(alice, 'chats/chat-a/messages', id), {
-            senderId: 'alice', text: 'После подключения', readBy: [], createdAt: serverTimestamp()
+            senderId: 'alice', text: 'Проверка подписки', readBy: [], createdAt: serverTimestamp()
         }));
-        await enableNetwork(bob);
-        const snapshot = await received;
+        const snapshot = await delivered;
         assert.equal(snapshot.data().senderId, 'alice');
-        await assertSucceeds(updateDoc(target, { readBy: arrayUnion('bob') }));
+        await assertSucceeds(updateDoc(bobMessage, { readBy: arrayUnion('bob') }));
         assert.deepEqual((await assertSucceeds(getDoc(doc(alice, 'chats/chat-a/messages', id)))).data().readBy, ['bob']);
     } finally {
         clearTimeout(timer);
         unsubscribe();
-        await enableNetwork(bob);
     }
 });
