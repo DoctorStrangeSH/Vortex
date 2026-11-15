@@ -13,6 +13,7 @@ export class OfflineService {
         this.queue = [];
         this.refreshQueue();
         this.processingPromise = null;
+        this.processRequested = false;
         this.initialized = false;
     }
 
@@ -24,15 +25,15 @@ export class OfflineService {
         this.eventTarget?.addEventListener('storage', event => {
             if (event.key !== 'offlineQueue') return;
             this.refreshQueue();
+            // Another tab may have enqueued work for this signed-in user.
+            if (this.isOnline && this.activeUid) this.processQueue();
         });
-        if (this.isOnline) this.processQueue();
+        if (this.isOnline && this.activeUid) this.processQueue();
     }
 
     goOnline() {
         this.isOnline = true;
         this.listeners.forEach(fn => fn(true));
-        
-        // Отправляем накопившиеся сообщения
         this.processQueue();
     }
 
@@ -42,22 +43,24 @@ export class OfflineService {
     }
 
     setActiveUser(uid) {
-        this.activeUid = uid || null;
+        const nextUid = uid || null;
+        if (this.activeUid === nextUid) return;
+        this.activeUid = nextUid;
         if (this.isOnline && this.activeUid) this.processQueue();
     }
 
-    // Добавить в очередь на отправку
     async addToQueue(action) {
         await this.withQueueLock(async () => {
             this.refreshQueue();
             this.queue.push({ ...action, id: this.createId(), timestamp: Date.now() });
             this.saveQueue();
         });
+        if (this.isOnline && this.activeUid) this.processQueue();
     }
 
     async withQueueLock(callback) {
         // Web Locks serialize queue mutations across tabs of the same origin.
-        // Older browsers retain the single-tab fallback.
+        // Browsers without Web Locks retain only in-instance serialization.
         if (this.locks?.request) return this.locks.request('vortex-offline-queue', { mode: 'exclusive' }, callback);
         return callback();
     }
@@ -80,45 +83,54 @@ export class OfflineService {
         this.notifyQueue();
     }
 
-    // Обработать очередь когда онлайн
     async processQueue() {
-        if (this.processingPromise) return this.processingPromise;
-        if (!this.isOnline) return;
-        this.processingPromise = this.withQueueLock(async () => {
+        if (this.processingPromise) {
+            // Remember triggers arriving during a flush (e.g. account switch or
+            // another tab update) so they are not lost when this pass finishes.
+            this.processRequested = true;
+            return this.processingPromise;
+        }
+        if (!this.isOnline || !this.activeUid) return;
+
+        const run = async () => {
             this.refreshQueue();
             for (const action of [...this.queue]) {
                 if (!this.isOnline) break;
-                // Keep another account's pending work untouched in this browser profile.
-                if (this.activeUid !== undefined && action.user?.uid !== this.activeUid) continue;
+                if (action.user?.uid !== this.activeUid) continue;
                 try {
                     action.status = 'sending';
                     this.notifyQueue();
                     await this.executeAction(action);
-                    // Remove only after the server confirms the write. A crash or
-                    // disconnect keeps the action available for the next retry.
-                    this.queue = this.queue.filter(item => item !== action);
+                    this.queue = this.queue.filter(item => item.id !== action.id);
                     this.saveQueue();
                 } catch (error) {
                     action.status = 'failed';
                     this.saveQueue();
                     console.warn('Сообщение осталось в очереди отправки', error);
-                    // Later messages must not overtake the failed one after a reconnect.
                     break;
                 }
             }
-        }).finally(() => { this.processingPromise = null; });
+        };
+
+        this.processingPromise = this.withQueueLock(run).finally(async () => {
+            this.processingPromise = null;
+            if (this.processRequested) {
+                this.processRequested = false;
+                if (this.isOnline && this.activeUid) await this.processQueue();
+            }
+        });
         return this.processingPromise;
     }
 
     async executeAction(action) {
-        // Перевыполняем действие
         switch (action.type) {
-            case 'sendMessage':
+            case 'sendMessage': {
                 const { auth } = await import('./firebase.js');
                 assertQueuedMessageOwner(action, auth.currentUser?.uid);
                 const { chatService } = await import('./chatService.js');
                 await chatService.sendMessage(action.chatId, action.text, action.user, null, action.id);
                 break;
+            }
             default:
                 throw new Error(`Неизвестное действие в очереди: ${action.type}`);
         }

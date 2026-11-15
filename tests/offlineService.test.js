@@ -137,6 +137,7 @@ test('initialization registers connectivity handlers once and flushes persisted 
     const service = new OfflineService({ storage, network: { onLine: true }, eventTarget: target });
     let sends = 0;
     service.executeAction = async () => { sends++; };
+    service.setActiveUser('alice');
     service.init();
     service.init();
     await service.processingPromise;
@@ -182,10 +183,55 @@ test('two tabs share one queue and send each queued action only once with Web Lo
     ]);
     assert.deepEqual(JSON.parse(storage.getItem('offlineQueue')).map(x => x.id), ['a', 'b']);
     const delivered = [];
+    a.activeUid = 'alice';
+    b.activeUid = 'alice';
     a.executeAction = async action => { delivered.push(action.id); };
     b.executeAction = async action => { delivered.push(action.id); };
     await Promise.all([a.processQueue(), b.processQueue()]);
     assert.deepEqual(delivered, ['a', 'b']);
     assert.deepEqual(JSON.parse(storage.getItem('offlineQueue')), []);
     assert.deepEqual(b.getQueue(), []);
+});
+
+test('account switch during an in-flight flush schedules a pass for the new account', async () => {
+    const { service } = createService();
+    service.isOnline = false;
+    await service.addToQueue({ type: 'sendMessage', user: { uid: 'bob' }, text: 'Боб ждёт' });
+    await service.addToQueue({ type: 'sendMessage', user: { uid: 'alice' }, text: 'Алиса отправляет' });
+    service.isOnline = true;
+    service.activeUid = 'alice';
+
+    let releaseAlice;
+    const delivered = [];
+    service.executeAction = async action => {
+        if (action.user.uid === 'alice') {
+            await new Promise(resolve => { releaseAlice = resolve; });
+        }
+        delivered.push(action.user.uid);
+    };
+
+    const firstPass = service.processQueue();
+    await new Promise(resolve => setImmediate(resolve));
+    assert.deepEqual(delivered, []);
+    service.setActiveUser('bob');
+    releaseAlice();
+    await firstPass;
+
+    assert.deepEqual(delivered, ['alice', 'bob']);
+    assert.deepEqual(service.getQueue(), []);
+});
+
+test('a storage event refreshes the queue and schedules delivery for the active account', async () => {
+    const listeners = new Map();
+    const target = { addEventListener: (name, callback) => listeners.set(name, callback) };
+    const values = new Map();
+    const storage = { getItem: key => values.get(key) ?? null, setItem: (key, value) => values.set(key, value) };
+    const service = new OfflineService({ storage, network: { onLine: true }, eventTarget: target });
+    service.setActiveUser('alice');
+    service.executeAction = async () => {};
+    service.init();
+    values.set('offlineQueue', JSON.stringify([{ id: 'from-another-tab', type: 'sendMessage', user: { uid: 'alice' }, text: 'Из вкладки B' }]));
+    listeners.get('storage')({ key: 'offlineQueue' });
+    await service.processingPromise;
+    assert.deepEqual(service.getQueue(), []);
 });
