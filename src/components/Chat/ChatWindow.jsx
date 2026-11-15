@@ -93,11 +93,12 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
 
     // Offline listener
     useEffect(() => {
+        offlineService.setActiveUser(user.uid);
         offlineService.init();
         const unsubscribeNetwork = offlineService.onChange(setIsOnline);
         const unsubscribeQueue = offlineService.onQueueChange(setPendingActions);
-        return () => { unsubscribeNetwork(); unsubscribeQueue(); };
-    }, []);
+        return () => { offlineService.setActiveUser(null); unsubscribeNetwork(); unsubscribeQueue(); };
+    }, [user.uid]);
 
     // Очистка при смене чата
     useEffect(() => {

@@ -7,6 +7,7 @@ export class OfflineService {
         this.createId = createId;
         this.locks = locks;
         this.isOnline = network?.onLine ?? false;
+        this.activeUid = undefined;
         this.listeners = [];
         this.queueListeners = [];
         this.queue = [];
@@ -38,6 +39,11 @@ export class OfflineService {
     goOffline() {
         this.isOnline = false;
         this.listeners.forEach(fn => fn(false));
+    }
+
+    setActiveUser(uid) {
+        this.activeUid = uid || null;
+        if (this.isOnline && this.activeUid) this.processQueue();
     }
 
     // Добавить в очередь на отправку
@@ -82,6 +88,8 @@ export class OfflineService {
             this.refreshQueue();
             for (const action of [...this.queue]) {
                 if (!this.isOnline) break;
+                // Keep another account's pending work untouched in this browser profile.
+                if (this.activeUid !== undefined && action.user?.uid !== this.activeUid) continue;
                 try {
                     action.status = 'sending';
                     this.notifyQueue();

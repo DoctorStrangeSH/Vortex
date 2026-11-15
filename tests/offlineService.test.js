@@ -100,6 +100,31 @@ test('later offline messages wait behind a failed send and preserve delivery ord
     assert.deepEqual(service.getQueue(), []);
 });
 
+test('switching accounts only flushes the signed-in owner while retaining the other queue', async () => {
+    const { service } = createService();
+    service.isOnline = false;
+    await service.addToQueue({ type: 'sendMessage', user: { uid: 'alice' }, text: 'Алиса 1' });
+    await service.addToQueue({ type: 'sendMessage', user: { uid: 'bob' }, text: 'Боб' });
+    await service.addToQueue({ type: 'sendMessage', user: { uid: 'alice' }, text: 'Алиса 2' });
+
+    const delivered = [];
+    service.executeAction = async action => { delivered.push(`${action.user.uid}: ${action.text}`); };
+    service.isOnline = true;
+    service.setActiveUser('bob');
+    await service.processingPromise;
+    assert.deepEqual(delivered, ['bob: Боб']);
+    assert.deepEqual(service.getQueue().map(action => action.text), ['Алиса 1', 'Алиса 2']);
+
+    service.setActiveUser(null);
+    await service.processQueue();
+    assert.deepEqual(delivered, ['bob: Боб']);
+
+    service.setActiveUser('alice');
+    await service.processingPromise;
+    assert.deepEqual(delivered, ['bob: Боб', 'alice: Алиса 1', 'alice: Алиса 2']);
+    assert.deepEqual(service.getQueue(), []);
+});
+
 test('initialization registers connectivity handlers once and flushes persisted work', async () => {
     const listeners = new Map();
     const target = { addEventListener: (name, callback) => {
