@@ -354,8 +354,7 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
             file.type.startsWith('video/') ? 'video' :
             file.type.startsWith('audio/') ? 'audio' : 'file';
         if (STORAGE_UPLOADS_ENABLED) {
-            await sendStoredAttachment(targetChatId, user, file, type);
-            return true;
+            return sendStoredAttachment(targetChatId, user, file, type, () => activeSubscriptionRef.current === expectedSubscription);
         }
         const dataUrl = await new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -373,14 +372,22 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
 
     // Файлы + Drag & Drop
     const handleFileSend = async (e) => {
-        const file = e.target.files?.[0];
-        if (!file || !chat) return;
-        const expectedSubscription = activeSubscriptionRef.current;
-        try { await sendAttachmentFile(file, expectedSubscription); }
-        catch (error) {
-            if (activeSubscriptionRef.current === expectedSubscription) alert(error.message || 'Не удалось отправить файл');
-        }
+        const files = Array.from(e.target.files || []);
         e.target.value = '';
+        if (!files.length || !chat) return;
+        const expectedSubscription = activeSubscriptionRef.current;
+        for (const [index, file] of files.entries()) {
+            if (activeSubscriptionRef.current !== expectedSubscription) break;
+            setSendNotice(`Загрузка файла ${index + 1} из ${files.length}: ${file.name}`);
+            try {
+                if (!await sendAttachmentFile(file, expectedSubscription)) break;
+            } catch (error) {
+                if (activeSubscriptionRef.current !== expectedSubscription) break;
+                setSendNotice(`Ошибка «${file.name}»: ${error.message || 'Не удалось отправить файл'}`);
+                return;
+            }
+        }
+        if (activeSubscriptionRef.current === expectedSubscription) setSendNotice(`Отправлено файлов: ${files.length}`);
     };
 
     const handleDragOver = (e) => { e.preventDefault(); setIsDragOver(true); };

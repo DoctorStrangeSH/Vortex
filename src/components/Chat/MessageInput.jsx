@@ -18,7 +18,7 @@ export function MessageInput({ text, onTextChange, onSend, sending = false, onTy
             )}
             <div style={s.wrapper}>
                 <button style={s.btn} onClick={() => fileInputRef.current?.click()}>📎</button>
-                <input type="file" ref={fileInputRef} onChange={onFileSend} accept="*/*" style={{ display: 'none' }} />
+                <input type="file" ref={fileInputRef} onChange={onFileSend} accept="*/*" multiple style={{ display: 'none' }} />
                 
                 <button
                     style={{ ...s.btn, background: isRecording ? 'var(--vortex-danger)' : 'transparent', color: isRecording ? '#fff' : 'var(--text-secondary)' }}
