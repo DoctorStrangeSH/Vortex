@@ -1,4 +1,7 @@
 [data-theme="light"] {
+    color-scheme: light;
+    --surface-glass: rgba(255,255,255,.94);
+    --focus-ring: rgba(116, 91, 220, .65);
     --bg-primary: #F8F9FC;
     --bg-secondary: #FFFFFF;
     --bg-tertiary: #F0F2F5;
@@ -36,3 +39,5 @@
 [data-theme="light"] .search-input {
     background: #F0F2F5 !important;
 }
+[data-theme="light"] .vortex-sidebar { background: linear-gradient(165deg, #fff, #F4F5FC) !important; }
+[data-theme="light"] .vortex-chat-feed { background-image: radial-gradient(circle at 20% 0%, rgba(133,112,225,.06), transparent 40%); }

@@ -146,17 +146,17 @@ export function Sidebar({ user, activeChat, onSelectChat }) {
     const hiddenAvailable = chats.filter(c => hiddenChats.includes(c.id));
 
     return (
-        <div style={st.container}>
-            <div style={st.header}>
+        <div class="vortex-sidebar" style={st.container}>
+            <div class="vortex-sidebar-header" style={st.header}>
                 <BurgerMenu user={user} onLogout={handleLogout} onProfile={() => setShowProfile(true)} onTheme={() => setShowTheme(true)} />
-                <h2 style={st.logo}>🌪️ Vortex</h2>
+                <h2 class="vortex-brand" style={st.logo}>✦ Vortex</h2>
                 <div style={{ width: 40 }} />
             </div>
 
             <div style={st.searchContainer}>
                 <div style={st.searchWrapper}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style={st.searchIcon}><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-                    <input value={globalSearch} onInput={e => handleGlobalSearch(e.target.value)} onKeyDown={e => { if (e.key === 'Escape') { handleGlobalSearch(''); e.currentTarget.blur(); } }} placeholder="Поиск чатов и людей" aria-label="Поиск чатов и людей" style={{...st.searchInput, paddingRight: globalSearch ? '2.3rem' : '0.75rem'}} />
+                    <input value={globalSearch} onInput={e => handleGlobalSearch(e.target.value)} onKeyDown={e => { if (e.key === 'Escape') { handleGlobalSearch(''); e.currentTarget.blur(); } }} placeholder="Поиск чатов и людей" aria-label="Поиск чатов и людей" class="vortex-search" style={{...st.searchInput, paddingRight: globalSearch ? '2.3rem' : '0.75rem'}} />
                     {globalSearch && <button type="button" aria-label="Очистить поиск" title="Очистить поиск" style={st.clearSearch} onClick={() => handleGlobalSearch('')}>×</button>}
                 </div>
                 {showGlobalResults && globalResults.length > 0 && (
@@ -172,8 +172,8 @@ export function Sidebar({ user, activeChat, onSelectChat }) {
                     const color = getAvatarColor(name);
                     const active = activeChat?.id === chat.id;
                     return (
-                        <div key={chat.id} role="button" tabIndex={0} aria-label={`Открыть чат ${name}`} onKeyDown={e => { if (e.target !== e.currentTarget) return; if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openChat(chat); } }} onClick={() => openChat(chat)}
-                            style={{...st.chatItem, background: active ? 'var(--bg-active)' : 'transparent', border: active ? '1px solid rgba(124,58,237,0.2)' : '1px solid transparent'}}>
+                        <div key={chat.id} role="button" tabIndex={0} aria-label={`Открыть чат ${name}`} aria-current={active ? "true" : undefined} onKeyDown={e => { if (e.target !== e.currentTarget) return; if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openChat(chat); } }} onClick={() => openChat(chat)}
+                            class="vortex-chat-item" style={{...st.chatItem, background: active ? 'var(--bg-active)' : 'transparent', border: active ? '1px solid rgba(124,58,237,0.2)' : '1px solid transparent'}}>
                             <div style={{...st.chatAvatar, background: color}}>{name.charAt(0).toUpperCase()}</div>
                             <div style={st.chatInfo}>
                                 <div style={st.chatName}>{pinnedChats.includes(chat.id) ? '📌 ' : ''}{chat.isChannel ? '📢 ' : chat.type === 'group' ? '👥 ' : ''}{name}</div>
@@ -209,12 +209,12 @@ export function Sidebar({ user, activeChat, onSelectChat }) {
 
 const st = {
     container: { width:'100%', height:'100%', background:'var(--bg-secondary)', borderRight:'1px solid var(--border-subtle)', display:'flex', flexDirection:'column', position:'relative' },
-    header: { padding:'0.75rem 1rem', display:'flex', justifyContent:'space-between', alignItems:'center' },
+    header: { padding:'1rem 1.15rem', display:'flex', justifyContent:'space-between', alignItems:'center' },
     logo: { background:'var(--gradient-brand)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', fontSize:'1.1rem', fontWeight:700, margin:0 },
-    searchContainer: { padding:'0.25rem 0.75rem', position:'relative' },
+    searchContainer: { padding:'0.9rem 0.9rem 0.7rem', position:'relative' },
     searchWrapper: { position:'relative' },
     searchIcon: { position:'absolute', left:'10px', top:'50%', transform:'translateY(-50%)', color:'var(--text-tertiary)' },
-    searchInput: { width:'100%', padding:'0.5rem 0.75rem 0.5rem 2rem', background:'rgba(255,255,255,0.03)', border:'1px solid var(--border-subtle)', borderRadius:'10px', color:'var(--text-primary)', fontSize:'0.85rem', outline:'none' },
+    searchInput: { width:'100%', padding:'0.78rem 0.75rem 0.78rem 2rem', background:'var(--bg-tertiary)', border:'1px solid var(--border-default)', borderRadius:'14px', color:'var(--text-primary)', fontSize:'0.85rem', outline:'none' },
     clearSearch: { position:'absolute', right:'6px', top:'50%', transform:'translateY(-50%)', border:0, background:'transparent', color:'var(--text-secondary)', cursor:'pointer', padding:'4px 8px', fontSize:'1.25rem', lineHeight:1 },
     results: { background:'var(--bg-tertiary)', border:'1px solid var(--border-default)', borderRadius:'10px', marginTop:'4px', maxHeight:'260px', overflowY:'auto', position:'absolute', left:'0.75rem', right:'0.75rem', zIndex:50 },
     resultTitle: { padding:'0.4rem 0.75rem', fontSize:'0.65rem', fontWeight:600, color:'var(--text-tertiary)', textTransform:'uppercase' },
@@ -222,11 +222,11 @@ const st = {
     resultAvatar: { width:'36px', height:'36px', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontWeight:700, fontSize:'0.85rem', flexShrink:0 },
     resultName: { fontWeight:600, fontSize:'0.85rem' },
     resultEmail: { fontSize:'0.75rem', color:'var(--text-secondary)' },
-    chatList: { flex:1, overflowY:'auto', padding:'0.25rem 0.5rem' },
-    chatItem: { display:'flex', alignItems:'center', padding:'0.55rem 0.6rem', borderRadius:'10px', cursor:'pointer', marginBottom:'1px' },
-    chatAvatar: { width:'44px', height:'44px', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontWeight:700, fontSize:'1rem', marginRight:'0.6rem', flexShrink:0 },
+    chatList: { flex:1, overflowY:'auto', padding:'0.55rem 0.7rem' },
+    chatItem: { display:'flex', alignItems:'center', padding:'0.8rem 0.7rem', borderRadius:'14px', cursor:'pointer', marginBottom:'1px' },
+    chatAvatar: { width:'48px', height:'48px', borderRadius:'17px', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontWeight:700, fontSize:'1rem', marginRight:'0.6rem', flexShrink:0 },
     chatInfo: { flex:1, minWidth:0 },
-    chatName: { fontWeight:600, fontSize:'0.85rem', marginBottom:'1px' },
+    chatName: { fontWeight:700, fontSize:'0.9rem', marginBottom:'1px' },
     chatLast: { fontSize:'0.75rem', color:'var(--text-secondary)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' },
     chatTime: { fontSize:'0.7rem', color:'var(--text-tertiary)', marginLeft:'0.5rem', flexShrink:0 },
     optionsWrapper: { position:'relative', marginLeft:'4px', flexShrink:0 },

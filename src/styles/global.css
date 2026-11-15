@@ -1,29 +1,29 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 :root {
-    --vortex-primary: #7C3AED;
-    --vortex-primary-light: #A78BFA;
-    --vortex-secondary: #06D6A0;
-    --vortex-danger: #EF4444;
-    --bg-primary: #0A0A14;
-    --bg-secondary: #12121F;
-    --bg-tertiary: #1A1A2E;
-    --bg-hover: rgba(124, 58, 237, 0.08);
-    --bg-active: rgba(124, 58, 237, 0.15);
-    --text-primary: #F1F1F6;
-    --text-secondary: #9898AE;
-    --text-tertiary: #63637A;
-    --border-subtle: rgba(255, 255, 255, 0.04);
-    --border-default: rgba(255, 255, 255, 0.08);
-    --gradient-brand: linear-gradient(135deg, #7C3AED, #6366F1);
-    --gradient-success: linear-gradient(135deg, #06D6A0, #10B981);
+    --vortex-primary: #8968FF;
+    --vortex-primary-light: #BDAAFF;
+    --vortex-secondary: #6FE2CA;
+    --vortex-danger: #FF7188;
+    --bg-primary: #090D18;
+    --bg-secondary: #101626;
+    --bg-tertiary: #1B2337;
+    --bg-hover: rgba(137, 104, 255, 0.10);
+    --bg-active: rgba(137, 104, 255, 0.18);
+    --text-primary: #F5F4FF;
+    --text-secondary: #A2ACC6;
+    --text-tertiary: #74819F;
+    --border-subtle: rgba(183, 198, 255, 0.08);
+    --border-default: rgba(183, 198, 255, 0.15);
+    --gradient-brand: linear-gradient(135deg, #9E7BFF 0%, #745BEB 52%, #5665C8 100%);
+    --gradient-success: linear-gradient(135deg, #6FE2CA, #2ABCA4);
     --radius-sm: 10px;
     --radius-md: 14px;
     --radius-lg: 18px;
     --radius-xl: 24px;
     --radius-full: 50%;
     --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4);
-    --shadow-glow: 0 0 24px rgba(124, 58, 237, 0.25);
+    --shadow-glow: 0 12px 36px rgba(111, 83, 224, 0.25);
 }
 
 * {
@@ -56,7 +56,7 @@ select {
 }
 
 ::-webkit-scrollbar {
-    width: 3px;
+    width: 7px;
 }
 
 ::-webkit-scrollbar-track {
@@ -64,7 +64,7 @@ select {
 }
 
 ::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(150, 162, 210, 0.25);
     border-radius: 3px;
 }
 
@@ -275,4 +275,38 @@ select {
     .sidebar {
         padding-top: env(safe-area-inset-top) !important;
     }
+}
+/* Vortex Obsidian — shared interaction language */
+:root { color-scheme: dark; --surface-glass: rgba(19, 26, 43, .92); --focus-ring: rgba(164, 137, 255, .65); }
+button, input, textarea { font-family: inherit; }
+button { transition: background-color .18s ease, border-color .18s ease, color .18s ease, box-shadow .18s ease, transform .18s ease; }
+button:not(:disabled):active { transform: scale(.97); }
+button:disabled { cursor: not-allowed !important; }
+:where(button, input, textarea, [role="button"]):focus-visible { outline: 2px solid var(--focus-ring) !important; outline-offset: 3px; }
+::selection { background: rgba(158, 123, 255, .34); color: #fff; }
+.vortex-sidebar { background: linear-gradient(165deg, var(--bg-secondary), #0e1526 70%) !important; }
+.vortex-sidebar-header { min-height: 78px; border-bottom: 1px solid var(--border-subtle); }
+.vortex-brand { letter-spacing: -.055em; font-size: 1.35rem !important; font-weight: 800 !important; }
+.vortex-search { box-shadow: inset 0 1px 0 rgba(255,255,255,.025); }
+.vortex-search:focus-within { border-color: var(--vortex-primary-light) !important; box-shadow: 0 0 0 3px rgba(137,104,255,.13); }
+.vortex-chat-item { transition: background .18s ease, border-color .18s ease, transform .18s ease; }
+.vortex-chat-item:hover { background: var(--bg-hover) !important; }
+.vortex-chat-item:focus-visible { outline-offset: -2px; }
+.vortex-chat-item[aria-current="true"] { background: var(--bg-active) !important; border-color: rgba(165,137,255,.29) !important; }
+.vortex-icon-button { border: 1px solid transparent !important; }
+.vortex-icon-button:hover:not(:disabled) { background: rgba(158,123,255,.13) !important; border-color: rgba(158,123,255,.18) !important; color: var(--text-primary) !important; }
+.vortex-chat-header, .vortex-composer { background: var(--surface-glass) !important; backdrop-filter: blur(24px); }
+.vortex-chat-header { box-shadow: 0 8px 24px rgba(0,0,0,.12); }
+.vortex-chat-feed { background-image: radial-gradient(circle at 15% 10%, rgba(117,87,218,.065), transparent 38%), radial-gradient(circle at 90% 85%, rgba(84,120,209,.045), transparent 32%); }
+.vortex-composer-input:focus { border-color: var(--vortex-primary-light) !important; box-shadow: 0 0 0 3px rgba(137,104,255,.13); }
+.vortex-send-button:not(:disabled):hover { box-shadow: 0 6px 22px rgba(126,99,236,.42); transform: translateY(-1px); }
+.vortex-message { transition: background .15s ease; }
+.vortex-message:hover { filter: brightness(1.055); }
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+}
+@media (max-width: 768px) {
+    .vortex-sidebar-header { min-height: 66px; }
+    .vortex-chat-header { min-height: 64px; }
+    .vortex-composer { padding: .65rem .6rem !important; }
 }

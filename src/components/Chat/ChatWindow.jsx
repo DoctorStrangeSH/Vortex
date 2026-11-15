@@ -817,7 +817,7 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
                 <button type="button" onClick={() => setPinnedNavigationNotice('')} style={{ marginLeft: '8px' }} aria-label="Скрыть уведомление">×</button>
             </div>}
 
-            <div style={{ ...s.messagesContainer, background: wallpaper || 'var(--bg-primary)' }} ref={messagesContainerRef} onScroll={handleScroll}>
+            <div class="vortex-chat-feed" style={{ ...s.messagesContainer, background: wallpaper || 'var(--bg-primary)' }} ref={messagesContainerRef} onScroll={handleScroll}>
                 {!messagesLoading && hasOlderMessages && <button type="button" disabled={olderMessagesLoading} onClick={loadOlderMessages} style={{ display:'block', margin:'12px auto', padding:'9px 16px', borderRadius:'12px', cursor:'pointer' }}>
                     {olderMessagesLoading ? 'Загружаем историю…' : '↑ Загрузить ранние сообщения'}
                 </button>}
@@ -829,7 +829,7 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
                     return (
                         <div key={msg.id}>
                         {msg.id === firstUnreadMessageId && <div data-unread-divider style={s.unreadDivider} role="separator">Непрочитанные сообщения</div>}
-                        <div data-msg-id={msg.id}
+                        <div class="vortex-message" data-msg-id={msg.id}
                              onClick={() => handleMessageSelectionClick(msg.id)}
                              onTouchStart={(event) => startLongPress(event, msg.id)}
                              onTouchMove={moveLongPress}
