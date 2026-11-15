@@ -92,6 +92,9 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
         if (!chat) {
             setMessages([]);
             setMessagesLoading(false);
+            sendingRef.current = false;
+            setSending(false);
+            setSendNotice('');
             return;
         }
         const currentChatId = chat.id;
@@ -117,6 +120,9 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
         setNewIncomingCount(0);
         setText('');
         setEditingMessage(null);
+        sendingRef.current = false;
+        setSending(false);
+        setSendNotice('');
         setOtherStatus({ isOnline: false, lastSeen: null });
         const readAttempts = readAttemptIdsRef.current;
         const markVisibleAsRead = () => {
@@ -292,6 +298,7 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
         const finalText = text;
         if (!finalText.trim() || !chat || sendingRef.current) return;
         const targetChatId = chat.id;
+        const sendSubscriptionToken = activeSubscriptionRef.current;
         const isEditing = !!editingMessage;
         sendingRef.current = true;
         setSending(true);
@@ -306,16 +313,18 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
             } else {
                 await chatService.sendMessage(targetChatId, finalText, user);
             }
-            if (activeChatIdRef.current === targetChatId) {
+            if (activeSubscriptionRef.current === sendSubscriptionToken) {
                 setText(current => current === finalText ? '' : current);
                 if (isEditing) setEditingMessage(null);
                 setSendNotice(isEditing ? 'Изменения сохранены' : navigator.onLine ? 'Отправлено' : 'Ожидает подключения');
             }
         } catch (error) {
-            if (activeChatIdRef.current === targetChatId) setSendNotice(error.message || 'Ошибка отправки — сообщение осталось в поле ввода');
+            if (activeSubscriptionRef.current === sendSubscriptionToken) setSendNotice(error.message || 'Ошибка отправки — сообщение осталось в поле ввода');
         } finally {
-            sendingRef.current = false;
-            setSending(false);
+            if (activeSubscriptionRef.current === sendSubscriptionToken) {
+                sendingRef.current = false;
+                setSending(false);
+            }
         }
     };
 
