@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useLayoutEffect } from 'preact/hooks';
-import { buildMessageOffsets, getVisibleMessageRange } from '../../services/virtualMessageLayout.js';
+import { buildMessageOffsets, getVisibleMessageRange, indexMessagesById } from '../../services/virtualMessageLayout.js';
 
 // Prepared for integration after scroll-anchor, unread and pinned navigation checks.
 export function VirtualMessageList({ messages, renderMessage, loading, onScrollToBottom }) {
@@ -35,13 +35,14 @@ export function VirtualMessageList({ messages, renderMessage, loading, onScrollT
         if (typeof ResizeObserver === 'undefined') return;
         const container = containerRef.current;
         if (!container) return;
+        const indexById = indexMessagesById(messages);
         const observer = new ResizeObserver(entries => {
             let changed = false;
             let adjustment = 0;
             for (const entry of entries) {
                 const id = entry.target.dataset.messageId;
-                const index = messages.findIndex(message => message.id === id);
-                if (index < 0) continue;
+                const index = indexById.get(id);
+                if (index === undefined) continue;
                 const height = entry.borderBoxSize?.[0]?.blockSize ?? entry.target.getBoundingClientRect().height;
                 const previous = measuredHeights.current.get(id) ?? 72;
                 if (height <= 0 || Math.abs(height - previous) < 0.5) continue;
@@ -56,7 +57,7 @@ export function VirtualMessageList({ messages, renderMessage, loading, onScrollT
         });
         for (const row of container.querySelectorAll('[data-message-id]')) observer.observe(row);
         return () => observer.disconnect();
-    }, [messages, range.start, range.end]);
+    }, [messages, range.start, range.end, revision]);
 
     const onScroll = () => {
         const container = containerRef.current;

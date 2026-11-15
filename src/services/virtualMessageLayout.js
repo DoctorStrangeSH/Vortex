@@ -28,3 +28,8 @@ export function getVisibleMessageRange(offsets, scrollTop, viewportHeight, overs
     const end = Math.min(count, indexAtOffset(offsets, bottom) + overscan + 1);
     return { start, end };
 }
+
+// Keep ResizeObserver callbacks O(1) per measured row, even in large chats.
+export function indexMessagesById(messages) {
+    return new Map(messages.map((message, index) => [message.id, index]));
+}

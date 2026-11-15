@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildMessageOffsets, getVisibleMessageRange } from '../src/services/virtualMessageLayout.js';
+import { buildMessageOffsets, getVisibleMessageRange, indexMessagesById } from '../src/services/virtualMessageLayout.js';
 
 test('uses measured heights and falls back to estimates', () => {
     const messages = [{ id: 'a' }, { id: 'b' }, { id: 'c' }];
@@ -22,4 +22,13 @@ test('clamps out-of-range scrolling and includes the last row', () => {
     const offsets = [0, 10, 20];
     assert.deepEqual(getVisibleMessageRange(offsets, -50, 5, 0), { start: 0, end: 1 });
     assert.deepEqual(getVisibleMessageRange(offsets, 1000, 40, 0), { start: 1, end: 2 });
+});
+
+test('message index resolves late measurements without scanning large histories', () => {
+    const messages = Array.from({ length: 10000 }, (_, index) => ({ id: 'message-' + index }));
+    const byId = indexMessagesById(messages);
+    assert.equal(byId.size, 10000);
+    assert.equal(byId.get('message-9999'), 9999);
+    assert.equal(byId.get('message-0'), 0);
+    assert.equal(byId.get('missing'), undefined);
 });
