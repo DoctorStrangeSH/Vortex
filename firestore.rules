@@ -128,6 +128,16 @@ service cloud.firestore {
         (!('selfDestruct' in data) || (data.selfDestruct is int && data.selfDestruct >= 1 && data.selfDestruct <= 604800)) &&
         (!('destructAt' in data) || data.destructAt is timestamp);
     }
+    // Enforce the new attachment format only at creation time so older
+    // messages with token URLs can still receive read receipts and reactions.
+    function validNewAttachment(data) {
+      return (!('storagePath' in data) || (
+          'fileData' in data && data.fileData == '' &&
+          'fileSize' in data && 'type' in data &&
+          data.type in ['image','video','voice','audio','file'])) &&
+        (!('fileData' in data) || 'storagePath' in data ||
+          data.fileData.matches('^data:.*'));
+    }
     function validTyping(data, userId) {
       return data.keys().hasAll(['userId','timestamp']) &&
         data.keys().hasOnly(['userId','timestamp']) &&
@@ -178,6 +188,7 @@ service cloud.firestore {
       match /messages/{messageId} {
         allow read: if chatMember(chatId);
         allow create: if chatMember(chatId) && validMessage(request.resource.data, chatId) &&
+          validNewAttachment(request.resource.data) &&
           (get(/databases/$(database)/documents/chats/$(chatId)).data.type != 'channel' ||
            request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.admins) &&
           request.resource.data.senderId == request.auth.uid &&

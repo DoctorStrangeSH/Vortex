@@ -43,6 +43,30 @@ test('only authenticated participants can create messages in a chat', { skip: !a
     await assertFails(setDoc(doc(collection(eve, 'chats/chat-a/messages')), { senderId: 'eve', text: 'intruder' }));
 });
 
+test('new attachments require protected storage references or embedded data, never token URLs', { skip: !available }, async () => {
+    const alice = environment.authenticatedContext('alice').firestore();
+    const create = (id, attachment) => setDoc(doc(alice, 'chats/chat-a/messages/' + id), {
+        senderId: 'alice', text: '', ...attachment
+    });
+    await assertSucceeds(create('attachment-path-valid', {
+        type: 'image', fileData: '', fileSize: 120, fileName: 'photo.png',
+        storagePath: 'chats/chat-a/media/alice/photo-123'
+    }));
+    await assertSucceeds(create('attachment-data-valid', {
+        type: 'image', fileData: 'data:image/png;base64,YQ==', fileSize: 1
+    }));
+    await assertFails(create('attachment-url-denied', {
+        type: 'image', fileData: 'https://firebasestorage.googleapis.com/token', fileSize: 120
+    }));
+    await assertFails(create('attachment-path-with-token-denied', {
+        type: 'image', fileData: 'https://firebasestorage.googleapis.com/token', fileSize: 120,
+        storagePath: 'chats/chat-a/media/alice/photo-124'
+    }));
+    await assertFails(create('attachment-path-without-size-denied', {
+        type: 'image', fileData: '', storagePath: 'chats/chat-a/media/alice/photo-125'
+    }));
+});
+
 test('two participants can complete a message lifecycle: send, receive, read and author delete', { skip: !available }, async () => {
     const alice = environment.authenticatedContext('alice').firestore();
     const bob = environment.authenticatedContext('bob').firestore();
