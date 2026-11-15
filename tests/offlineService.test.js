@@ -312,3 +312,52 @@ test('failed persistence after remote send retains the message with its original
     assert.equal(attempts, 2);
     assert.deepEqual(service.getQueue(), []);
 });
+
+test('returning to a focused tab retries queued work after a transient failure', async () => {
+    const listeners = new Map();
+    const target = { addEventListener: (name, callback) => listeners.set(name, callback) };
+    const { storage } = createService();
+    const service = new OfflineService({
+        storage, network: { onLine: false }, eventTarget: target, createId: () => 'same-id'
+    });
+    await service.addToQueue({ type: 'sendMessage', user: { uid: 'alice' }, text: 'Жду отправки' });
+    service.activeUid = 'alice';
+    service.isOnline = true;
+    let attempts = 0;
+    service.executeAction = async () => {
+        attempts++;
+        if (attempts === 1) throw new Error('temporary');
+    };
+    service.init();
+    const warn = console.warn;
+    console.warn = () => {};
+    try { await service.processingPromise; }
+    finally { console.warn = warn; }
+    assert.equal(attempts, 1);
+    assert.equal(service.getQueue().length, 1);
+    listeners.get('focus')();
+    await service.processingPromise;
+    assert.equal(attempts, 2);
+    assert.deepEqual(service.getQueue(), []);
+    service.init();
+    listeners.get('focus')();
+    assert.equal(attempts, 2);
+});
+
+test('focus never flushes pending actions while offline or signed out', async () => {
+    const listeners = new Map();
+    const target = { addEventListener: (name, callback) => listeners.set(name, callback) };
+    const { storage } = createService();
+    const service = new OfflineService({
+        storage, network: { onLine: false }, eventTarget: target, createId: () => 'offline-id'
+    });
+    await service.addToQueue({ type: 'sendMessage', user: { uid: 'alice' }, text: 'Позже' });
+    let sends = 0;
+    service.executeAction = async () => { sends++; };
+    service.init();
+    listeners.get('focus')();
+    service.isOnline = true;
+    listeners.get('focus')();
+    assert.equal(sends, 0);
+    assert.equal(service.getQueue().length, 1);
+});
