@@ -1,4 +1,5 @@
-import { useState } from 'preact/hooks';
+import { useEffect, useState } from 'preact/hooks';
+import { Icon } from '../UI/Icon';
 import { userService } from '../../services/userService';
 import { chatService } from '../../services/chatService';
 import { channelService } from '../../services/channelService';
@@ -11,6 +12,12 @@ export function NewChatModal({ user, onClose, onChatCreated, mode = 'personal' }
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [step, setStep] = useState(mode === 'group' ? 'groupForm' : mode === 'channel' ? 'channelForm' : 'search');
+
+    useEffect(() => {
+        const onKey = event => { if (event.key === 'Escape' && !loading) onClose?.(); };
+        document.addEventListener('keydown', onKey);
+        return () => document.removeEventListener('keydown', onKey);
+    }, [loading, onClose]);
 
     const handleSearch = async () => {
         if (!searchInput.trim()) { setError('Введите @username'); return; }
@@ -33,22 +40,26 @@ export function NewChatModal({ user, onClose, onChatCreated, mode = 'personal' }
     };
 
     const handleCreateGroup = async () => {
-        const name = groupName.trim() || 'Группа';
-        const participants = groupParticipants.split(',').map(s => s.trim()).filter(s => s);
+        const name = groupName.trim();
+        if (!name) { setError('Введите название группы'); return; }
+        const participants = [...new Set(groupParticipants.split(',').map(s => s.trim()).filter(Boolean))];
         if (participants.length === 0) { setError('Добавьте участников'); return; }
         setLoading(true);
         try {
             const ids = [];
-            for (const p of participants) { const f = await userService.findUser(p); if (f && f.uid !== user.uid) ids.push(f.uid); }
-            if (ids.length === 0) { setError('Участники не найдены'); return; }
-            const id = await chatService.createGroupChat(user, ids, name);
+            const missing = [];
+            for (const p of participants) { const f = await userService.findUser(p); if (f && f.uid !== user.uid) ids.push(f.uid); else missing.push(p); }
+            if (missing.length) { setError(`Не удалось добавить: ${missing.join(', ')}`); return; }
+            const uniqueIds = [...new Set(ids)];
+            const id = await chatService.createGroupChat(user, uniqueIds, name);
             onChatCreated?.(id); onClose?.();
         } catch (err) { setError(err.message); }
         finally { setLoading(false); }
     };
 
     const handleCreateChannel = async () => {
-        const name = groupName.trim() || 'Канал';
+        const name = groupName.trim();
+        if (!name) { setError('Введите название канала'); return; }
         setLoading(true);
         try { const id = await channelService.createChannel(user, name); onChatCreated?.(id); onClose?.(); }
         catch (err) { setError(err.message); }
@@ -62,18 +73,18 @@ export function NewChatModal({ user, onClose, onChatCreated, mode = 'personal' }
     };
 
     return (
-        <div style={st.overlay} onClick={onClose}>
-            <div style={st.modal} onClick={e => e.stopPropagation()}>
+        <div style={st.overlay} onClick={() => { if (!loading) onClose?.(); }}>
+            <div style={st.modal} role="dialog" aria-modal="true" aria-labelledby="new-chat-heading" onClick={e => e.stopPropagation()}>
                 <div style={st.header}>
-                    <h3>{mode === 'group' ? 'Новая группа' : mode === 'channel' ? 'Новый канал' : 'Новый чат'}</h3>
-                    <button onClick={onClose} style={st.closeBtn}>✕</button>
+                    <div><div style={st.eyebrow}>VORTEX · НОВОЕ</div><h3 id="new-chat-heading" style={st.title}>{mode === 'group' ? 'Новая группа' : mode === 'channel' ? 'Новый канал' : 'Новый чат'}</h3></div>
+                    <button type="button" onClick={onClose} disabled={loading} aria-label="Закрыть окно" style={st.closeBtn}><Icon name="close" size={20}/></button>
                 </div>
                 <div style={st.body}>
                     {step === 'search' && (
                         <>
-                            <p style={st.hint}>Найдите пользователя по @username. Email остаётся приватным.</p>
-                            <div style={st.row}><input value={searchInput} onInput={e => { setSearchInput(e.target.value); setError(''); }} onKeyDown={e => e.key==='Enter' && handleSearch()} placeholder="@username" style={st.input} autoFocus /><button onClick={handleSearch} disabled={loading || !searchInput.trim()} style={st.btn}>{loading?'...':'Найти'}</button></div>
-                            {error && <p style={st.error}>{error}</p>}
+                            <p style={st.hint}>Начните общение: найдите человека по имени пользователя. Email останется приватным.</p>
+                            <div style={st.row}><input value={searchInput} onInput={e => { setSearchInput(e.target.value); setError(''); }} onKeyDown={e => e.key==='Enter' && handleSearch()} placeholder="@username" aria-label="Имя пользователя" style={st.input} autoFocus /><button onClick={handleSearch} disabled={loading || !searchInput.trim()} style={st.btn}>{loading?'Ищем…':'Найти'}</button></div>
+                            {error && <p style={st.error} role="alert">{error}</p>}
                         </>
                     )}
                     {step === 'result' && searchResult && (
@@ -82,22 +93,22 @@ export function NewChatModal({ user, onClose, onChatCreated, mode = 'personal' }
                                 <div style={{...st.avatar, background: getAvatarColor(searchResult.displayName || searchResult.username || '?')}}>{(searchResult.displayName || searchResult.username || '?').charAt(0).toUpperCase()}</div>
                                 <div><div style={st.userName}>{searchResult.displayName || 'Без имени'}</div><div style={st.userEmail}>@{searchResult.username || 'без username'}</div></div>
                             </div>
-                            <div style={st.actions}><button onClick={() => setStep('search')} style={st.backBtn}>← Назад</button><button onClick={handleCreatePersonal} disabled={loading} style={st.createBtn}>{loading?'...':'Создать чат'}</button></div>
+                            <div style={st.actions}><button onClick={() => setStep('search')} style={st.backBtn} disabled={loading}>← Назад</button><button onClick={handleCreatePersonal} disabled={loading} style={st.createBtn}>{loading?'Создаём…':'Начать диалог'}</button></div>
                         </>
                     )}
                     {step === 'groupForm' && (
                         <>
-                            <div style={st.field}><label>Название группы</label><input value={groupName} onInput={e => setGroupName(e.target.value)} placeholder="Название группы" style={st.input} autoFocus /></div>
-                            <div style={st.field}><label>Участники (через запятую)</label><input value={groupParticipants} onInput={e => setGroupParticipants(e.target.value)} placeholder="@user1, @user2" style={st.input} /></div>
-                            {error && <p style={st.error}>{error}</p>}
-                            <div style={st.actions}><button onClick={onClose} style={st.backBtn}>Отмена</button><button onClick={handleCreateGroup} disabled={loading} style={st.createBtn}>{loading?'...':'Создать группу'}</button></div>
+                            <div style={st.field}><label for="vortex-group-name">Название группы</label><input value={groupName} onInput={e => setGroupName(e.target.value)} id="vortex-group-name" placeholder="Например, Наша команда" maxLength={80} style={st.input} autoFocus /></div>
+                            <div style={st.field}><label for="vortex-group-members">Участники · через запятую</label><input value={groupParticipants} onInput={e => setGroupParticipants(e.target.value)} id="vortex-group-members" placeholder="@anna, @max" style={st.input} /></div>
+                            {error && <p style={st.error} role="alert">{error}</p>}
+                            <div style={st.actions}><button onClick={onClose} style={st.backBtn} disabled={loading}>Отмена</button><button onClick={handleCreateGroup} disabled={loading} style={st.createBtn}>{loading?'Создаём…':'Создать группу'}</button></div>
                         </>
                     )}
                     {step === 'channelForm' && (
                         <>
-                            <div style={st.field}><label>Название канала</label><input value={groupName} onInput={e => setGroupName(e.target.value)} placeholder="Название канала" style={st.input} autoFocus /></div>
-                            {error && <p style={st.error}>{error}</p>}
-                            <div style={st.actions}><button onClick={onClose} style={st.backBtn}>Отмена</button><button onClick={handleCreateChannel} disabled={loading} style={st.createBtn}>{loading?'...':'Создать канал'}</button></div>
+                            <div style={st.field}><label for="vortex-channel-name">Название канала</label><input value={groupName} onInput={e => setGroupName(e.target.value)} id="vortex-channel-name" placeholder="Например, Новости команды" maxLength={80} style={st.input} autoFocus /></div>
+                            {error && <p style={st.error} role="alert">{error}</p>}
+                            <div style={st.actions}><button onClick={onClose} style={st.backBtn} disabled={loading}>Отмена</button><button onClick={handleCreateChannel} disabled={loading} style={st.createBtn}>{loading?'Создаём…':'Создать канал'}</button></div>
                         </>
                     )}
                 </div>
@@ -107,11 +118,13 @@ export function NewChatModal({ user, onClose, onChatCreated, mode = 'personal' }
 }
 
 const st = {
-    overlay: { position:'fixed', inset:0, background:'rgba(0,0,0,0.6)', backdropFilter:'blur(4px)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000 },
-    modal: { background:'var(--bg-secondary)', border:'1px solid var(--border-default)', borderRadius:'16px', width:'440px', maxWidth:'90vw' },
-    header: { display:'flex', justifyContent:'space-between', alignItems:'center', padding:'1.25rem 1.5rem', borderBottom:'1px solid var(--border-subtle)' },
-    closeBtn: { background:'none', border:'none', color:'var(--text-secondary)', cursor:'pointer', fontSize:'1.1rem' },
-    body: { padding:'1.5rem' },
+    overlay: { position:'fixed', inset:0, background:'rgba(2,4,16,.7)', backdropFilter:'blur(8px)', display:'flex', alignItems:'center', justifyContent:'center', padding:'16px', zIndex:1000 },
+    modal: { background:'var(--bg-secondary)', border:'1px solid var(--border-default)', borderRadius:'24px', width:'480px', maxWidth:'100%', maxHeight:'calc(100vh - 32px)', overflowY:'auto', boxShadow:'0 32px 100px rgba(0,0,0,.38)' },
+    header: { display:'flex', justifyContent:'space-between', alignItems:'center', gap:12, padding:'1.7rem 1.7rem 1.25rem', borderBottom:'1px solid var(--border-subtle)' },
+    eyebrow:{fontSize:10,letterSpacing:'0.16em',fontWeight:800,color:'var(--text-tertiary)',marginBottom:8},
+    title:{fontSize:22,lineHeight:1.2,fontWeight:800,color:'var(--text-primary)',margin:0},
+    closeBtn: { background:'var(--bg-tertiary)', border:'1px solid var(--border-subtle)', borderRadius:12, width:36,height:36,display:'flex',alignItems:'center',justifyContent:'center', color:'var(--text-secondary)', cursor:'pointer' },
+    body: { padding:'1.7rem' },
     hint: { color:'var(--text-secondary)', fontSize:'0.85rem', marginBottom:'1rem' },
     row: { display:'flex', gap:'0.5rem' },
     input: { flex:1, padding:'0.75rem 1rem', background:'rgba(255,255,255,0.04)', border:'1px solid var(--border-default)', borderRadius:'12px', color:'var(--text-primary)', fontSize:'0.9rem', outline:'none' },
@@ -123,5 +136,5 @@ const st = {
     actions: { display:'flex', gap:'0.75rem', marginTop:'1rem' },
     backBtn: { flex:1, padding:'0.75rem', background:'transparent', border:'1px solid var(--border-default)', borderRadius:'12px', color:'var(--text-secondary)', cursor:'pointer' },
     createBtn: { flex:2, padding:'0.75rem', background:'var(--gradient-brand)', border:'none', borderRadius:'12px', color:'#fff', fontWeight:600, cursor:'pointer' },
-    field: { marginBottom:'1rem' }
+    field: { marginBottom:'1.2rem',display:'flex',flexDirection:'column',gap:9,fontSize:13,fontWeight:650,color:'var(--text-secondary)' }
 };
