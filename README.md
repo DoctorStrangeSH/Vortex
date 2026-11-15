@@ -12,6 +12,11 @@ npm run build
 npm run test:rules
 ```
 
+Для изолированного тестирования создайте `.env.staging.local` по `.env.example`, заполните
+параметры отдельного Firebase-проекта и запускайте `npm run dev -- --mode staging`.
+Неполная staging-конфигурация и смешение staging с ресурсами production блокируются.
+Без `--mode staging` приложение по-прежнему использует существующий Firebase-проект.
+
 Публичный Firebase API key в `src/services/firebase.js` не является серверным секретом: доступ к данным должны ограничивать серверные правила Firestore и Storage.
 
 ## Важные ограничения безопасности
