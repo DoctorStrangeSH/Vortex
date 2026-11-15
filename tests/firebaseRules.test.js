@@ -2,7 +2,7 @@ import test, { after } from 'node:test';
 import assert from 'node:assert/strict';
 import { initializeTestEnvironment, assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
 import { arrayRemove, arrayUnion, collection, serverTimestamp, deleteDoc, deleteField, doc, getDoc, getDocs, increment, query, runTransaction, setDoc, updateDoc, where } from 'firebase/firestore';
-import { ref, uploadString, getMetadata, deleteObject } from 'firebase/storage';
+import { ref, uploadString, getMetadata, getBytes, deleteObject } from 'firebase/storage';
 
 const available = !!process.env.FIRESTORE_EMULATOR_HOST;
 const environment = available ? await initializeTestEnvironment({ projectId: 'demo-vortex' }) : null;
@@ -362,7 +362,9 @@ test('stored attachments are readable only by chat participants and deletable by
     const path = 'chats/chat-a/media/alice/positive-upload';
     await assertSucceeds(uploadString(ref(alice, path), 'hello', 'raw', { contentType: 'text/plain' }));
     await assertSucceeds(getMetadata(ref(bob, path)));
+    assert.equal(new TextDecoder().decode(await assertSucceeds(getBytes(ref(bob, path)))), 'hello');
     await assertFails(getMetadata(ref(eve, path)));
+    await assertFails(getBytes(ref(eve, path)));
     await assertFails(deleteObject(ref(bob, path)));
     await assertSucceeds(deleteObject(ref(alice, path)));
 });
@@ -378,9 +380,10 @@ test('removed group member immediately loses Storage access', { skip: !available
     }));
     const path = `chats/${groupId}/media/alice/revoke-test`;
     await assertSucceeds(uploadString(ref(aliceStorage, path), 'hello', 'raw', { contentType: 'text/plain' }));
-    await assertSucceeds(getMetadata(ref(bobStorage, path)));
+    assert.equal(new TextDecoder().decode(await assertSucceeds(getBytes(ref(bobStorage, path)))), 'hello');
     await assertSucceeds(updateDoc(doc(aliceDb, 'chats', groupId), { participants: arrayRemove('bob') }));
     await assertFails(getMetadata(ref(bobStorage, path)));
+    await assertFails(getBytes(ref(bobStorage, path)));
     await assertSucceeds(getMetadata(ref(aliceStorage, path)));
     await assertSucceeds(deleteObject(ref(aliceStorage, path)));
 });
