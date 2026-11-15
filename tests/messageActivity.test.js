@@ -20,6 +20,24 @@ test('previously read messages resurfacing in a page do not trigger a second ale
     assert.deepEqual(getNewIncomingIds(previous, messages, 'me'), ['new-unread']);
 });
 
+test('old unread messages entering a shifted history window do not trigger alerts', () => {
+    const previous = new Set(['recent-1', 'recent-2']);
+    const messages = [
+        { id: 'older-unread', senderId: 'friend', readBy: [] },
+        { id: 'recent-1', senderId: 'friend', readBy: [] },
+        { id: 'recent-2', senderId: 'me', readBy: [] },
+        { id: 'brand-new', senderId: 'friend', readBy: [] }
+    ];
+    assert.deepEqual(getNewIncomingIds(previous, messages, 'me'), ['brand-new']);
+});
+
+test('new page with no overlapping IDs still detects incoming messages', () => {
+    assert.deepEqual(getNewIncomingIds(new Set(['old-id']), [
+        { id: 'fresh-1', senderId: 'friend', readBy: [] },
+        { id: 'fresh-2', senderId: 'me', readBy: [] }
+    ], 'me'), ['fresh-1']);
+});
+
 test('read receipts include only unread incoming messages not already attempted', () => {
     const messages = [{ id: 'a', senderId: 'friend' }, { id: 'b', senderId: 'friend', readBy: ['me'] }, { id: 'c', senderId: 'me' }, { id: 'd', senderId: 'friend' }];
     assert.deepEqual(getUnreadIncomingIds(messages, 'me', new Set(['d'])), ['a']);

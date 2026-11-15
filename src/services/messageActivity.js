@@ -1,7 +1,15 @@
 // Snapshot updates also arrive for edits, reactions, and read receipts.
 // Only genuinely new incoming message IDs should make an audible alert.
 export function getNewIncomingIds(previousIds, messages, ownUid) {
-    return messages.filter(message => message.senderId !== ownUid && !message.readBy?.includes(ownUid) && !previousIds.has(message.id)).map(message => message.id);
+    // Firestore's recent-message window can shift backwards after deletion or
+    // pagination. Older entries entering that window are not new arrivals.
+    const lastKnownIndex = messages.findLastIndex(message => previousIds.has(message.id));
+    const candidates = lastKnownIndex >= 0 ? messages.slice(lastKnownIndex + 1) : messages;
+    return candidates.filter(message =>
+        message.senderId !== ownUid &&
+        !message.readBy?.includes(ownUid) &&
+        !previousIds.has(message.id)
+    ).map(message => message.id);
 }
 
 export function getUnreadIncomingIds(messages, ownUid, attemptedIds) {
