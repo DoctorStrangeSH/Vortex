@@ -47,6 +47,7 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
     const [otherStatus, setOtherStatus] = useState({ isOnline: false, lastSeen: null });
     const [contextMenu, setContextMenu] = useState(null);
     const [isRecording, setIsRecording] = useState(false);
+    const voiceStartingRef = useRef(false);
     const [showAI, setShowAI] = useState(false);
     const aiRequestRef = useRef(0);
     const [micDenied, setMicDenied] = useState(false);
@@ -126,6 +127,8 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
         sendingRef.current = false;
         setSending(false);
         setSendNotice('');
+        setIsRecording(false);
+        voiceStartingRef.current = false;
         setOtherStatus({ isOnline: false, lastSeen: null });
         const readAttempts = readAttemptIdsRef.current;
         const markVisibleAsRead = () => {
@@ -181,6 +184,8 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
             setMessagesLoading(false);
         });
         return () => {
+            voiceService.cancelRecording();
+            voiceStartingRef.current = false;
             aiRequestRef.current += 1;
             activeSubscriptionRef.current = null;
             activeChatIdRef.current = null;
@@ -433,18 +438,30 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
 
     // Голосовые
     const startVoiceRecording = async () => {
+        if (voiceStartingRef.current || isRecording || !chat) return;
+        const subscription = activeSubscriptionRef.current;
+        voiceStartingRef.current = true;
         const result = await voiceService.startRecording();
+        if (activeSubscriptionRef.current !== subscription) {
+            if (result === true) voiceService.cancelRecording();
+            return;
+        }
+        voiceStartingRef.current = false;
         if (result === true) { setIsRecording(true); setMicDenied(false); }
         else if (result?.error === 'denied') setMicDenied(true);
-        else if (result?.error) alert(result.message);
+        else if (result?.error && result.error !== 'cancelled') alert(result.message);
     };
-    const retryMicAccess = async () => { setMicDenied(false); const r = await voiceService.startRecording(); if (r === true) setIsRecording(true); else if (r?.error === 'denied') setMicDenied(true); };
+    const retryMicAccess = () => { setMicDenied(false); startVoiceRecording(); };
     const stopVoiceRecording = async () => {
         if (!isRecording) return;
+        const subscription = activeSubscriptionRef.current;
+        const targetChatId = chat?.id;
         setIsRecording(false);
         try {
             const base64 = await voiceService.stopRecording();
-            if (base64 && chat) await chatService.sendMessage(chat.id, '', user, { type: 'voice', fileData: base64, fileName: 'voice.webm' });
+            if (base64 && targetChatId && activeSubscriptionRef.current === subscription) {
+                await chatService.sendMessage(targetChatId, '', user, { type: 'voice', fileData: base64, fileName: 'voice.webm' });
+            }
         } catch (e) { console.error(e); }
     };
 

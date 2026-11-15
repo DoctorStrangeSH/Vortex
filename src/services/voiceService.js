@@ -1,23 +1,30 @@
-class VoiceService {
+export class VoiceService {
     constructor() {
         this.mediaRecorder = null;
         this.audioChunks = [];
         this.isRecording = false;
         this.stream = null;
+        this.recordingGeneration = 0;
     }
 
     async startRecording() {
+        const generation = ++this.recordingGeneration;
         try {
             if (!navigator.mediaDevices?.getUserMedia) {
                 return { error: 'unsupported', message: 'Микрофон не поддерживается в этом браузере' };
             }
 
-            this.stream = await navigator.mediaDevices.getUserMedia({ 
+            const stream = await navigator.mediaDevices.getUserMedia({
                 audio: {
                     echoCancellation: true,
                     noiseSuppression: true
                 } 
             });
+            if (generation !== this.recordingGeneration) {
+                stream.getTracks().forEach(track => track.stop());
+                return { error: 'cancelled' };
+            }
+            this.stream = stream;
             
             let mimeType = 'audio/webm';
             if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
@@ -89,13 +96,14 @@ class VoiceService {
     }
 
     cancelRecording() {
+        this.recordingGeneration += 1;
         if (this.mediaRecorder && this.isRecording) {
             this.mediaRecorder.stop();
             this.isRecording = false;
-            if (this.stream) {
-                this.stream.getTracks().forEach(track => track.stop());
-                this.stream = null;
-            }
+        }
+        if (this.stream) {
+            this.stream.getTracks().forEach(track => track.stop());
+            this.stream = null;
         }
     }
 }
