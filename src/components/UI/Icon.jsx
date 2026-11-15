@@ -2,6 +2,8 @@
 export function Icon({ name, size = 20, strokeWidth = 1.8 }) {
     const common = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true' };
     const shapes = {
+        search: <><circle cx="10.8" cy="10.8" r="7.3" /><path d="m16.2 16.2 5 5" /></>,
+        message: <><path d="M20 11.5a8 8 0 0 1-8 8c-1.2 0-2.5-.3-3.5-.8L3 21l1.8-5.2A8 8 0 1 1 20 11.5Z" /></>,
         user: <><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></>,
         menu: <><path d="M4 6h16M4 12h16M4 18h16" /></>,
         close: <><path d="M5 5 19 19M19 5 5 19" /></>,

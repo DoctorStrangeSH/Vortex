@@ -7,6 +7,8 @@ import { BurgerMenu } from '../Burger/BurgerMenu';
 import { NewChatFAB } from '../NewChat/NewChatFAB';
 import { NewChatModal } from '../NewChat/NewChatModal';
 import { ProfileModal } from '../Profile/ProfileModal';
+import { ContactsModal } from '../Contacts/ContactsModal';
+import { Icon } from '../UI/Icon';
 import { ThemeCustomizer } from '../Theme/ThemeCustomizer';
 import { filterChats, orderPinnedChats } from '../../services/chatList.js';
 import { createSearchRequestTracker } from '../../services/searchRequestTracker.js';
@@ -21,6 +23,10 @@ export function Sidebar({ user, activeChat, onSelectChat }) {
     const [showNewChatModal, setShowNewChatModal] = useState(false);
     const [newChatMode, setNewChatMode] = useState('personal');
     const [showProfile, setShowProfile] = useState(false);
+    const [showContacts, setShowContacts] = useState(false);
+    const [searchState, setSearchState] = useState('idle');
+    const [searchError, setSearchError] = useState('');
+    const [creatingSearchId, setCreatingSearchId] = useState(null);
     const [showTheme, setShowTheme] = useState(false);
     const [globalSearch, setGlobalSearch] = useState('');
     const [globalResults, setGlobalResults] = useState([]);
@@ -50,6 +56,8 @@ export function Sidebar({ user, activeChat, onSelectChat }) {
         setGlobalSearch('');
         setGlobalResults([]);
         setShowGlobalResults(false);
+        setSearchState('idle');
+        setSearchError('');
     }, [hiddenChatsKey, pinnedChatsKey]);
 
     useEffect(() => () => {
@@ -103,20 +111,26 @@ export function Sidebar({ user, activeChat, onSelectChat }) {
         setGlobalSearch(value);
         if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
         setGlobalResults([]);
-        if (value.trim().length < 2) { setShowGlobalResults(false); return; }
-        setShowGlobalResults(false);
+        setSearchError('');
+        if (value.trim().length < 2) { setShowGlobalResults(false); setSearchState('idle'); return; }
+        setShowGlobalResults(true);
+        setSearchState('loading');
         searchTimeoutRef.current = setTimeout(async () => {
             try {
                 const r = await userService.searchUsers(value);
                 if (!searchRequestRef.current.isCurrent(requestId)) return;
-                setGlobalResults(r.filter(u => u.uid !== user.uid)); setShowGlobalResults(true);
-            } catch { if (searchRequestRef.current.isCurrent(requestId)) setGlobalResults([]); }
+                setGlobalResults(r.filter(u => u.uid !== user.uid)); setSearchState('ready');
+            } catch { if (searchRequestRef.current.isCurrent(requestId)) { setGlobalResults([]); setSearchState('error'); setSearchError('Поиск временно недоступен'); } }
         }, 300);
     };
 
     const handleStartChat = async (foundUser) => {
+        if (creatingSearchId) return;
+        setCreatingSearchId(foundUser.uid);
+        setSearchError('');
         try { const id = await chatService.createChat(user, foundUser); handleGlobalSearch(''); onSelectChat?.({ id }); }
-        catch (err) { console.error(err); }
+        catch { setSearchError('Не удалось открыть переписку'); setShowGlobalResults(true); setSearchState('error'); }
+        finally { setCreatingSearchId(null); }
     };
 
     const openChat = (chat) => {
@@ -149,19 +163,29 @@ export function Sidebar({ user, activeChat, onSelectChat }) {
     return (
         <div class="vortex-sidebar" style={st.container}>
             <div class="vortex-sidebar-header" style={st.header}>
-                <BurgerMenu user={user} onLogout={handleLogout} onProfile={() => setShowProfile(true)} onTheme={() => setShowTheme(true)} />
+                <BurgerMenu user={user} onLogout={handleLogout} onProfile={() => setShowProfile(true)} onContacts={() => setShowContacts(true)} onTheme={() => setShowTheme(true)} />
                 <h2 class="vortex-brand" style={st.logo}><BrandMark size={29} /><span>Vortex</span></h2>
                 <div style={{ width: 40 }} />
             </div>
 
             <div style={st.searchContainer}>
                 <div style={st.searchWrapper}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style={st.searchIcon}><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                    <span style={st.searchIcon}><Icon name="search" size={17}/></span>
                     <input value={globalSearch} onInput={e => handleGlobalSearch(e.target.value)} onKeyDown={e => { if (e.key === 'Escape') { handleGlobalSearch(''); e.currentTarget.blur(); } }} placeholder="Поиск чатов и людей" aria-label="Поиск чатов и людей" class="vortex-search" style={{...st.searchInput, paddingRight: globalSearch ? '2.3rem' : '0.75rem'}} />
                     {globalSearch && <button type="button" aria-label="Очистить поиск" title="Очистить поиск" style={st.clearSearch} onClick={() => handleGlobalSearch('')}>×</button>}
                 </div>
-                {showGlobalResults && globalResults.length > 0 && (
-                    <div style={st.results}><div style={st.resultTitle}>Пользователи</div>{globalResults.map(u => <button type="button" key={u.uid} onClick={() => handleStartChat(u)} style={st.resultItem}><div style={{...st.resultAvatar, background: getAvatarColor(u.displayName || u.username || '?')}}>{(u.displayName || u.username || '?').charAt(0).toUpperCase()}</div><div><div style={st.resultName}>{u.displayName || 'Без имени'}</div><div style={st.resultEmail}>@{u.username || 'без username'}</div></div></button>)}</div>
+                {showGlobalResults && (
+                    <div style={st.results} role="region" aria-label="Результаты поиска">
+                        <div style={st.resultTitle}>ЛЮДИ В VORTEX</div>
+                        {searchState === 'loading' && <div style={st.resultHint} role="status">Ищем пользователей…</div>}
+                        {searchState === 'error' && <div style={st.resultHint} role="alert">{searchError || 'Ошибка поиска'}</div>}
+                        {searchState === 'ready' && globalResults.length === 0 && <div style={st.resultHint}>Никого не нашли по этому @username</div>}
+                        {searchState === 'ready' && globalResults.map(u => <button type="button" key={u.uid} disabled={Boolean(creatingSearchId)} onClick={() => handleStartChat(u)} class="vortex-menu-item" style={st.resultItem}>
+                            <div style={{...st.resultAvatar, background:getAvatarColor(u.displayName || u.username || '?')}}>{(u.displayName || u.username || '?').charAt(0).toUpperCase()}</div>
+                            <div style={{minWidth:0,flex:1}}><div style={st.resultName}>{u.displayName || 'Без имени'}</div><div style={st.resultEmail}>@{u.username || 'без username'}</div></div>
+                            <Icon name={creatingSearchId === u.uid ? 'loader' : 'message'} size={18}/>
+                        </button>)}
+                    </div>
                 )}
             </div>
 
@@ -203,6 +227,7 @@ export function Sidebar({ user, activeChat, onSelectChat }) {
             <NewChatFAB onPersonalChat={() => { setNewChatMode('personal'); setShowNewChatModal(true); }} onGroupChat={() => { setNewChatMode('group'); setShowNewChatModal(true); }} onChannel={() => { setNewChatMode('channel'); setShowNewChatModal(true); }} />
             {showNewChatModal && <NewChatModal user={user} onClose={() => setShowNewChatModal(false)} onChatCreated={(id) => { setShowNewChatModal(false); onSelectChat?.({ id }); }} mode={newChatMode} />}
             {showProfile && <ProfileModal onClose={() => setShowProfile(false)} />}
+            {showContacts && <ContactsModal user={user} onClose={() => setShowContacts(false)} onChatCreated={id => { setShowContacts(false); onSelectChat?.({ id }); }} />}
             {showTheme && <ThemeCustomizer onClose={() => setShowTheme(false)} />}
         </div>
     );
@@ -217,9 +242,10 @@ const st = {
     searchIcon: { position:'absolute', left:'10px', top:'50%', transform:'translateY(-50%)', color:'var(--text-tertiary)' },
     searchInput: { width:'100%', padding:'0.78rem 0.75rem 0.78rem 2rem', background:'var(--bg-tertiary)', border:'1px solid var(--border-default)', borderRadius:'14px', color:'var(--text-primary)', fontSize:'0.85rem', outline:'none' },
     clearSearch: { position:'absolute', right:'6px', top:'50%', transform:'translateY(-50%)', border:0, background:'transparent', color:'var(--text-secondary)', cursor:'pointer', padding:'4px 8px', fontSize:'1.25rem', lineHeight:1 },
-    results: { background:'var(--bg-tertiary)', border:'1px solid var(--border-default)', borderRadius:'10px', marginTop:'4px', maxHeight:'260px', overflowY:'auto', position:'absolute', left:'0.75rem', right:'0.75rem', zIndex:50 },
-    resultTitle: { padding:'0.4rem 0.75rem', fontSize:'0.65rem', fontWeight:600, color:'var(--text-tertiary)', textTransform:'uppercase' },
-    resultItem: { display:'flex', alignItems:'center', gap:'0.5rem', padding:'0.5rem 0.75rem', cursor:'pointer', border:0, borderBottom:'1px solid var(--border-subtle)', background:'transparent', color:'var(--text-primary)', textAlign:'left', width:'100%' },
+    results: { background:'var(--bg-secondary)', border:'1px solid var(--border-default)', borderRadius:'16px', marginTop:'8px', maxHeight:'320px', overflowY:'auto', position:'absolute', left:'0.75rem', right:'0.75rem', zIndex:50,boxShadow:'0 18px 44px rgba(0,0,0,.25)',padding:'7px' },
+    resultTitle: { padding:'0.65rem 0.75rem', fontSize:'0.65rem', fontWeight:800,letterSpacing:'.12em', color:'var(--text-tertiary)', textTransform:'uppercase' },
+    resultHint: {padding:'16px 12px',fontSize:'.8rem',color:'var(--text-secondary)',lineHeight:1.5},
+    resultItem: { display:'flex', alignItems:'center', gap:'0.7rem', padding:'0.65rem', cursor:'pointer', border:0, borderRadius:'11px', background:'transparent', color:'var(--text-primary)', textAlign:'left', width:'100%' },
     resultAvatar: { width:'36px', height:'36px', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontWeight:700, fontSize:'0.85rem', flexShrink:0 },
     resultName: { fontWeight:600, fontSize:'0.85rem' },
     resultEmail: { fontSize:'0.75rem', color:'var(--text-secondary)' },
