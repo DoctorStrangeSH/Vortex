@@ -33,12 +33,14 @@ import { getNewIncomingIds, getUnreadIncomingIds, getFirstUnreadIncomingId, shou
 import { createFrameScheduler } from '../../services/frameScheduler.js';
 import { shouldCancelLongPress, shouldSuppressMessageClick } from '../../services/messageLongPress.js';
 import { groupChatMessages } from '../../services/chatGrouping.js';
+import { findPinnedInHistory } from '../../services/pinnedHistory.js';
 
 export function ChatWindow({ chat, user, onBack, isMobile }) {
     const [messages, setMessages] = useState([]);
     const [messagesLoading, setMessagesLoading] = useState(true);
     const [olderMessagesLoading, setOlderMessagesLoading] = useState(false);
     const [hasOlderMessages, setHasOlderMessages] = useState(false);
+    const [pinnedNavigationNotice, setPinnedNavigationNotice] = useState('');
     const oldestCursorRef = useRef(null);
     const olderMessagesRef = useRef([]);
     const latestMessagesRef = useRef([]);
@@ -84,6 +86,7 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
     const longPressRef = useRef(null);
     const suppressClickRef = useRef(null);
     const pinnedHighlightRef = useRef(null);
+    const pinnedTargetRef = useRef(null);
     const seenMessageIdsRef = useRef(null);
     const unreadBoundaryCapturedRef = useRef(false);
     const initialScrollDoneRef = useRef(false);
@@ -145,6 +148,8 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
         setMessagesLoading(true);
         setOlderMessagesLoading(false);
         setHasOlderMessages(false);
+        setPinnedNavigationNotice('');
+        pinnedTargetRef.current = null;
         oldestCursorRef.current = null;
         olderMessagesRef.current = [];
         latestMessagesRef.current = [];
@@ -640,13 +645,13 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
     const pinnedMessages = chat?.pinnedMessages || [];
     const pinnedMessageIds = useMemo(() => new Set(chat?.pinnedMessages?.map(message => message.id) || []), [chat?.pinnedMessages]);
     const selectedMessageIds = useMemo(() => new Set(selectedMessages), [selectedMessages]);
-    const handleScrollToPinned = (messageId) => {
+    const focusPinnedMessage = (messageId) => {
         const container = messagesContainerRef.current;
-        if (!container) return;
+        if (!container) return false;
         // Match IDs as plain values; never interpolate them into a CSS selector.
         const element = Array.from(container.querySelectorAll('[data-msg-id]'))
             .find(item => item.dataset.msgId === messageId);
-        if (!element) return;
+        if (!element) return false;
 
         const containerBounds = container.getBoundingClientRect();
         const messageBounds = element.getBoundingClientRect();
@@ -676,6 +681,63 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
             pinnedHighlightRef.current = null;
         }, 2000);
         pinnedHighlightRef.current = highlight;
+        return true;
+    };
+
+    const handleScrollToPinned = async (messageId) => {
+        pinnedTargetRef.current = messageId;
+        setPinnedNavigationNotice('');
+        if (focusPinnedMessage(messageId)) return;
+        if (!chat || loadingOlderRef.current || !oldestCursorRef.current || !hasOlderMessages) {
+            setPinnedNavigationNotice('Закреплённое сообщение пока не загружено. Откройте более раннюю историю.');
+            return;
+        }
+        const expectedSubscription = activeSubscriptionRef.current;
+        const currentChatId = chat.id;
+        const container = messagesContainerRef.current;
+        const previousHeight = container?.scrollHeight || 0;
+        loadingOlderRef.current = true;
+        shouldAutoScroll.current = false;
+        setOlderMessagesLoading(true);
+        setPinnedNavigationNotice('Ищем закреплённое сообщение в истории…');
+        try {
+            const result = await findPinnedInHistory({
+                messageId,
+                cursor: oldestCursorRef.current,
+                fetchPage: cursor => messageService.fetchOlderMessages(currentChatId, cursor),
+                isActive: () => activeSubscriptionRef.current === expectedSubscription,
+                maxPages: 5
+            });
+            if (result.cancelled || activeSubscriptionRef.current !== expectedSubscription) return;
+            oldestCursorRef.current = result.cursor;
+            olderMessagesRef.current = mergeMessagePages(result.messages, olderMessagesRef.current);
+            setHasOlderMessages(result.hasMore);
+            setMessages(mergeMessagePages(olderMessagesRef.current, latestMessagesRef.current));
+            if (result.found) {
+                setPinnedNavigationNotice('');
+                requestAnimationFrame(() => {
+                    if (activeSubscriptionRef.current === expectedSubscription) focusPinnedMessage(messageId);
+                });
+            } else {
+                setPinnedNavigationNotice(result.hasMore
+                    ? 'Закреплённое сообщение находится ещё глубже в истории.'
+                    : 'Закреплённое сообщение не найдено в истории.');
+                requestAnimationFrame(() => {
+                    if (container && activeSubscriptionRef.current === expectedSubscription) {
+                        container.scrollTop += container.scrollHeight - previousHeight;
+                    }
+                });
+            }
+        } catch (error) {
+            if (activeSubscriptionRef.current === expectedSubscription) {
+                setPinnedNavigationNotice(error.message || 'Не удалось загрузить историю для закреплённого сообщения.');
+            }
+        } finally {
+            if (activeSubscriptionRef.current === expectedSubscription) {
+                loadingOlderRef.current = false;
+                setOlderMessagesLoading(false);
+            }
+        }
     };
 
     const getOtherParticipant = () => {
@@ -736,6 +798,11 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
                 onClose={() => setShowMembers(false)} onLeave={onBack} />}
 
             <PinnedMessage messages={pinnedMessages} onUnpin={(id) => id === null ? setShowAllPinned(true) : chatService.unpinMessage(chat.id, id)} onScrollTo={handleScrollToPinned} />
+            {pinnedNavigationNotice && <div role="status" style={{ padding: '6px 14px', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                {pinnedNavigationNotice}
+                {pinnedNavigationNotice.includes('ещё глубже') && <button type="button" onClick={() => handleScrollToPinned(pinnedTargetRef.current)} style={{ marginLeft: '8px' }}>Искать дальше</button>}
+                <button type="button" onClick={() => setPinnedNavigationNotice('')} style={{ marginLeft: '8px' }} aria-label="Скрыть уведомление">×</button>
+            </div>}
 
             <div style={{ ...s.messagesContainer, background: wallpaper || 'var(--bg-primary)' }} ref={messagesContainerRef} onScroll={handleScroll}>
                 {!messagesLoading && hasOlderMessages && <button type="button" disabled={olderMessagesLoading} onClick={loadOlderMessages} style={{ display:'block', margin:'12px auto', padding:'9px 16px', borderRadius:'12px', cursor:'pointer' }}>
