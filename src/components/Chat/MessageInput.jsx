@@ -1,7 +1,7 @@
 import { useRef } from 'preact/hooks';
 import { Icon } from '../UI/Icon';
 
-export function MessageInput({ text, onTextChange, onSend, sending = false, onTyping, isRecording, voiceStarting = false, recordSeconds = 0, onStartVoice, onStopVoice, onCancelVoice, onShowAI, onFileSend, editingMessage, onCancelEdit }) {
+export function MessageInput({ text, onTextChange, onSend, sending = false, onTyping, isRecording, voiceStarting = false, recordSeconds = 0, onStartVoice, onStopVoice, onCancelVoice, onShowAI, onFileSend, uploadingAttachments = false, editingMessage, onCancelEdit }) {
     const fileInputRef = useRef(null);
 
     const handleInput = (value) => {
@@ -18,7 +18,7 @@ export function MessageInput({ text, onTextChange, onSend, sending = false, onTy
                 </div>
             )}
             <div style={s.wrapper}>
-                <button type="button" class="vortex-icon-button" aria-label="Прикрепить файл" title="Прикрепить файл" style={s.btn} onClick={() => fileInputRef.current?.click()}><Icon name="paperclip" /></button>
+                <button type="button" class="vortex-icon-button" aria-label="Прикрепить файл" title={uploadingAttachments ? "Отправка файлов…" : "Прикрепить файл"} style={s.btn} disabled={uploadingAttachments} onClick={() => fileInputRef.current?.click()}><Icon name="paperclip" /></button>
                 <input type="file" ref={fileInputRef} onChange={onFileSend} accept="*/*" multiple style={{ display: 'none' }} />
                 
                 <button type="button" title={isRecording ? 'Отправить запись' : voiceStarting ? 'Ожидаем микрофон' : 'Начать запись'}

@@ -4,6 +4,7 @@ import { messageService } from '../../services/messageService';
 import { MAX_LEGACY_ATTACHMENT_BYTES } from '../../services/messageValidation';
 import { dataUrlByteLength } from '../../services/dataUrlBytes.js';
 import { sendStoredAttachment, STORAGE_UPLOADS_ENABLED } from '../../services/mediaService.js';
+import { attachmentRetryNotice, mayRetryAttachment } from '../../services/attachmentRetryPolicy.js';
 import { MAX_STORAGE_FILE_BYTES } from '../../services/mediaPolicy.js';
 import { presenceService } from '../../services/presenceService';
 import { voiceService } from '../../services/voiceService';
@@ -77,6 +78,9 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
     const [isOnline, setIsOnline] = useState(navigator.onLine);
     const [sending, setSending] = useState(false);
     const [sendNotice, setSendNotice] = useState('');
+    const [failedAttachment, setFailedAttachment] = useState(null);
+    const [uploadingAttachments, setUploadingAttachments] = useState(false);
+    const attachmentSendingRef = useRef(false);
     const [showJumpToLatest, setShowJumpToLatest] = useState(false);
     const [newIncomingCount, setNewIncomingCount] = useState(0);
     const [firstUnreadMessageId, setFirstUnreadMessageId] = useState(null);
@@ -152,6 +156,7 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
             sendingRef.current = false;
             setSending(false);
             setSendNotice('');
+            setFailedAttachment(null);
             return;
         }
         const currentChatId = chat.id;
@@ -184,6 +189,7 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
         sendingRef.current = false;
         setSending(false);
         setSendNotice('');
+        setFailedAttachment(null);
         setIsRecording(false);
         setVoiceStarting(false);
         setRecordSeconds(0);
@@ -453,42 +459,51 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
         return true;
     };
 
-    // Файлы + Drag & Drop
-    const handleFileSend = async (e) => {
-        const files = Array.from(e.target.files || []);
-        e.target.value = '';
-        if (!files.length || !chat) return;
-        const expectedSubscription = activeSubscriptionRef.current;
-        for (const [index, file] of files.entries()) {
-            if (activeSubscriptionRef.current !== expectedSubscription) break;
-            setSendNotice(`Загрузка файла ${index + 1} из ${files.length}: ${file.name}`);
-            try {
-                if (!await sendAttachmentFile(file, expectedSubscription)) break;
-            } catch (error) {
-                if (activeSubscriptionRef.current !== expectedSubscription) break;
-                setSendNotice(`Ошибка «${file.name}»: ${error.message || 'Не удалось отправить файл'}`);
-                return;
+    // Picker, drag & drop and retry share one sequential path. Keep failed and
+    // unprocessed File objects in memory while the user stays in this chat.
+    const sendAttachmentBatch = async (files, expectedSubscription = activeSubscriptionRef.current) => {
+        if (!files.length || !chat || attachmentSendingRef.current || activeSubscriptionRef.current !== expectedSubscription) return;
+        attachmentSendingRef.current = true;
+        setUploadingAttachments(true);
+        setFailedAttachment(null);
+        let sentCount = 0;
+        try {
+            for (const [index, file] of files.entries()) {
+                if (activeSubscriptionRef.current !== expectedSubscription) return;
+                setSendNotice(`Загрузка файла ${index + 1} из ${files.length}: ${file.name}`);
+                try {
+                    if (!await sendAttachmentFile(file, expectedSubscription)) return;
+                    sentCount++;
+                } catch (error) {
+                    if (activeSubscriptionRef.current !== expectedSubscription) return;
+                    const retryable = mayRetryAttachment(error);
+                    if (retryable) setFailedAttachment({ files: files.slice(index), subscription: expectedSubscription });
+                    setSendNotice(attachmentRetryNotice(file.name, error, sentCount, files.length));
+                    return;
+                }
             }
+            if (activeSubscriptionRef.current === expectedSubscription) setSendNotice(`Отправлено файлов: ${sentCount}`);
+        } finally {
+            attachmentSendingRef.current = false;
+            if (activeSubscriptionRef.current === expectedSubscription) setUploadingAttachments(false);
         }
-        if (activeSubscriptionRef.current === expectedSubscription) setSendNotice(`Отправлено файлов: ${files.length}`);
     };
 
-    const handleDragOver = (e) => { e.preventDefault(); setIsDragOver(true); };
-    const handleDragLeave = (e) => { e.preventDefault(); setIsDragOver(false); };
-    const handleDrop = async (e) => {
-        e.preventDefault();
+    const handleFileSend = (event) => {
+        const files = Array.from(event.target.files || []);
+        event.target.value = '';
+        void sendAttachmentBatch(files);
+    };
+    const retryFailedAttachments = () => {
+        if (!failedAttachment || !isOnline) return;
+        void sendAttachmentBatch(failedAttachment.files, failedAttachment.subscription);
+    };
+    const handleDragOver = (event) => { event.preventDefault(); setIsDragOver(true); };
+    const handleDragLeave = (event) => { event.preventDefault(); setIsDragOver(false); };
+    const handleDrop = (event) => {
+        event.preventDefault();
         setIsDragOver(false);
-        const expectedSubscription = activeSubscriptionRef.current;
-        for (const file of e.dataTransfer.files) {
-            if (activeSubscriptionRef.current !== expectedSubscription) break;
-            try {
-                const sent = await sendAttachmentFile(file, expectedSubscription);
-                if (!sent) break;
-            } catch (error) {
-                if (activeSubscriptionRef.current !== expectedSubscription) break;
-                alert(`«${file.name}»: ${error.message || 'Не удалось отправить файл'}`);
-            }
-        }
+        void sendAttachmentBatch(Array.from(event.dataTransfer.files));
     };
 
     // Контекстное меню
@@ -891,8 +906,12 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
             {previewImage && <div style={s.imageOverlay} onClick={() => setPreviewImage(null)}><img src={previewImage} style={s.imagePreview} /></div>}
             {nowPlaying && <div style={s.miniPlayer}><span>🎵</span><div>{nowPlaying.name}</div><audio controls src={nowPlaying.src} autoPlay /><button onClick={() => setNowPlaying(null)}>✕</button></div>}
 
-            {sendNotice && <div style={s.sendNotice} role="status">{sendNotice}</div>}
-            <MessageInput text={text} onTextChange={setText} onSend={handleSend} sending={sending} onTyping={handleTyping} isRecording={isRecording} voiceStarting={voiceStarting} recordSeconds={recordSeconds} onStartVoice={startVoiceRecording} onStopVoice={stopVoiceRecording} onCancelVoice={cancelVoiceRecording} onShowAI={() => setShowAI(!showAI)} onFileSend={handleFileSend} editingMessage={editingMessage} onCancelEdit={cancelEdit} onShowPoll={() => setShowPollCreator(true)} />
+            {sendNotice && <div style={s.sendNotice} role="status">
+                <span>{sendNotice}</span>
+                {failedAttachment && <button type="button" style={s.retryBtn} onClick={retryFailedAttachments} disabled={!isOnline || uploadingAttachments}>Повторить файлы ({failedAttachment.files.length})</button>}
+                <button type="button" style={s.noticeDismiss} aria-label="Скрыть уведомление" onClick={() => { setSendNotice(''); setFailedAttachment(null); }}>×</button>
+            </div>}
+            <MessageInput text={text} onTextChange={setText} onSend={handleSend} sending={sending} onTyping={handleTyping} isRecording={isRecording} voiceStarting={voiceStarting} recordSeconds={recordSeconds} onStartVoice={startVoiceRecording} onStopVoice={stopVoiceRecording} onCancelVoice={cancelVoiceRecording} onShowAI={() => setShowAI(!showAI)} onFileSend={handleFileSend} uploadingAttachments={uploadingAttachments} editingMessage={editingMessage} onCancelEdit={cancelEdit} onShowPoll={() => setShowPollCreator(true)} />
         </div>
     );
 }
@@ -910,7 +929,8 @@ const s = {
     unreadDivider: { margin:'14px 0', padding:'7px 12px', borderRadius:'12px', color:'var(--vortex-primary-light)', textAlign:'center', fontSize:'0.77rem', fontWeight:600, background:'rgba(124,58,237,0.12)', border:'1px solid rgba(124,58,237,0.22)' },
     queueBar: { display:'flex', justifyContent:'space-between', alignItems:'center', gap:'12px', background:'var(--bg-secondary)', color:'var(--text-primary)', padding:'7px 12px', fontSize:'0.78rem' },
     retryBtn: { border:'1px solid var(--border-default)', background:'var(--bg-tertiary)', borderRadius:'8px', padding:'5px 10px', color:'var(--text-primary)', cursor:'pointer' },
-    sendNotice: { color:'var(--text-tertiary)', fontSize:'0.72rem', padding:'4px 14px', textAlign:'right' },
+    sendNotice: { display:'flex', alignItems:'center', justifyContent:'flex-end', flexWrap:'wrap', gap:'8px', color:'var(--text-secondary)', fontSize:'0.78rem', padding:'8px 14px', background:'var(--bg-secondary)', borderTop:'1px solid var(--border-subtle)' },
+    noticeDismiss: { background:'transparent', border:'none', color:'var(--text-tertiary)', fontSize:'1.1rem', cursor:'pointer' },
     messagesContainer: { flex:1, overflowY:'auto', padding:'0.6rem 0.8rem', display:'flex', flexDirection:'column', gap:'2px', backgroundSize:'cover' },
     loading: { textAlign:'center', padding:'2rem', color:'var(--text-tertiary)' },
     emptyChat: { textAlign:'center', padding:'3rem', color:'var(--text-tertiary)' },
