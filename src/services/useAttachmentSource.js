@@ -1,36 +1,43 @@
 import { useEffect, useState } from 'preact/hooks';
 import { getBlob, ref } from 'firebase/storage';
 import { storage } from './firebase.js';
+import { attachmentErrorText } from './attachmentErrors.js';
 
-// Object URLs are local to this browser tab and are revoked when a message
-// disappears. Storage reads go through the authenticated Firebase SDK.
+// Storage downloads use Firebase authentication. Local blob URLs are scoped
+// to the mounted component and are revoked when that component changes.
 export function useAttachmentSource(message) {
     const path = message?.storagePath || '';
     const legacySource = path ? '' : message?.fileData || '';
-    const [source, setSource] = useState(legacySource);
+    const [state, setState] = useState({
+        source: legacySource,
+        status: path ? 'loading' : 'ready',
+        error: ''
+    });
+    const [attempt, setAttempt] = useState(0);
 
     useEffect(() => {
         if (!path) {
-            setSource(legacySource);
+            setState({ source: legacySource, status: 'ready', error: '' });
             return;
         }
         let cancelled = false;
         let objectUrl = null;
-        setSource('');
+        setState({ source: '', status: 'loading', error: '' });
         getBlob(ref(storage, path)).then(blob => {
+            if (cancelled) return;
             objectUrl = URL.createObjectURL(blob);
-            if (cancelled) URL.revokeObjectURL(objectUrl);
-            else setSource(objectUrl);
+            setState({ source: objectUrl, status: 'ready', error: '' });
         }).catch(error => {
             if (!cancelled) {
-                console.warn('Вложение недоступно текущему пользователю', error);
-                setSource('');
+                console.warn('Не удалось загрузить вложение', error);
+                setState({ source: '', status: 'error', error: attachmentErrorText(error?.code) });
             }
         });
         return () => {
             cancelled = true;
             if (objectUrl) URL.revokeObjectURL(objectUrl);
         };
-    }, [path, legacySource]);
-    return source;
+    }, [path, legacySource, attempt]);
+
+    return { ...state, retry: () => setAttempt(value => value + 1) };
 }

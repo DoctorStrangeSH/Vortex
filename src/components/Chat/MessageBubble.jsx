@@ -5,7 +5,7 @@ import { useAttachmentSource } from '../../services/useAttachmentSource.js';
 
 export function MessageBubble({ msg, own, other, avatarColor, isMobile, isPinned, participants, onContextMenu, onDoubleClick, onImageClick, onReactionClick, onPlayAudio, onReply }) {
     const messageRef = useRef(null);
-    const attachmentSource = useAttachmentSource(msg);
+    const { source: attachmentSource, status: attachmentStatus, error: attachmentError, retry: retryAttachment } = useAttachmentSource(msg);
     const { attach, detach } = useSwipe(messageRef, 
         () => onReply?.(msg.id), // Свайп влево — ответить
         null // Свайп вправо
@@ -65,23 +65,29 @@ export function MessageBubble({ msg, own, other, avatarColor, isMobile, isPinned
                     )}
 
                     {/* Контент сообщения */}
-                    {msg.storagePath && !attachmentSource && <span style={{ fontSize: '0.75rem' }}>Вложение загружается или недоступно</span>}
-                    {msg.type === 'image' && (
+                    {msg.storagePath && attachmentStatus === 'loading' && <span role="status" style={{ fontSize: '0.75rem' }}>Загрузка вложения…</span>}
+                    {msg.storagePath && attachmentStatus === 'error' && (
+                        <div role="alert" style={{ fontSize: '0.75rem' }}>
+                            <span>{attachmentError}</span>{' '}
+                            <button type="button" onClick={(event) => { event.stopPropagation(); retryAttachment(); }}>Повторить</button>
+                        </div>
+                    )}
+                    {msg.type === 'image' && attachmentSource && (
                         <img src={attachmentSource} alt={msg.fileName} style={s.image} onClick={() => attachmentSource && onImageClick?.(attachmentSource)} />
                     )}
-                    {msg.type === 'video' && (
+                    {msg.type === 'video' && attachmentSource && (
                         <video controls src={attachmentSource} style={{ ...s.image, maxWidth: '280px', borderRadius: '10px' }} preload="metadata" />
                     )}
-                    {msg.type === 'voice' && (
+                    {msg.type === 'voice' && attachmentSource && (
                         <audio controls src={attachmentSource} style={s.audio} />
                     )}
-                    {msg.type === 'audio' && (
+                    {msg.type === 'audio' && attachmentSource && (
                         <div>
                             <div style={{ marginBottom: '4px', fontSize: '0.8rem' }}>🎵 {msg.fileName || 'Аудио'}</div>
                             <audio controls src={attachmentSource} style={s.audio} onClick={() => onPlayAudio?.({ src: attachmentSource, name: msg.fileName })} />
                         </div>
                     )}
-                    {msg.type === 'file' && (
+                    {msg.type === 'file' && attachmentSource && (
                         <a href={attachmentSource || undefined} download={msg.fileName} style={s.fileLink}>
                             <span style={{ fontSize: '1.5rem' }}>📄</span>
                             <div>

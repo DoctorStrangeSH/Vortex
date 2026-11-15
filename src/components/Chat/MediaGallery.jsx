@@ -2,9 +2,18 @@ import { useState, useEffect } from 'preact/hooks';
 import { useAttachmentSource } from '../../services/useAttachmentSource.js';
 
 function GalleryMedia({ message, style, preview = false }) {
-    const source = useAttachmentSource(message);
+    const { source, status, error, retry } = useAttachmentSource(message);
     if (!message) return null;
-    if (!source) return <div style={{ ...style, display: 'grid', placeItems: 'center' }}>Вложение загружается или недоступно</div>;
+    if (!source) return (
+        <div style={{ ...style, display: 'grid', placeItems: 'center', textAlign: 'center', padding: '0.5rem' }}>
+            {status === 'loading' ? <span role="status">Загрузка…</span> : (
+                <div role="alert">
+                    <span>{error || 'Вложение недоступно'}</span>{' '}
+                    <button type="button" onClick={event => { event.stopPropagation(); retry(); }}>Повторить</button>
+                </div>
+            )}
+        </div>
+    );
     return message.type === 'video'
         ? <video controls={preview} src={source} style={style} preload="metadata" autoPlay={preview} />
         : <img src={source} alt={message.fileName || ''} style={style} loading={preview ? 'eager' : 'lazy'} />;
