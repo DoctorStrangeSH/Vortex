@@ -54,7 +54,7 @@ test('suspended context is resumed and re-used', async () => {
 });
 
 test('invalid stored volume falls back to a usable value', () => {
-    const service = new SoundService({ storage: { getItem: key => key === 'vortex-sound-volume' ? 'NaN' : null } });
+    const service = new SoundService({ storage: { getItem: key => key === 'vortex-sound-volume' ? 'NaN' : null, setItem: () => {} } });
     assert.equal(service.volume, 0.5);
     service.setVolume(42);
     assert.equal(service.volume, 1);
