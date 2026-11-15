@@ -1,18 +1,13 @@
 import { useEffect, useState } from 'preact/hooks';
-import { getBlob, ref } from 'firebase/storage';
-import { storage } from './firebase.js';
+import { attachmentPool } from './attachmentStoragePool.js';
 import { attachmentErrorText } from './attachmentErrors.js';
 
-// Storage downloads use Firebase authentication. Local blob URLs are scoped
-// to the mounted component and are revoked when that component changes.
+// Authenticated Storage reads share in-flight downloads across the chat/gallery.
+// Blob URLs are released when the last visible consumer unmounts.
 export function useAttachmentSource(message) {
     const path = message?.storagePath || '';
     const legacySource = path ? '' : message?.fileData || '';
-    const [state, setState] = useState({
-        source: legacySource,
-        status: path ? 'loading' : 'ready',
-        error: ''
-    });
+    const [state, setState] = useState({ source: legacySource, status: path ? 'loading' : 'ready', error: '' });
     const [attempt, setAttempt] = useState(0);
 
     useEffect(() => {
@@ -21,12 +16,10 @@ export function useAttachmentSource(message) {
             return;
         }
         let cancelled = false;
-        let objectUrl = null;
         setState({ source: '', status: 'loading', error: '' });
-        getBlob(ref(storage, path)).then(blob => {
-            if (cancelled) return;
-            objectUrl = URL.createObjectURL(blob);
-            setState({ source: objectUrl, status: 'ready', error: '' });
+        const handle = attachmentPool.acquire(path);
+        handle.promise.then(source => {
+            if (!cancelled) setState({ source, status: 'ready', error: '' });
         }).catch(error => {
             if (!cancelled) {
                 console.warn('Не удалось загрузить вложение', error);
@@ -35,7 +28,7 @@ export function useAttachmentSource(message) {
         });
         return () => {
             cancelled = true;
-            if (objectUrl) URL.revokeObjectURL(objectUrl);
+            handle.release();
         };
     }, [path, legacySource, attempt]);
 
