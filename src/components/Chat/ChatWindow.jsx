@@ -31,6 +31,7 @@ import { isNearChatBottom, getInitialChatScrollTarget, getMessageScrollTop, getB
 import { shouldLoadOlderMessages } from '../../services/olderHistoryTrigger.js';
 import { getNewIncomingIds, getUnreadIncomingIds, getFirstUnreadIncomingId, shouldPlayIncomingSound, shouldMarkMessagesRead, isMessageVisible } from '../../services/messageActivity.js';
 import { createFrameScheduler } from '../../services/frameScheduler.js';
+import { shouldCancelLongPress, shouldSuppressMessageClick } from '../../services/messageLongPress.js';
 import { groupChatMessages } from '../../services/chatGrouping.js';
 
 export function ChatWindow({ chat, user, onBack, isMobile }) {
@@ -80,6 +81,8 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
     const messagesEndRef = useRef(null);
     const shouldAutoScroll = useRef(true);
     const messagesContainerRef = useRef(null);
+    const longPressRef = useRef(null);
+    const suppressClickRef = useRef(null);
     const seenMessageIdsRef = useRef(null);
     const unreadBoundaryCapturedRef = useRef(false);
     const initialScrollDoneRef = useRef(false);
@@ -102,8 +105,15 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
         return () => { offlineService.setActiveUser(null); unsubscribeNetwork(); unsubscribeQueue(); };
     }, [user.uid]);
 
+    useEffect(() => () => {
+        if (longPressRef.current?.timer) clearTimeout(longPressRef.current.timer);
+    }, []);
+
     // Очистка при смене чата
     useEffect(() => {
+        if (longPressRef.current?.timer) clearTimeout(longPressRef.current.timer);
+        longPressRef.current = null;
+        suppressClickRef.current = null;
         if (!chat) {
             setMessages([]);
             setMessagesLoading(false);
@@ -571,7 +581,40 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
         if (!selectionMode) return;
         setSelectedMessages(prev => prev.includes(messageId) ? prev.filter(id => id !== messageId) : [...prev, messageId]);
     };
-    const handleLongPress = (messageId) => { setSelectionMode(true); setSelectedMessages([messageId]); };
+    const cancelLongPress = () => {
+        if (longPressRef.current?.timer) clearTimeout(longPressRef.current.timer);
+        longPressRef.current = null;
+    };
+    const startLongPress = (event, messageId) => {
+        cancelLongPress();
+        if (event.touches.length !== 1) return;
+        const touch = event.touches[0];
+        const gesture = { messageId, startX: touch.clientX, startY: touch.clientY, identifier: touch.identifier };
+        gesture.timer = setTimeout(() => {
+            if (longPressRef.current !== gesture) return;
+            longPressRef.current = null;
+            suppressClickRef.current = { messageId, expiresAt: Date.now() + 900 };
+            setSelectionMode(true);
+            setSelectedMessages([messageId]);
+        }, 500);
+        longPressRef.current = gesture;
+    };
+    const moveLongPress = (event) => {
+        const gesture = longPressRef.current;
+        if (!gesture) return;
+        const touch = Array.from(event.touches).find(item => item.identifier === gesture.identifier);
+        if (!touch || event.touches.length !== 1 || shouldCancelLongPress(gesture.startX, gesture.startY, touch.clientX, touch.clientY)) {
+            cancelLongPress();
+        }
+    };
+    const handleMessageSelectionClick = (messageId) => {
+        if (shouldSuppressMessageClick(messageId, suppressClickRef.current, Date.now())) {
+            suppressClickRef.current = null;
+            return;
+        }
+        suppressClickRef.current = null;
+        toggleSelection(messageId);
+    };
     const cancelSelection = () => { setSelectionMode(false); setSelectedMessages([]); };
     const deleteSelected = async () => {
         if (!confirm(`Удалить ${selectedMessages.length} сообщений?`)) return;
@@ -663,8 +706,11 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
                         <div key={msg.id}>
                         {msg.id === firstUnreadMessageId && <div data-unread-divider style={s.unreadDivider} role="separator">Непрочитанные сообщения</div>}
                         <div data-msg-id={msg.id}
-                             onClick={() => toggleSelection(msg.id)}
-                             onTouchStart={(e) => { const t = setTimeout(() => handleLongPress(msg.id), 500); e.target.addEventListener('touchend', () => clearTimeout(t), { once:true }); }}
+                             onClick={() => handleMessageSelectionClick(msg.id)}
+                             onTouchStart={(event) => startLongPress(event, msg.id)}
+                             onTouchMove={moveLongPress}
+                             onTouchEnd={cancelLongPress}
+                             onTouchCancel={cancelLongPress}
                              style={{ background: selectedMessageIds.has(msg.id) ? 'rgba(124,58,237,0.15)' : 'transparent', borderRadius: '8px', cursor: selectionMode ? 'pointer' : 'default' }}>
                             <MessageBubble msg={msg} own={msg.senderId === user.uid} other={other} avatarColor={avatarColor} participants={chat.participants}
                                 isMobile={isMobile} isPinned={pinnedMessageIds.has(msg.id)}
