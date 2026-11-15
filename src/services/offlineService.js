@@ -90,13 +90,13 @@ export class OfflineService {
             this.processRequested = true;
             return this.processingPromise;
         }
-        if (!this.isOnline || !this.activeUid) return;
+        if (!this.isOnline) return;
 
         const run = async () => {
             this.refreshQueue();
             for (const action of [...this.queue]) {
                 if (!this.isOnline) break;
-                if (action.user?.uid !== this.activeUid) continue;
+                if (this.activeUid !== undefined && action.user?.uid !== this.activeUid) continue;
                 try {
                     action.status = 'sending';
                     this.notifyQueue();

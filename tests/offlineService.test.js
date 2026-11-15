@@ -133,7 +133,7 @@ test('initialization registers connectivity handlers once and flushes persisted 
         listeners.set(name, callbacks);
     } };
     const { storage } = createService();
-    storage.setItem('offlineQueue', JSON.stringify([{ id: 'queued-id', type: 'sendMessage', text: 'После запуска' }]));
+    storage.setItem('offlineQueue', JSON.stringify([{ id: 'queued-id', type: 'sendMessage', user: { uid: 'alice' }, text: 'После запуска' }]));
     const service = new OfflineService({ storage, network: { onLine: true }, eventTarget: target });
     let sends = 0;
     service.executeAction = async () => { sends++; };
