@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect } from 'preact/hooks';
 import { useSwipe } from '../../hooks/useSwipe';
-import { getMessageReadStatus } from '../../services/messageReadStatus.js';
+import { getMessageReadPresentation } from '../../services/messageReadStatus.js';
 import { useAttachmentSource } from '../../services/useAttachmentSource.js';
 import { shouldDeferStoredMedia } from '../../services/attachmentVisibility.js';
 
@@ -48,9 +48,7 @@ export function MessageBubble({ msg, own, other, avatarColor, isMobile, isPinned
         return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
     };
 
-    const readStatus = own ? getMessageReadStatus(msg, participants, msg.senderId) : null;
-    const readTitle = !readStatus ? '' : readStatus.state === 'read' ? 'Прочитано всеми участниками' :
-        readStatus.state === 'partially_read' ? `Прочитали ${readStatus.readCount} из ${readStatus.recipientCount}` : 'Отправлено · прочтение не подтверждено';
+    const readStatus = own ? getMessageReadPresentation(msg, participants, msg.senderId) : null;
 
     return (
         <div ref={messageRef} class="vortex-message-row" style={{ ...s.wrapper, justifyContent: own ? 'flex-end' : 'flex-start' }}>
@@ -149,11 +147,12 @@ export function MessageBubble({ msg, own, other, avatarColor, isMobile, isPinned
                         {msg.isEdited && <span style={s.editedSmall}>изм.</span>}
                         <span>{formatMessageTime(msg.createdAt)}</span>
                         {own && (
-                            <span title={readTitle} aria-label={readTitle} style={{
-                                color: readStatus.state === 'read' ? 'var(--vortex-secondary)' : 'inherit',
-                                marginLeft: '2px'
+                            <span title={readStatus.title} aria-label={readStatus.title} style={{
+                                color: readStatus.state === 'read' ? 'var(--vortex-secondary)' : readStatus.state === 'partially_read' ? 'var(--vortex-primary-light)' : 'inherit',
+                                marginLeft: '2px', display: 'inline-flex', alignItems: 'center', gap: '3px'
                             }}>
-                                {readStatus.state === 'sent' ? '✓' : '✓✓'}
+                                <span>{readStatus.symbol}</span>
+                                {readStatus.progress && <span style={{ fontSize: '0.62rem', fontVariantNumeric: 'tabular-nums' }}>{readStatus.progress}</span>}
                             </span>
                         )}
                     </div>
