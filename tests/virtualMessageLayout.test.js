@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildMessageOffsets, getVisibleMessageRange, indexMessagesById, shouldUpdateMeasuredHeight, scrollAnchorAdjustment } from '../src/services/virtualMessageLayout.js';
+import { buildMessageOffsets, getVisibleMessageRange, indexMessagesById, shouldUpdateMeasuredHeight, scrollAnchorAdjustment, getMessageNavigationTop } from '../src/services/virtualMessageLayout.js';
 
 test('uses measured heights and falls back to estimates', () => {
     const messages = [{ id: 'a' }, { id: 'b' }, { id: 'c' }];
@@ -48,4 +48,14 @@ test('resizing rows above the viewport preserves scroll anchoring', () => {
     assert.equal(scrollAnchorAdjustment(300, 300, 120, 70), -50);
     assert.equal(scrollAnchorAdjustment(340, 300, 72, 120), 0);
     assert.equal(scrollAnchorAdjustment(200, 300, 72, NaN), 0);
+});
+
+test('navigation targets unread and pinned messages with safe viewport clamping', () => {
+    const messages = [{ id: 'a' }, { id: 'unread' }, { id: 'pinned' }, { id: 'z' }];
+    const offsets = [0, 100, 300, 420, 600];
+    assert.equal(getMessageNavigationTop(messages, offsets, 'unread', 240, 'start'), 100);
+    assert.equal(getMessageNavigationTop(messages, offsets, 'pinned', 240, 'center'), 240);
+    assert.equal(getMessageNavigationTop(messages, offsets, 'z', 240, 'end'), 360);
+    assert.equal(getMessageNavigationTop(messages, offsets, 'a', 240, 'center'), 0);
+    assert.equal(getMessageNavigationTop(messages, offsets, 'missing', 240), null);
 });

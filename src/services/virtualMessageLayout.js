@@ -44,3 +44,17 @@ export function scrollAnchorAdjustment(rowBottom, scrollTop, oldHeight, newHeigh
         !shouldUpdateMeasuredHeight(newHeight, oldHeight)) return 0;
     return rowBottom <= scrollTop ? newHeight - oldHeight : 0;
 }
+
+export function getMessageNavigationTop(messages, offsets, messageId, viewportHeight, align = 'start') {
+    if (!messageId || offsets.length !== messages.length + 1) return null;
+    const index = messages.findIndex(message => message.id === messageId);
+    if (index < 0) return null;
+    const rowTop = offsets[index];
+    const rowHeight = offsets[index + 1] - rowTop;
+    const height = Math.max(0, Number.isFinite(viewportHeight) ? viewportHeight : 0);
+    const totalHeight = offsets[offsets.length - 1];
+    let top = rowTop;
+    if (align === 'center') top -= (height - rowHeight) / 2;
+    if (align === 'end') top -= height - rowHeight;
+    return Math.max(0, Math.min(Math.max(0, totalHeight - height), top));
+}

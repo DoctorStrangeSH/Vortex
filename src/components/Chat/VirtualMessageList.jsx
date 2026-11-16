@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef, useMemo, useLayoutEffect } from 'preact/hooks';
-import { buildMessageOffsets, getVisibleMessageRange, indexMessagesById, shouldUpdateMeasuredHeight, scrollAnchorAdjustment } from '../../services/virtualMessageLayout.js';
+import { buildMessageOffsets, getVisibleMessageRange, indexMessagesById, shouldUpdateMeasuredHeight, scrollAnchorAdjustment, getMessageNavigationTop } from '../../services/virtualMessageLayout.js';
 
 // Prepared for integration after scroll-anchor, unread and pinned navigation checks.
-export function VirtualMessageList({ messages, renderMessage, loading, onScrollToBottom }) {
+export function VirtualMessageList({ messages, renderMessage, loading, onScrollToBottom, navigationTarget = null }) {
     const containerRef = useRef(null);
+    const handledNavigationRef = useRef(null);
     const measuredHeights = useRef(new Map());
     const [revision, setRevision] = useState(0);
     const [viewport, setViewport] = useState({ top: 0, height: 600 });
@@ -30,6 +31,19 @@ export function VirtualMessageList({ messages, renderMessage, loading, onScrollT
         observer.observe(container);
         return () => observer.disconnect();
     }, []);
+
+    useLayoutEffect(() => {
+        const container = containerRef.current;
+        if (!container || !navigationTarget?.id) return;
+        const requestKey = JSON.stringify([navigationTarget.id, navigationTarget.requestId ?? 0]);
+        if (handledNavigationRef.current === requestKey) return;
+        const top = getMessageNavigationTop(messages, offsets, navigationTarget.id, container.clientHeight, navigationTarget.align);
+        // Keep the request pending if older history has not been loaded yet.
+        if (top === null) return;
+        container.scrollTop = top;
+        setViewport({ top, height: container.clientHeight });
+        handledNavigationRef.current = requestKey;
+    }, [messages, offsets, navigationTarget?.id, navigationTarget?.requestId, navigationTarget?.align]);
 
     useLayoutEffect(() => {
         if (typeof ResizeObserver === 'undefined') return;
