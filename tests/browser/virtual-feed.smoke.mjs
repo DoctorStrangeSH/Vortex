@@ -56,8 +56,27 @@ try {
     }
     const metrics = await page.evaluate(() => window.virtualFeedQA.metrics());
     assert.ok(metrics.visibleChanges > 2, 'virtual range should notify after it changes');
+
+    // A narrow phone viewport must keep navigation and scrolling usable.
+    await page.setViewportSize({ width: 390, height: 720 });
+    await page.evaluate(() => window.virtualFeedQA.navigate('message-300'));
+    await page.waitForSelector('[data-qa-id="message-300"]');
+    const mobileMetrics = await page.evaluate(() => window.virtualFeedQA.metrics());
+    assert.ok(mobileMetrics.mountedRows < 50, 'phone viewport should still virtualize the message list');
+    assert.ok(mobileMetrics.scrollTop > 0, 'phone navigation should reach historical messages');
+
+    const messageRegion = page.getByRole('region', { name: 'Сообщения' });
+    await messageRegion.focus();
+    assert.ok(await messageRegion.evaluate(node => document.activeElement === node), 'message region should be keyboard focusable');
+    const beforeKeyboardScroll = await page.evaluate(() => window.virtualFeedQA.metrics().scrollTop);
+    await page.keyboard.press('PageDown');
+    await page.waitForFunction(previous => window.virtualFeedQA.metrics().scrollTop > previous + 100, beforeKeyboardScroll);
+
+    await page.evaluate(() => window.virtualFeedQA.navigate('message-1100'));
+    await page.waitForSelector('[data-qa-id="message-1100"]');
+    assert.ok(await page.locator('[data-qa-id="message-1100"]').count(), 'a second navigation should replace an older request');
     assert.deepEqual(errors, [], 'the browser should have no uncaught page errors');
-    console.log('Virtual browser smoke test passed:', metrics);
+    console.log('Virtual browser smoke test passed:', { desktop: metrics, mobile: mobileMetrics });
 } finally {
     await browser?.close();
     server.kill('SIGTERM');

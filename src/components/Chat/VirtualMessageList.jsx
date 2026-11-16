@@ -136,7 +136,7 @@ export function VirtualMessageList({ messages, renderMessage, loading, onScrollT
     };
 
     return (
-        <div class={className} ref={node => { containerRef.current = node; if (externalContainerRef) externalContainerRef.current = node; }} onScroll={onScroll} onWheel={() => { pendingBottomStickRef.current = false; }} onTouchStart={() => { pendingBottomStickRef.current = false; }} onKeyDown={() => { pendingBottomStickRef.current = false; }} style={{ flex: 1, overflowY: 'auto', position: 'relative', padding: '0.6rem 0.8rem', ...style }}>
+        <div class={className} role="region" aria-label="Сообщения" tabIndex={0} ref={node => { containerRef.current = node; if (externalContainerRef) externalContainerRef.current = node; }} onScroll={onScroll} onWheel={() => { pendingBottomStickRef.current = false; }} onTouchStart={() => { pendingBottomStickRef.current = false; }} onKeyDown={() => { pendingBottomStickRef.current = false; }} style={{ flex: 1, overflowY: 'auto', position: 'relative', padding: '0.6rem 0.8rem', ...style }}>
             <div style={{ height: offsets[offsets.length - 1], position: 'relative' }}>
                 {messages.slice(range.start, range.end).map((message, index) => {
                     const actualIndex = range.start + index;
