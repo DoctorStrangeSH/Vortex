@@ -41,10 +41,15 @@ try {
     await page.evaluate(() => window.virtualFeedQA.scrollBottom());
     await page.waitForSelector('[data-qa-id="message-1499"]');
     await page.evaluate(() => window.virtualFeedQA.expandLast());
-    await page.waitForFunction(() => {
-        const { scrollTop, scrollHeight, clientHeight } = window.virtualFeedQA.metrics();
-        return scrollHeight - scrollTop - clientHeight < 110;
-    });
+    try {
+        await page.waitForFunction(() => {
+            const { scrollTop, scrollHeight, clientHeight } = window.virtualFeedQA.metrics();
+            return scrollHeight - scrollTop - clientHeight < 110;
+        }, null, { timeout: 6000 });
+    } catch (error) {
+        console.error('Bottom-stick diagnostics:', await page.evaluate(() => window.virtualFeedQA.metrics()));
+        throw error;
+    }
     const metrics = await page.evaluate(() => window.virtualFeedQA.metrics());
     assert.ok(metrics.visibleChanges > 2, 'virtual range should notify after it changes');
     assert.deepEqual(errors, [], 'the browser should have no uncaught page errors');

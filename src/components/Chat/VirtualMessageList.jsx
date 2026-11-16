@@ -9,6 +9,7 @@ export function VirtualMessageList({ messages, renderMessage, loading, onScrollT
     const previousAnchorRef = useRef({ id: null, top: 0 });
     const measuredHeights = useRef(new Map());
     const pendingBottomStickRef = useRef(false);
+    const wasAtBottomRef = useRef(false);
     const onVisibleRowsChangeRef = useRef(onVisibleRowsChange);
     onVisibleRowsChangeRef.current = onVisibleRowsChange;
     const [revision, setRevision] = useState(0);
@@ -85,6 +86,7 @@ export function VirtualMessageList({ messages, renderMessage, loading, onScrollT
         if (!container || !pendingBottomStickRef.current) return;
         pendingBottomStickRef.current = false;
         container.scrollTop = Math.max(0, container.scrollHeight - container.clientHeight);
+        wasAtBottomRef.current = true;
         setViewport({ top: container.scrollTop, height: container.clientHeight });
     }, [revision]);
 
@@ -96,7 +98,9 @@ export function VirtualMessageList({ messages, renderMessage, loading, onScrollT
         const observer = new ResizeObserver(entries => {
             let changed = false;
             let adjustment = 0;
-            const wasAtBottom = isNearVirtualBottom(container.scrollHeight, container.scrollTop, container.clientHeight);
+            // Read the last confirmed scroll position: the browser may already
+            // have enlarged scrollHeight before notifying ResizeObserver.
+            const wasAtBottom = wasAtBottomRef.current;
             for (const entry of entries) {
                 const id = entry.target.dataset.messageId;
                 const index = indexById.get(id);
@@ -121,8 +125,9 @@ export function VirtualMessageList({ messages, renderMessage, loading, onScrollT
     const onScroll = () => {
         const container = containerRef.current;
         if (!container) return;
+        wasAtBottomRef.current = isNearVirtualBottom(container.scrollHeight, container.scrollTop, container.clientHeight);
         setViewport({ top: container.scrollTop, height: container.clientHeight });
-        onScrollToBottom?.(isNearVirtualBottom(container.scrollHeight, container.scrollTop, container.clientHeight));
+        onScrollToBottom?.(wasAtBottomRef.current);
         onScrollChange?.();
     };
 
