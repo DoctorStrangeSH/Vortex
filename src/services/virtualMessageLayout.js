@@ -58,3 +58,12 @@ export function getMessageNavigationTop(messages, offsets, messageId, viewportHe
     if (align === 'end') top -= height - rowHeight;
     return Math.max(0, Math.min(Math.max(0, totalHeight - height), top));
 }
+
+// When older messages are prepended, preserve the previously visible content.
+// The former first row is the anchor; its new top equals the inserted height.
+export function getPrependedScrollOffset(previousFirstId, messages, offsets) {
+    if (!previousFirstId || !messages.length || messages[0].id === previousFirstId ||
+        offsets.length !== messages.length + 1) return 0;
+    const index = messages.findIndex(message => message.id === previousFirstId);
+    return index > 0 && Number.isFinite(offsets[index]) ? offsets[index] : 0;
+}

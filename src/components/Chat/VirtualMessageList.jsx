@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef, useMemo, useLayoutEffect } from 'preact/hooks';
-import { buildMessageOffsets, getVisibleMessageRange, indexMessagesById, shouldUpdateMeasuredHeight, scrollAnchorAdjustment, getMessageNavigationTop } from '../../services/virtualMessageLayout.js';
+import { buildMessageOffsets, getVisibleMessageRange, indexMessagesById, shouldUpdateMeasuredHeight, scrollAnchorAdjustment, getMessageNavigationTop, getPrependedScrollOffset } from '../../services/virtualMessageLayout.js';
 
 // Prepared for integration after scroll-anchor, unread and pinned navigation checks.
-export function VirtualMessageList({ messages, renderMessage, loading, onScrollToBottom, navigationTarget = null }) {
+export function VirtualMessageList({ messages, renderMessage, loading, onScrollToBottom, onMissingTarget, navigationTarget = null }) {
     const containerRef = useRef(null);
     const handledNavigationRef = useRef(null);
+    const missingNavigationRef = useRef(null);
+    const previousFirstMessageRef = useRef(null);
     const measuredHeights = useRef(new Map());
     const [revision, setRevision] = useState(0);
     const [viewport, setViewport] = useState({ top: 0, height: 600 });
@@ -34,16 +36,35 @@ export function VirtualMessageList({ messages, renderMessage, loading, onScrollT
 
     useLayoutEffect(() => {
         const container = containerRef.current;
+        if (!container) return;
+        const adjustment = getPrependedScrollOffset(previousFirstMessageRef.current, messages, offsets);
+        previousFirstMessageRef.current = messages[0]?.id ?? null;
+        if (!adjustment) return;
+        container.scrollTop += adjustment;
+        setViewport({ top: container.scrollTop, height: container.clientHeight });
+    }, [messages, offsets]);
+
+    useLayoutEffect(() => {
+        const container = containerRef.current;
         if (!container || !navigationTarget?.id) return;
         const requestKey = JSON.stringify([navigationTarget.id, navigationTarget.requestId ?? 0]);
         if (handledNavigationRef.current === requestKey) return;
         const top = getMessageNavigationTop(messages, offsets, navigationTarget.id, container.clientHeight, navigationTarget.align);
         // Keep the request pending if older history has not been loaded yet.
-        if (top === null) return;
+        if (top === null) {
+            // A newly prepended page changes the first ID, allowing one more request.
+            const missingKey = JSON.stringify([requestKey, messages[0]?.id ?? null]);
+            if (missingNavigationRef.current !== missingKey) {
+                missingNavigationRef.current = missingKey;
+                onMissingTarget?.(navigationTarget.id);
+            }
+            return;
+        }
+        missingNavigationRef.current = null;
         container.scrollTop = top;
         setViewport({ top, height: container.clientHeight });
         handledNavigationRef.current = requestKey;
-    }, [messages, offsets, navigationTarget?.id, navigationTarget?.requestId, navigationTarget?.align]);
+    }, [messages, offsets, navigationTarget?.id, navigationTarget?.requestId, navigationTarget?.align, onMissingTarget]);
 
     useLayoutEffect(() => {
         if (typeof ResizeObserver === 'undefined') return;

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildMessageOffsets, getVisibleMessageRange, indexMessagesById, shouldUpdateMeasuredHeight, scrollAnchorAdjustment, getMessageNavigationTop } from '../src/services/virtualMessageLayout.js';
+import { buildMessageOffsets, getVisibleMessageRange, indexMessagesById, shouldUpdateMeasuredHeight, scrollAnchorAdjustment, getMessageNavigationTop, getPrependedScrollOffset } from '../src/services/virtualMessageLayout.js';
 
 test('uses measured heights and falls back to estimates', () => {
     const messages = [{ id: 'a' }, { id: 'b' }, { id: 'c' }];
@@ -58,4 +58,14 @@ test('navigation targets unread and pinned messages with safe viewport clamping'
     assert.equal(getMessageNavigationTop(messages, offsets, 'z', 240, 'end'), 360);
     assert.equal(getMessageNavigationTop(messages, offsets, 'a', 240, 'center'), 0);
     assert.equal(getMessageNavigationTop(messages, offsets, 'missing', 240), null);
+});
+
+test('prepending older history preserves the visible scroll anchor', () => {
+    const messages = [{ id: 'old-1' }, { id: 'old-2' }, { id: 'first' }, { id: 'last' }];
+    const offsets = [0, 60, 160, 260, 360];
+    assert.equal(getPrependedScrollOffset('first', messages, offsets), 160);
+    assert.equal(getPrependedScrollOffset('old-1', messages, offsets), 0);
+    assert.equal(getPrependedScrollOffset('missing', messages, offsets), 0);
+    assert.equal(getPrependedScrollOffset(null, messages, offsets), 0);
+    assert.equal(getPrependedScrollOffset('first', messages, [0, 10]), 0);
 });
