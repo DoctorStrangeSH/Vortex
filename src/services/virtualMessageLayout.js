@@ -79,3 +79,9 @@ export function getPrependedScrollOffset(previousFirstId, messages, offsets, pre
     const delta = offsets[index] - previousAnchorTop;
     return index > 0 && Number.isFinite(delta) && delta > 0 ? delta : 0;
 }
+
+// The first date divider may keep the same ID when more messages from that
+// calendar day arrive. Use the oldest actual message to detect new pages.
+export function getOldestMessageAnchorId(rows) {
+    return rows.find(row => row.type === 'message')?.id ?? rows[0]?.id ?? null;
+}

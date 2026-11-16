@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useLayoutEffect } from 'preact/hooks';
-import { buildMessageOffsets, getVisibleMessageRange, indexMessagesById, shouldUpdateMeasuredHeight, scrollAnchorAdjustment, getMessageNavigationTop, getPrependedScrollOffset, estimatedMessageHeight, isNearVirtualBottom } from '../../services/virtualMessageLayout.js';
+import { buildMessageOffsets, getVisibleMessageRange, indexMessagesById, shouldUpdateMeasuredHeight, scrollAnchorAdjustment, getMessageNavigationTop, getPrependedScrollOffset, estimatedMessageHeight, isNearVirtualBottom, getOldestMessageAnchorId } from '../../services/virtualMessageLayout.js';
 
 // Can share the main chat's scroll container and callbacks during opt-in rollout.
 export function VirtualMessageList({ messages, renderMessage, loading, onScrollToBottom, onScrollChange, onVisibleRowsChange, onMissingTarget, navigationTarget = null, externalContainerRef, className, style }) {
@@ -48,7 +48,8 @@ export function VirtualMessageList({ messages, renderMessage, loading, onScrollT
         if (!container) return;
         const previous = previousAnchorRef.current;
         const adjustment = getPrependedScrollOffset(previous.id, messages, offsets, previous.top);
-        const anchorIndex = messages.findIndex(row => row.type === 'message');
+        const oldestId = getOldestMessageAnchorId(messages);
+        const anchorIndex = oldestId === null ? -1 : messages.findIndex(row => row.id === oldestId);
         const index = anchorIndex < 0 ? 0 : anchorIndex;
         previousAnchorRef.current = { id: messages[index]?.id ?? null, top: offsets[index] ?? 0 };
         if (!adjustment) return;
@@ -66,7 +67,7 @@ export function VirtualMessageList({ messages, renderMessage, loading, onScrollT
         // Keep the request pending if older history has not been loaded yet.
         if (top === null) {
             // A newly prepended page changes the first ID, allowing one more request.
-            const missingKey = JSON.stringify([requestKey, messages[0]?.id ?? null]);
+            const missingKey = JSON.stringify([requestKey, getOldestMessageAnchorId(messages)]);
             if (missingNavigationRef.current !== missingKey) {
                 missingNavigationRef.current = missingKey;
                 onMissingTarget?.(navigationTarget.id);

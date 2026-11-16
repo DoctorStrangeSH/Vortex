@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildMessageOffsets, getVisibleMessageRange, indexMessagesById, shouldUpdateMeasuredHeight, scrollAnchorAdjustment, getMessageNavigationTop, getPrependedScrollOffset, estimatedMessageHeight, isNearVirtualBottom } from '../src/services/virtualMessageLayout.js';
+import { buildMessageOffsets, getVisibleMessageRange, indexMessagesById, shouldUpdateMeasuredHeight, scrollAnchorAdjustment, getMessageNavigationTop, getPrependedScrollOffset, estimatedMessageHeight, isNearVirtualBottom, getOldestMessageAnchorId } from '../src/services/virtualMessageLayout.js';
 
 test('uses measured heights and falls back to estimates', () => {
     const messages = [{ id: 'a' }, { id: 'b' }, { id: 'c' }];
@@ -94,4 +94,14 @@ test('navigating deep history mounts the target in the new visible range', () =>
     assert.ok(range.start <= 950);
     assert.ok(range.end > 950);
     assert.ok(range.end - range.start < 40);
+});
+
+test('older-page navigation detects a new first message even when date divider is unchanged', () => {
+    const previous = [{ id: 'date:today:0', type: 'date' }, { id: 'm20', type: 'message' }, { id: 'm21', type: 'message' }];
+    const prepended = [{ id: 'date:today:0', type: 'date' }, { id: 'm10', type: 'message' }, ...previous.slice(1)];
+    assert.equal(previous[0].id, prepended[0].id);
+    assert.equal(getOldestMessageAnchorId(previous), 'm20');
+    assert.equal(getOldestMessageAnchorId(prepended), 'm10');
+    assert.equal(getOldestMessageAnchorId([{ id: 'only-divider', type: 'date' }]), 'only-divider');
+    assert.equal(getOldestMessageAnchorId([]), null);
 });
