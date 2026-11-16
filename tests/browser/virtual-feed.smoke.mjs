@@ -93,6 +93,18 @@ try {
     await page.waitForFunction(() => window.virtualFeedQA.metrics().chatId === 'first');
     await page.evaluate(() => window.virtualFeedQA.navigate('message-600'));
     await page.waitForSelector('[data-qa-id="message-600"]');
+
+    // The unread marker is attached to a virtualized row, including after an older page is inserted.
+    await page.evaluate(() => {
+        window.virtualFeedQA.markUnread('message-800');
+        window.virtualFeedQA.navigate('message-800');
+    });
+    await page.waitForSelector('[data-qa-id="message-800"] [data-unread-divider]');
+    await page.evaluate(() => window.virtualFeedQA.prepend());
+    await page.waitForSelector('[data-qa-id="message-800"] [data-unread-divider]');
+    const unreadMetrics = await page.evaluate(() => window.virtualFeedQA.metrics());
+    assert.ok(unreadMetrics.mountedRows < 50, 'unread navigation with older history must remain virtualized');
+    assert.ok(await page.locator('[data-qa-id="message-800"] [data-unread-divider]').count(), 'unread marker must remain attached to its message after history expands');
     assert.deepEqual(errors, [], 'the browser should have no uncaught page errors');
     console.log('Virtual browser smoke test passed:', { desktop: metrics, mobile: mobileMetrics });
 } finally {

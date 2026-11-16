@@ -9,6 +9,7 @@ function VirtualFeedHarness() {
     const [messages, setMessages] = useState(initialMessages);
     const [navigationTarget, setNavigationTarget] = useState(null);
     const [expanded, setExpanded] = useState(false);
+    const [unreadId, setUnreadId] = useState(null);
     const [visibleChanges, setVisibleChanges] = useState(0);
     const containerRef = useRef(null);
     const requestRef = useRef(0);
@@ -17,10 +18,12 @@ function VirtualFeedHarness() {
         navigate: id => setNavigationTarget({ id, align: 'center', requestId: ++requestRef.current }),
         prepend: () => setMessages(current => [...Array.from({ length: 40 }, (_, index) => ({ id: `older-${index}`, type: 'message' })), ...current]),
         append: () => setMessages(current => [...current, { id: `new-${current.length}`, type: 'message' }]),
+        markUnread: id => setUnreadId(id),
         switchChat: () => {
             setChatId(current => current === 'first' ? 'second' : 'first');
             setMessages(current => current[0]?.id?.startsWith('other-') ? initialMessages : Array.from({ length: 80 }, (_, index) => ({ id: `other-${index}`, type: 'message' })));
             setNavigationTarget(null);
+            setUnreadId(null);
         },
         expandLast: () => setExpanded(true),
         scrollBottom: () => { containerRef.current.scrollTop = containerRef.current.scrollHeight; },
@@ -39,7 +42,10 @@ function VirtualFeedHarness() {
         <VirtualMessageList key={chatId} messages={messages} navigationTarget={navigationTarget}
             externalContainerRef={containerRef}
             onVisibleRowsChange={() => setVisibleChanges(count => count + 1)}
-            renderMessage={row => <div data-qa-id={row.id} style={{ boxSizing: 'border-box', height: row.id === 'message-1499' && expanded ? '420px' : '82px', borderBottom: '1px solid #ccc' }}>{row.id}</div>} />
+            renderMessage={row => <div data-qa-id={row.id} style={{ boxSizing: 'border-box', minHeight: row.id === 'message-1499' && expanded ? '420px' : '82px', borderBottom: '1px solid #ccc' }}>
+                {row.id === unreadId && <div data-unread-divider role="separator">Непрочитанные сообщения</div>}
+                {row.id}
+            </div>} />
     </div>;
 }
 

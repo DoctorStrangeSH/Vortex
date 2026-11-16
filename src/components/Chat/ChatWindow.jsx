@@ -834,7 +834,7 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
         const msg = item.data;
         return (
             <div>
-                {(item.unreadDivider || msg.id === firstUnreadMessageId) && <div data-unread-divider style={s.unreadDivider} role="separator">Непрочитанные сообщения</div>}
+                {(item.unreadDivider || msg.id === firstUnreadMessageId) && <div data-unread-divider style={s.unreadDivider} role="separator" aria-label="Начало непрочитанных сообщений">Непрочитанные сообщения</div>}
                 <div class="vortex-message" data-msg-id={msg.id}
                      onClick={() => handleMessageSelectionClick(msg.id)}
                      onTouchStart={event => startLongPress(event, msg.id)}
@@ -923,7 +923,7 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
                     const msg = item.data;
                     return (
                         <div key={msg.id}>
-                        {msg.id === firstUnreadMessageId && <div data-unread-divider style={s.unreadDivider} role="separator">Непрочитанные сообщения</div>}
+                        {msg.id === firstUnreadMessageId && <div data-unread-divider style={s.unreadDivider} role="separator" aria-label="Начало непрочитанных сообщений">Непрочитанные сообщения</div>}
                         <div class="vortex-message" data-msg-id={msg.id}
                              onClick={() => handleMessageSelectionClick(msg.id)}
                              onTouchStart={(event) => startLongPress(event, msg.id)}
