@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { getNewIncomingIds, getUnreadIncomingIds, getFirstUnreadIncomingId, shouldPlayIncomingSound, shouldMarkMessagesRead, isMessageVisible } from '../src/services/messageActivity.js';
+import { getNewIncomingIds, getUnreadIncomingIds, getFirstUnreadIncomingId, shouldPlayIncomingSound, shouldMarkMessagesRead, isMessageVisible, rememberRecentMessageIds } from '../src/services/messageActivity.js';
 
 test('new incoming messages notify once, not on edits or receipt changes', () => {
     const previous = new Set(['m1', 'm2']);
@@ -36,6 +36,25 @@ test('new page with no overlapping IDs still detects incoming messages', () => {
         { id: 'fresh-1', senderId: 'friend', readBy: [] },
         { id: 'fresh-2', senderId: 'me', readBy: [] }
     ], 'me'), ['fresh-1']);
+});
+
+test('a returning message does not trigger another notification after disappearing from the recent window', () => {
+    let seen = rememberRecentMessageIds(null, [{ id: 'old', senderId: 'friend' }, { id: 'recent', senderId: 'friend' }]);
+    seen = rememberRecentMessageIds(seen, [{ id: 'recent', senderId: 'friend' }, { id: 'latest', senderId: 'friend' }]);
+    assert.deepEqual(getNewIncomingIds(seen, [
+        { id: 'recent', senderId: 'friend' },
+        { id: 'old', senderId: 'friend' },
+        { id: 'latest', senderId: 'friend' },
+        { id: 'brand-new', senderId: 'friend' }
+    ], 'me'), ['brand-new']);
+});
+
+test('remembered notification IDs stay bounded and keep recently active IDs', () => {
+    const previous = new Set(['first', 'second', 'third']);
+    const result = rememberRecentMessageIds(previous, [{ id: 'first' }, { id: 'fourth' }], 3);
+    assert.deepEqual([...result], ['third', 'first', 'fourth']);
+    assert.deepEqual([...previous], ['first', 'second', 'third'], 'the earlier snapshot is not mutated');
+    assert.deepEqual([...rememberRecentMessageIds(result, [{ id: 'fifth' }], 3)], ['first', 'fourth', 'fifth']);
 });
 
 test('read receipts include only unread incoming messages not already attempted', () => {

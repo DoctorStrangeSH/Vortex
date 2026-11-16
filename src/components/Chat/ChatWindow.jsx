@@ -33,7 +33,7 @@ import { StatusPicker } from '../Status/StatusPicker';
 import { mergeMessagePages } from '../../services/messagePagination.js';
 import { isNearChatBottom, getInitialChatScrollTarget, getMessageScrollTop, getBottomScrollTop, getCenteredMessageScrollTop } from '../../services/chatScroll.js';
 import { shouldLoadOlderMessages } from '../../services/olderHistoryTrigger.js';
-import { getNewIncomingIds, getUnreadIncomingIds, getFirstUnreadIncomingId, shouldPlayIncomingSound, shouldMarkMessagesRead, isMessageVisible } from '../../services/messageActivity.js';
+import { getNewIncomingIds, getUnreadIncomingIds, getFirstUnreadIncomingId, shouldPlayIncomingSound, shouldMarkMessagesRead, isMessageVisible, rememberRecentMessageIds } from '../../services/messageActivity.js';
 import { createFrameScheduler } from '../../services/frameScheduler.js';
 import { shouldCancelLongPress, shouldSuppressMessageClick } from '../../services/messageLongPress.js';
 import { groupChatMessages } from '../../services/chatGrouping.js';
@@ -240,7 +240,6 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
                 unreadBoundaryCapturedRef.current = true;
                 setFirstUnreadMessageId(getFirstUnreadIncomingId(msgs, currentUserId));
             }
-            const ids = new Set(msgs.map(message => message.id));
             if (seenMessageIdsRef.current) {
                 const newIncoming = getNewIncomingIds(seenMessageIdsRef.current, msgs, currentUserId);
                 if (newIncoming.length && !shouldAutoScroll.current) {
@@ -252,7 +251,7 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
                     soundService.playMessageSound();
                 }
             }
-            seenMessageIdsRef.current = ids;
+            seenMessageIdsRef.current = rememberRecentMessageIds(seenMessageIdsRef.current, msgs);
             latestMessagesRef.current = msgs;
             if (!olderMessagesRef.current.length) {
                 oldestCursorRef.current = cursor;

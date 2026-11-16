@@ -12,6 +12,21 @@ export function getNewIncomingIds(previousIds, messages, ownUid) {
     ).map(message => message.id);
 }
 
+// Keep a bounded history across subscription snapshots. A message temporarily
+// dropped from Firestore's recent window must not become "new" when it returns.
+export function rememberRecentMessageIds(previousIds, messages, limit = 2000) {
+    const known = new Set(previousIds ?? []);
+    const boundedLimit = Number.isInteger(limit) && limit > 0 ? limit : 2000;
+    for (const message of messages) {
+        if (!message?.id) continue;
+        // Refresh the newest entries so they survive pruning older IDs.
+        known.delete(message.id);
+        known.add(message.id);
+    }
+    while (known.size > boundedLimit) known.delete(known.values().next().value);
+    return known;
+}
+
 export function getUnreadIncomingIds(messages, ownUid, attemptedIds) {
     return messages.filter(message => message.senderId !== ownUid && !message.readBy?.includes(ownUid) && !attemptedIds.has(message.id)).map(message => message.id);
 }
