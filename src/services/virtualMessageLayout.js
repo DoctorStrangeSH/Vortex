@@ -49,6 +49,13 @@ export function scrollAnchorAdjustment(rowBottom, scrollTop, oldHeight, newHeigh
     return rowBottom <= scrollTop ? newHeight - oldHeight : 0;
 }
 
+// A late-loading image should keep the latest message visible if the reader
+// was already near the bottom; scrolling through history must not be overridden.
+export function isNearVirtualBottom(scrollHeight, scrollTop, viewportHeight, threshold = 100) {
+    if (![scrollHeight, scrollTop, viewportHeight].every(Number.isFinite)) return false;
+    return scrollHeight - scrollTop - viewportHeight <= threshold;
+}
+
 export function getMessageNavigationTop(messages, offsets, messageId, viewportHeight, align = 'start') {
     if (!messageId || offsets.length !== messages.length + 1) return null;
     const index = messages.findIndex(message => message.id === messageId);

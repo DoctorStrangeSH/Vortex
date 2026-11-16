@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useLayoutEffect } from 'preact/hooks';
-import { buildMessageOffsets, getVisibleMessageRange, indexMessagesById, shouldUpdateMeasuredHeight, scrollAnchorAdjustment, getMessageNavigationTop, getPrependedScrollOffset, estimatedMessageHeight } from '../../services/virtualMessageLayout.js';
+import { buildMessageOffsets, getVisibleMessageRange, indexMessagesById, shouldUpdateMeasuredHeight, scrollAnchorAdjustment, getMessageNavigationTop, getPrependedScrollOffset, estimatedMessageHeight, isNearVirtualBottom } from '../../services/virtualMessageLayout.js';
 
 // Can share the main chat's scroll container and callbacks during opt-in rollout.
 export function VirtualMessageList({ messages, renderMessage, loading, onScrollToBottom, onScrollChange, onMissingTarget, navigationTarget = null, externalContainerRef, className, style }) {
@@ -8,6 +8,7 @@ export function VirtualMessageList({ messages, renderMessage, loading, onScrollT
     const missingNavigationRef = useRef(null);
     const previousAnchorRef = useRef({ id: null, top: 0 });
     const measuredHeights = useRef(new Map());
+    const pendingBottomStickRef = useRef(false);
     const [revision, setRevision] = useState(0);
     const [viewport, setViewport] = useState({ top: 0, height: 600 });
     const offsets = useMemo(() => buildMessageOffsets(messages, measuredHeights.current), [messages, revision]);
@@ -50,6 +51,7 @@ export function VirtualMessageList({ messages, renderMessage, loading, onScrollT
     useLayoutEffect(() => {
         const container = containerRef.current;
         if (!container || !navigationTarget?.id) return;
+        if (container.clientHeight <= 0) return;
         const requestKey = JSON.stringify([navigationTarget.id, navigationTarget.requestId ?? 0]);
         if (handledNavigationRef.current === requestKey) return;
         const top = getMessageNavigationTop(messages, offsets, navigationTarget.id, container.clientHeight, navigationTarget.align);
@@ -67,7 +69,15 @@ export function VirtualMessageList({ messages, renderMessage, loading, onScrollT
         container.scrollTop = top;
         setViewport({ top, height: container.clientHeight });
         handledNavigationRef.current = requestKey;
-    }, [messages, offsets, navigationTarget?.id, navigationTarget?.requestId, navigationTarget?.align, onMissingTarget]);
+    }, [messages, offsets, viewport.height, navigationTarget?.id, navigationTarget?.requestId, navigationTarget?.align, onMissingTarget]);
+
+    useLayoutEffect(() => {
+        const container = containerRef.current;
+        if (!container || !pendingBottomStickRef.current) return;
+        pendingBottomStickRef.current = false;
+        container.scrollTop = Math.max(0, container.scrollHeight - container.clientHeight);
+        setViewport({ top: container.scrollTop, height: container.clientHeight });
+    }, [revision]);
 
     useLayoutEffect(() => {
         if (typeof ResizeObserver === 'undefined') return;
@@ -77,6 +87,7 @@ export function VirtualMessageList({ messages, renderMessage, loading, onScrollT
         const observer = new ResizeObserver(entries => {
             let changed = false;
             let adjustment = 0;
+            const wasAtBottom = isNearVirtualBottom(container.scrollHeight, container.scrollTop, container.clientHeight);
             for (const entry of entries) {
                 const id = entry.target.dataset.messageId;
                 const index = indexById.get(id);
@@ -89,7 +100,8 @@ export function VirtualMessageList({ messages, renderMessage, loading, onScrollT
                 adjustment += scrollAnchorAdjustment(offsets[index + 1], container.scrollTop, previous, height);
             }
             if (changed) {
-                if (adjustment) container.scrollTop += adjustment;
+                if (wasAtBottom) pendingBottomStickRef.current = true;
+                else if (adjustment) container.scrollTop += adjustment;
                 setRevision(value => value + 1);
             }
         });
@@ -101,12 +113,12 @@ export function VirtualMessageList({ messages, renderMessage, loading, onScrollT
         const container = containerRef.current;
         if (!container) return;
         setViewport({ top: container.scrollTop, height: container.clientHeight });
-        onScrollToBottom?.(container.scrollHeight - container.scrollTop - container.clientHeight < 100);
+        onScrollToBottom?.(isNearVirtualBottom(container.scrollHeight, container.scrollTop, container.clientHeight));
         onScrollChange?.();
     };
 
     return (
-        <div class={className} ref={node => { containerRef.current = node; if (externalContainerRef) externalContainerRef.current = node; }} onScroll={onScroll} style={{ flex: 1, overflowY: 'auto', position: 'relative', padding: '0.6rem 0.8rem', ...style }}>
+        <div class={className} ref={node => { containerRef.current = node; if (externalContainerRef) externalContainerRef.current = node; }} onScroll={onScroll} onWheel={() => { pendingBottomStickRef.current = false; }} onTouchStart={() => { pendingBottomStickRef.current = false; }} onKeyDown={() => { pendingBottomStickRef.current = false; }} style={{ flex: 1, overflowY: 'auto', position: 'relative', padding: '0.6rem 0.8rem', ...style }}>
             <div style={{ height: offsets[offsets.length - 1], position: 'relative' }}>
                 {messages.slice(range.start, range.end).map((message, index) => {
                     const actualIndex = range.start + index;

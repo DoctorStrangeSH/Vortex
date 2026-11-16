@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildMessageOffsets, getVisibleMessageRange, indexMessagesById, shouldUpdateMeasuredHeight, scrollAnchorAdjustment, getMessageNavigationTop, getPrependedScrollOffset, estimatedMessageHeight } from '../src/services/virtualMessageLayout.js';
+import { buildMessageOffsets, getVisibleMessageRange, indexMessagesById, shouldUpdateMeasuredHeight, scrollAnchorAdjustment, getMessageNavigationTop, getPrependedScrollOffset, estimatedMessageHeight, isNearVirtualBottom } from '../src/services/virtualMessageLayout.js';
 
 test('uses measured heights and falls back to estimates', () => {
     const messages = [{ id: 'a' }, { id: 'b' }, { id: 'c' }];
@@ -77,4 +77,11 @@ test('mixed date and message rows use distinct height estimates', () => {
     assert.equal(estimatedMessageHeight(rows[1]), 72);
     assert.deepEqual(buildMessageOffsets(rows, new Map()), [0, 36, 108]);
     assert.deepEqual(buildMessageOffsets(rows, new Map([['date:today', 44]])), [0, 44, 116]);
+});
+
+test('late media measurements follow the bottom only for readers already near it', () => {
+    assert.equal(isNearVirtualBottom(2000, 1400, 600), true);
+    assert.equal(isNearVirtualBottom(2000, 1300, 600), true);
+    assert.equal(isNearVirtualBottom(2000, 1200, 600), false);
+    assert.equal(isNearVirtualBottom(2000, NaN, 600), false);
 });
