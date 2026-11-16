@@ -40,6 +40,10 @@ try {
 
     await page.evaluate(() => window.virtualFeedQA.scrollBottom());
     await page.waitForSelector('[data-qa-id="message-1499"]');
+    await page.waitForFunction(() => {
+        const { scrollTop, scrollHeight, clientHeight } = window.virtualFeedQA.metrics();
+        return scrollHeight - scrollTop - clientHeight < 110;
+    });
     await page.evaluate(() => window.virtualFeedQA.expandLast());
     try {
         await page.waitForFunction(() => {

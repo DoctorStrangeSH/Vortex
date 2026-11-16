@@ -100,7 +100,11 @@ export function VirtualMessageList({ messages, renderMessage, loading, onScrollT
             let adjustment = 0;
             // Read the last confirmed scroll position: the browser may already
             // have enlarged scrollHeight before notifying ResizeObserver.
-            const wasAtBottom = wasAtBottomRef.current;
+            // The previous virtual offsets are not affected by an overflowing
+            // image yet, unlike the browser's already updated scrollHeight.
+            const wasAtBottom = wasAtBottomRef.current || isNearVirtualBottom(
+                offsets[offsets.length - 1], container.scrollTop, container.clientHeight
+            );
             for (const entry of entries) {
                 const id = entry.target.dataset.messageId;
                 const index = indexById.get(id);
