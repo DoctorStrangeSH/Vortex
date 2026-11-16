@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildMessageOffsets, getVisibleMessageRange, indexMessagesById, shouldUpdateMeasuredHeight, scrollAnchorAdjustment, getMessageNavigationTop, getPrependedScrollOffset } from '../src/services/virtualMessageLayout.js';
+import { buildMessageOffsets, getVisibleMessageRange, indexMessagesById, shouldUpdateMeasuredHeight, scrollAnchorAdjustment, getMessageNavigationTop, getPrependedScrollOffset, estimatedMessageHeight } from '../src/services/virtualMessageLayout.js';
 
 test('uses measured heights and falls back to estimates', () => {
     const messages = [{ id: 'a' }, { id: 'b' }, { id: 'c' }];
@@ -68,4 +68,12 @@ test('prepending older history preserves the visible scroll anchor', () => {
     assert.equal(getPrependedScrollOffset('missing', messages, offsets), 0);
     assert.equal(getPrependedScrollOffset(null, messages, offsets), 0);
     assert.equal(getPrependedScrollOffset('first', messages, [0, 10]), 0);
+});
+
+test('mixed date and message rows use distinct height estimates', () => {
+    const rows = [{ id: 'date:today', type: 'date' }, { id: 'msg-1', type: 'message' }];
+    assert.equal(estimatedMessageHeight(rows[0]), 36);
+    assert.equal(estimatedMessageHeight(rows[1]), 72);
+    assert.deepEqual(buildMessageOffsets(rows, new Map()), [0, 36, 108]);
+    assert.deepEqual(buildMessageOffsets(rows, new Map([['date:today', 44]])), [0, 44, 116]);
 });

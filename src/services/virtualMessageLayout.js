@@ -1,9 +1,13 @@
 // Estimates are replaced with measured heights as message rows enter the viewport.
-export function buildMessageOffsets(messages, measuredHeights, estimatedHeight = 72) {
+export function estimatedMessageHeight(message) {
+    return message?.type === 'date' ? 36 : 72;
+}
+
+export function buildMessageOffsets(messages, measuredHeights, estimatedHeight = estimatedMessageHeight) {
     const offsets = [0];
     for (const message of messages) {
         const height = measuredHeights.get(message.id);
-        offsets.push(offsets[offsets.length - 1] + (Number.isFinite(height) && height > 0 ? height : estimatedHeight));
+        offsets.push(offsets[offsets.length - 1] + (Number.isFinite(height) && height > 0 ? height : (typeof estimatedHeight === 'function' ? estimatedHeight(message) : estimatedHeight)));
     }
     return offsets;
 }
