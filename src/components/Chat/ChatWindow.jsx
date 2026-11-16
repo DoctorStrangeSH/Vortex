@@ -907,7 +907,7 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
                 {hasOlderMessages && <button type="button" disabled={olderMessagesLoading} onClick={loadOlderMessages} style={{ display: 'block', margin: '5px auto', padding: '7px 14px', borderRadius: '12px', cursor: 'pointer' }}>
                     {olderMessagesLoading ? 'Загружаем историю…' : '↑ Загрузить ранние сообщения'}
                 </button>}
-                <VirtualMessageList className="vortex-chat-feed" style={{ ...s.messagesContainer, background: wallpaper || 'var(--bg-primary)' }}
+                <VirtualMessageList key={chat.id} className="vortex-chat-feed" style={{ ...s.messagesContainer, background: wallpaper || 'var(--bg-primary)' }}
                     externalContainerRef={messagesContainerRef} messages={virtualRows} renderMessage={renderChatRow}
                     navigationTarget={virtualNavigation?.chatId === chat.id ? virtualNavigation : null} onScrollChange={handleScroll}
                     onVisibleRowsChange={() => markVisibleAsReadRef.current?.()}

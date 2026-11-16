@@ -75,6 +75,24 @@ try {
     await page.evaluate(() => window.virtualFeedQA.navigate('message-1100'));
     await page.waitForSelector('[data-qa-id="message-1100"]');
     assert.ok(await page.locator('[data-qa-id="message-1100"]').count(), 'a second navigation should replace an older request');
+
+    // New incoming messages must not drag the user away from old history.
+    const beforeAppend = await page.evaluate(() => window.virtualFeedQA.metrics().scrollTop);
+    await page.evaluate(() => window.virtualFeedQA.append());
+    await page.waitForFunction(previous => Math.abs(window.virtualFeedQA.metrics().scrollTop - previous) < 100, beforeAppend);
+    assert.ok(await page.locator('[data-qa-id="message-1100"]').count(), 'incoming message should not hide a historical target');
+
+    // Reusing one ChatWindow with a different chat id must discard stale offsets.
+    await page.evaluate(() => window.virtualFeedQA.switchChat());
+    await page.waitForFunction(() => window.virtualFeedQA.metrics().chatId === 'second' && window.virtualFeedQA.metrics().mountedRows > 0);
+    await page.waitForFunction(() => window.virtualFeedQA.metrics().firstMountedId === 'other-0');
+    assert.ok((await page.evaluate(() => window.virtualFeedQA.metrics().scrollTop)) < 100, 'new chat must start at its own scroll position');
+    assert.equal(await page.locator('[data-qa-id="message-1100"]').count(), 0, 'old chat rows must not remain mounted');
+
+    await page.evaluate(() => window.virtualFeedQA.switchChat());
+    await page.waitForFunction(() => window.virtualFeedQA.metrics().chatId === 'first');
+    await page.evaluate(() => window.virtualFeedQA.navigate('message-600'));
+    await page.waitForSelector('[data-qa-id="message-600"]');
     assert.deepEqual(errors, [], 'the browser should have no uncaught page errors');
     console.log('Virtual browser smoke test passed:', { desktop: metrics, mobile: mobileMetrics });
 } finally {
