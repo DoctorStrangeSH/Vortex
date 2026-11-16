@@ -85,3 +85,13 @@ test('late media measurements follow the bottom only for readers already near it
     assert.equal(isNearVirtualBottom(2000, 1200, 600), false);
     assert.equal(isNearVirtualBottom(2000, NaN, 600), false);
 });
+
+test('navigating deep history mounts the target in the new visible range', () => {
+    const messages = Array.from({ length: 1200 }, (_, index) => ({ id: `message-${index}` }));
+    const offsets = buildMessageOffsets(messages, new Map());
+    const top = getMessageNavigationTop(messages, offsets, 'message-950', 600, 'center');
+    const range = getVisibleMessageRange(offsets, top, 600);
+    assert.ok(range.start <= 950);
+    assert.ok(range.end > 950);
+    assert.ok(range.end - range.start < 40);
+});

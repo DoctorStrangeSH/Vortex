@@ -2,17 +2,25 @@ import { useState, useEffect, useRef, useMemo, useLayoutEffect } from 'preact/ho
 import { buildMessageOffsets, getVisibleMessageRange, indexMessagesById, shouldUpdateMeasuredHeight, scrollAnchorAdjustment, getMessageNavigationTop, getPrependedScrollOffset, estimatedMessageHeight, isNearVirtualBottom } from '../../services/virtualMessageLayout.js';
 
 // Can share the main chat's scroll container and callbacks during opt-in rollout.
-export function VirtualMessageList({ messages, renderMessage, loading, onScrollToBottom, onScrollChange, onMissingTarget, navigationTarget = null, externalContainerRef, className, style }) {
+export function VirtualMessageList({ messages, renderMessage, loading, onScrollToBottom, onScrollChange, onVisibleRowsChange, onMissingTarget, navigationTarget = null, externalContainerRef, className, style }) {
     const containerRef = useRef(null);
     const handledNavigationRef = useRef(null);
     const missingNavigationRef = useRef(null);
     const previousAnchorRef = useRef({ id: null, top: 0 });
     const measuredHeights = useRef(new Map());
     const pendingBottomStickRef = useRef(false);
+    const onVisibleRowsChangeRef = useRef(onVisibleRowsChange);
+    onVisibleRowsChangeRef.current = onVisibleRowsChange;
     const [revision, setRevision] = useState(0);
     const [viewport, setViewport] = useState({ top: 0, height: 600 });
     const offsets = useMemo(() => buildMessageOffsets(messages, measuredHeights.current), [messages, revision]);
     const range = getVisibleMessageRange(offsets, viewport.top, viewport.height);
+
+    // Read receipts rely on actual message DOM nodes, which are mounted only
+    // after the virtual range changes. Notify after Preact commits those rows.
+    useLayoutEffect(() => {
+        onVisibleRowsChangeRef.current?.();
+    }, [range.start, range.end, revision, messages]);
 
     useEffect(() => {
         const ids = new Set(messages.map(message => message.id));
