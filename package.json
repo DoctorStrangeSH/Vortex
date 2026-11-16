@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "test": "node --test",
+    "test:browser": "node tests/browser/virtual-feed.smoke.mjs",
     "test:rules": "firebase emulators:exec --project demo-vortex --only firestore,storage \"node --test tests/firebaseRules.test.js\"",
     "preview": "vite preview",
     "deploy": "vite build && gh-pages -d dist"
@@ -21,6 +22,7 @@
     "@preact/preset-vite": "^2.7.0",
     "firebase-tools": "^15.36.0",
     "gh-pages": "^6.0.0",
+    "playwright-core": "^1.56.1",
     "terser": "^5.49.0",
     "vite": "^5.0.0"
   }
