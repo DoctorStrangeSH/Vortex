@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef, useMemo, useLayoutEffect } from 'preact/hooks';
 import { buildMessageOffsets, getVisibleMessageRange, indexMessagesById, shouldUpdateMeasuredHeight, scrollAnchorAdjustment, getMessageNavigationTop, getPrependedScrollOffset, estimatedMessageHeight } from '../../services/virtualMessageLayout.js';
 
-// Prepared for integration after scroll-anchor, unread and pinned navigation checks.
-export function VirtualMessageList({ messages, renderMessage, loading, onScrollToBottom, onMissingTarget, navigationTarget = null }) {
+// Can share the main chat's scroll container and callbacks during opt-in rollout.
+export function VirtualMessageList({ messages, renderMessage, loading, onScrollToBottom, onScrollChange, onMissingTarget, navigationTarget = null, externalContainerRef, className, style }) {
     const containerRef = useRef(null);
     const handledNavigationRef = useRef(null);
     const missingNavigationRef = useRef(null);
-    const previousFirstMessageRef = useRef(null);
+    const previousAnchorRef = useRef({ id: null, top: 0 });
     const measuredHeights = useRef(new Map());
     const [revision, setRevision] = useState(0);
     const [viewport, setViewport] = useState({ top: 0, height: 600 });
@@ -37,8 +37,11 @@ export function VirtualMessageList({ messages, renderMessage, loading, onScrollT
     useLayoutEffect(() => {
         const container = containerRef.current;
         if (!container) return;
-        const adjustment = getPrependedScrollOffset(previousFirstMessageRef.current, messages, offsets);
-        previousFirstMessageRef.current = messages[0]?.id ?? null;
+        const previous = previousAnchorRef.current;
+        const adjustment = getPrependedScrollOffset(previous.id, messages, offsets, previous.top);
+        const anchorIndex = messages.findIndex(row => row.type === 'message');
+        const index = anchorIndex < 0 ? 0 : anchorIndex;
+        previousAnchorRef.current = { id: messages[index]?.id ?? null, top: offsets[index] ?? 0 };
         if (!adjustment) return;
         container.scrollTop += adjustment;
         setViewport({ top: container.scrollTop, height: container.clientHeight });
@@ -99,10 +102,11 @@ export function VirtualMessageList({ messages, renderMessage, loading, onScrollT
         if (!container) return;
         setViewport({ top: container.scrollTop, height: container.clientHeight });
         onScrollToBottom?.(container.scrollHeight - container.scrollTop - container.clientHeight < 100);
+        onScrollChange?.();
     };
 
     return (
-        <div ref={containerRef} onScroll={onScroll} style={{ flex: 1, overflowY: 'auto', position: 'relative', padding: '0.6rem 0.8rem' }}>
+        <div class={className} ref={node => { containerRef.current = node; if (externalContainerRef) externalContainerRef.current = node; }} onScroll={onScroll} style={{ flex: 1, overflowY: 'auto', position: 'relative', padding: '0.6rem 0.8rem', ...style }}>
             <div style={{ height: offsets[offsets.length - 1], position: 'relative' }}>
                 {messages.slice(range.start, range.end).map((message, index) => {
                     const actualIndex = range.start + index;

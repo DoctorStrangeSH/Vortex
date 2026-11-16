@@ -64,6 +64,7 @@ test('prepending older history preserves the visible scroll anchor', () => {
     const messages = [{ id: 'old-1' }, { id: 'old-2' }, { id: 'first' }, { id: 'last' }];
     const offsets = [0, 60, 160, 260, 360];
     assert.equal(getPrependedScrollOffset('first', messages, offsets), 160);
+    assert.equal(getPrependedScrollOffset('first', messages, offsets, 36), 124);
     assert.equal(getPrependedScrollOffset('old-1', messages, offsets), 0);
     assert.equal(getPrependedScrollOffset('missing', messages, offsets), 0);
     assert.equal(getPrependedScrollOffset(null, messages, offsets), 0);

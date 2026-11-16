@@ -20,6 +20,7 @@ import { ChatHeader } from './ChatHeader';
 import { BrandMark } from '../UI/BrandMark';
 import { GroupMembersPanel } from './GroupMembersPanel';
 import { MessageBubble } from './MessageBubble';
+import { VirtualMessageList } from './VirtualMessageList';
 import { MessageInput } from './MessageInput';
 import { ContextMenu } from './ContextMenu';
 import { ReactionPicker } from './ReactionPicker';
@@ -36,9 +37,14 @@ import { getNewIncomingIds, getUnreadIncomingIds, getFirstUnreadIncomingId, shou
 import { createFrameScheduler } from '../../services/frameScheduler.js';
 import { shouldCancelLongPress, shouldSuppressMessageClick } from '../../services/messageLongPress.js';
 import { groupChatMessages } from '../../services/chatGrouping.js';
+import { buildVirtualChatRows } from '../../services/virtualChatRows.js';
 import { findPinnedInHistory } from '../../services/pinnedHistory.js';
 
 export function ChatWindow({ chat, user, onBack, isMobile }) {
+    // Opt-in preview; the classic feed remains the default until interaction QA.
+    const [virtualEnabled] = useState(() => new URLSearchParams(window.location.search).get('virtualChat') === '1');
+    const [virtualNavigation, setVirtualNavigation] = useState(null);
+    const virtualNavigationRequestRef = useRef(0);
     const [messages, setMessages] = useState([]);
     const [messagesLoading, setMessagesLoading] = useState(true);
     const [messageLoadError, setMessageLoadError] = useState(false);
@@ -302,7 +308,7 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
             setHasOlderMessages(page.hasMore);
             setMessages(mergeMessagePages(olderMessagesRef.current, latestMessagesRef.current));
             requestAnimationFrame(() => {
-                if (container && activeSubscriptionRef.current === expectedSubscription) {
+                if (!virtualEnabled && container && activeSubscriptionRef.current === expectedSubscription) {
                     container.scrollTop += container.scrollHeight - previousHeight;
                 }
             });
@@ -359,6 +365,11 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
         scrollToChatBottom('smooth');
     };
     const jumpToUnread = (behavior = 'smooth') => {
+        if (virtualEnabled && firstUnreadMessageId) {
+            setVirtualNavigation({ chatId: chat?.id, id: firstUnreadMessageId, align: 'start', requestId: ++virtualNavigationRequestRef.current });
+            shouldAutoScroll.current = false;
+            return true;
+        }
         const container = messagesContainerRef.current;
         const divider = container?.querySelector('[data-unread-divider]');
         if (!container || !divider) return false;
@@ -389,7 +400,7 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
     }, [messagesLoading, firstUnreadMessageId]);
     useEffect(() => {
         if (!initialScrollDoneRef.current) return;
-        if (shouldAutoScroll.current && messagesEndRef.current && !messagesLoading) {
+        if (shouldAutoScroll.current && (messagesEndRef.current || virtualEnabled) && !messagesLoading) {
             scrollToChatBottom();
         }
         if (!messagesLoading) requestAnimationFrame(() => markVisibleAsReadRef.current?.());
@@ -704,6 +715,11 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
     const pinnedMessageIds = useMemo(() => new Set(chat?.pinnedMessages?.map(message => message.id) || []), [chat?.pinnedMessages]);
     const selectedMessageIds = useMemo(() => new Set(selectedMessages), [selectedMessages]);
     const focusPinnedMessage = (messageId) => {
+        if (virtualEnabled && messages.some(message => message.id === messageId)) {
+            shouldAutoScroll.current = false;
+            setVirtualNavigation({ chatId: chat?.id, id: messageId, align: 'center', requestId: ++virtualNavigationRequestRef.current });
+            return true;
+        }
         const container = messagesContainerRef.current;
         if (!container) return false;
         // Match IDs as plain values; never interpolate them into a CSS selector.
@@ -781,7 +797,7 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
                     ? 'Закреплённое сообщение находится ещё глубже в истории.'
                     : 'Закреплённое сообщение не найдено в истории.');
                 requestAnimationFrame(() => {
-                    if (container && activeSubscriptionRef.current === expectedSubscription) {
+                    if (!virtualEnabled && container && activeSubscriptionRef.current === expectedSubscription) {
                         container.scrollTop += container.scrollHeight - previousHeight;
                     }
                 });
@@ -812,6 +828,27 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
     };
 
     const grouped = useMemo(() => groupChatMessages(messages), [messages]);
+    const virtualRows = useMemo(() => buildVirtualChatRows(grouped, firstUnreadMessageId), [grouped, firstUnreadMessageId]);
+    const renderChatRow = item => {
+        if (item.type === 'date') return <div style={s.dateDivider}><span style={s.dateText}>{item.date}</span></div>;
+        const msg = item.data;
+        return (
+            <div>
+                {(item.unreadDivider || msg.id === firstUnreadMessageId) && <div data-unread-divider style={s.unreadDivider} role="separator">Непрочитанные сообщения</div>}
+                <div class="vortex-message" data-msg-id={msg.id}
+                     onClick={() => handleMessageSelectionClick(msg.id)}
+                     onTouchStart={event => startLongPress(event, msg.id)}
+                     onTouchMove={moveLongPress} onTouchEnd={cancelLongPress} onTouchCancel={cancelLongPress}
+                     style={{ background: selectedMessageIds.has(msg.id) ? 'rgba(124,58,237,0.15)' : 'transparent', borderRadius: '8px', cursor: selectionMode ? 'pointer' : 'default' }}>
+                    <MessageBubble msg={msg} own={msg.senderId === user.uid} other={other} avatarColor={avatarColor} participants={chat.participants}
+                        isMobile={isMobile} isPinned={pinnedMessageIds.has(msg.id)}
+                        onContextMenu={handleContextMenu} onDoubleClick={handleDoubleClick}
+                        onImageClick={setPreviewImage} onReactionClick={handleReactionClick}
+                        onPlayAudio={setNowPlaying} onReply={handleReply} onMediaReady={handleMediaReady} />
+                </div>
+            </div>
+        );
+    };
     const wallpaper = wallpaperService.getWallpaper(chat?.id);
 
     if (!chat) {
@@ -866,7 +903,15 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
                 Не удалось загрузить сообщения. Проверьте подключение и попробуйте снова.
                 <button type="button" onClick={() => { retryingSubscriptionRef.current = true; setSubscriptionRetry(count => count + 1); }} style={{ padding: '7px 12px', borderRadius: '9px', cursor: 'pointer' }}>Повторить</button>
             </div>}
-            <div class="vortex-chat-feed" style={{ ...s.messagesContainer, background: wallpaper || 'var(--bg-primary)' }} ref={messagesContainerRef} onScroll={handleScroll}>
+            {virtualEnabled && !messagesLoading && !messageLoadError && messages.length > 0 ? <>
+                {hasOlderMessages && <button type="button" disabled={olderMessagesLoading} onClick={loadOlderMessages} style={{ display: 'block', margin: '5px auto', padding: '7px 14px', borderRadius: '12px', cursor: 'pointer' }}>
+                    {olderMessagesLoading ? 'Загружаем историю…' : '↑ Загрузить ранние сообщения'}
+                </button>}
+                <VirtualMessageList className="vortex-chat-feed" style={{ ...s.messagesContainer, background: wallpaper || 'var(--bg-primary)' }}
+                    externalContainerRef={messagesContainerRef} messages={virtualRows} renderMessage={renderChatRow}
+                    navigationTarget={virtualNavigation?.chatId === chat.id ? virtualNavigation : null} onScrollChange={handleScroll}
+                    onMissingTarget={() => { if (!loadingOlderRef.current && hasOlderMessages) void loadOlderMessages(); }} />
+                </> : <div class="vortex-chat-feed" style={{ ...s.messagesContainer, background: wallpaper || 'var(--bg-primary)' }} ref={messagesContainerRef} onScroll={handleScroll}>
                 {!messagesLoading && hasOlderMessages && <button type="button" disabled={olderMessagesLoading} onClick={loadOlderMessages} style={{ display:'block', margin:'12px auto', padding:'9px 16px', borderRadius:'12px', cursor:'pointer' }}>
                     {olderMessagesLoading ? 'Загружаем историю…' : '↑ Загрузить ранние сообщения'}
                 </button>}
@@ -895,7 +940,7 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
                     );
                  })}
                 <div ref={messagesEndRef} />
-            </div>
+            </div>}
 
             {showJumpToLatest && !messagesLoading && (
                 <button type="button" onClick={jumpToLatest} style={s.jumpToLatest} aria-label="Перейти к последним сообщениям">
