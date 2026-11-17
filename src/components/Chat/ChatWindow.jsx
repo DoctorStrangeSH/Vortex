@@ -39,7 +39,7 @@ import { shouldCancelLongPress, shouldSuppressMessageClick } from '../../service
 import { groupChatMessages } from '../../services/chatGrouping.js';
 import { buildVirtualChatRows } from '../../services/virtualChatRows.js';
 import { findPinnedInHistory } from '../../services/pinnedHistory.js';
-import { canRestoreReadingAnchor, getVisibleReadingAnchor, getRememberedReadingPosition, rememberReadingPosition } from '../../services/chatReadingPosition.js';
+import { canRestoreReadingAnchor, getVisibleReadingAnchor, getRememberedReadingPosition, rememberReadingPosition, loadReadingPositions, saveReadingPositions } from '../../services/chatReadingPosition.js';
 
 export function ChatWindow({ chat, user, onBack, isMobile }) {
     // Opt-in preview; the classic feed remains the default until interaction QA.
@@ -108,7 +108,28 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
     const readAttemptIdsRef = useRef(new Set());
     const markVisibleAsReadRef = useRef(null);
     const retryingSubscriptionRef = useRef(false);
-    const readingPositionsRef = useRef(new Map());
+    const readingPositionsRef = useRef(null);
+    if (readingPositionsRef.current === null) {
+        let storage = null;
+        try { storage = window.sessionStorage; } catch { /* Browser storage disabled. */ }
+        readingPositionsRef.current = loadReadingPositions(user.uid, storage);
+    }
+    const positionSaveTimerRef = useRef(null);
+
+    useEffect(() => {
+        const flushPositions = () => {
+            if (positionSaveTimerRef.current) clearTimeout(positionSaveTimerRef.current);
+            positionSaveTimerRef.current = null;
+            let storage = null;
+            try { storage = window.sessionStorage; } catch { /* Browser storage disabled. */ }
+            saveReadingPositions(user.uid, readingPositionsRef.current, storage);
+        };
+        window.addEventListener('pagehide', flushPositions);
+        return () => {
+            window.removeEventListener('pagehide', flushPositions);
+            flushPositions();
+        };
+    }, [user.uid]);
 
     useEffect(() => {
         if (!isRecording) return;
@@ -350,6 +371,13 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
         if (initialScrollDoneRef.current) {
             rememberReadingPosition(readingPositionsRef.current, chat?.id,
                 atBottom ? null : getVisibleReadingAnchor(el));
+            if (positionSaveTimerRef.current) clearTimeout(positionSaveTimerRef.current);
+            positionSaveTimerRef.current = setTimeout(() => {
+                positionSaveTimerRef.current = null;
+                let storage = null;
+                try { storage = window.sessionStorage; } catch { /* Browser storage disabled. */ }
+                saveReadingPositions(user.uid, readingPositionsRef.current, storage);
+            }, 300);
         }
         setShowJumpToLatest(!atBottom);
         if (atBottom) setNewIncomingCount(0);
