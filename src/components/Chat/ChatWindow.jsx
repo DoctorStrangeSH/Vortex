@@ -39,6 +39,7 @@ import { shouldCancelLongPress, shouldSuppressMessageClick } from '../../service
 import { groupChatMessages } from '../../services/chatGrouping.js';
 import { buildVirtualChatRows } from '../../services/virtualChatRows.js';
 import { findPinnedInHistory } from '../../services/pinnedHistory.js';
+import { canRestoreReadingAnchor, getVisibleReadingAnchor, getRememberedReadingPosition, rememberReadingPosition } from '../../services/chatReadingPosition.js';
 
 export function ChatWindow({ chat, user, onBack, isMobile }) {
     // Opt-in preview; the classic feed remains the default until interaction QA.
@@ -107,6 +108,7 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
     const readAttemptIdsRef = useRef(new Set());
     const markVisibleAsReadRef = useRef(null);
     const retryingSubscriptionRef = useRef(false);
+    const readingPositionsRef = useRef(new Map());
 
     useEffect(() => {
         if (!isRecording) return;
@@ -343,6 +345,12 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
         if (!el) return;
         const atBottom = isNearChatBottom(el);
         shouldAutoScroll.current = atBottom;
+        // Save reading progress while the old conversation is still mounted.
+        // Effect cleanups may run after a new chat has already rendered.
+        if (initialScrollDoneRef.current) {
+            rememberReadingPosition(readingPositionsRef.current, chat?.id,
+                atBottom ? null : getVisibleReadingAnchor(el));
+        }
         setShowJumpToLatest(!atBottom);
         if (atBottom) setNewIncomingCount(0);
         if (shouldLoadOlderMessages({
@@ -385,6 +393,23 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
     };
     useEffect(() => {
         if (messagesLoading || initialScrollDoneRef.current) return;
+        const rememberedId = getRememberedReadingPosition(readingPositionsRef.current, chat?.id);
+        if (canRestoreReadingAnchor(rememberedId, messages)) {
+            initialScrollDoneRef.current = true;
+            shouldAutoScroll.current = false;
+            setShowJumpToLatest(true);
+            if (virtualEnabled) {
+                setVirtualNavigation({ chatId: chat.id, id: rememberedId, align: 'start', requestId: ++virtualNavigationRequestRef.current });
+            } else {
+                requestAnimationFrame(() => {
+                    const container = messagesContainerRef.current;
+                    const row = Array.from(container?.querySelectorAll('[data-msg-id]') ?? []).find(element => element.dataset.msgId === rememberedId);
+                    if (container && row) container.scrollTop += row.getBoundingClientRect().top - container.getBoundingClientRect().top;
+                });
+            }
+            requestAnimationFrame(() => markVisibleAsReadRef.current?.());
+            return;
+        }
         const target = getInitialChatScrollTarget(firstUnreadMessageId);
         if (target.type === 'unread' && jumpToUnread('auto')) {
             initialScrollDoneRef.current = true;
