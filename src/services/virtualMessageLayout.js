@@ -56,7 +56,7 @@ export function isNearVirtualBottom(scrollHeight, scrollTop, viewportHeight, thr
     return scrollHeight - scrollTop - viewportHeight <= threshold;
 }
 
-export function getMessageNavigationTop(messages, offsets, messageId, viewportHeight, align = 'start') {
+export function getMessageNavigationTop(messages, offsets, messageId, viewportHeight, align = 'start', withinRowOffset = 0) {
     if (!messageId || offsets.length !== messages.length + 1) return null;
     const index = messages.findIndex(message => message.id === messageId);
     if (index < 0) return null;
@@ -67,6 +67,7 @@ export function getMessageNavigationTop(messages, offsets, messageId, viewportHe
     let top = rowTop;
     if (align === 'center') top -= (height - rowHeight) / 2;
     if (align === 'end') top -= height - rowHeight;
+    if (Number.isFinite(withinRowOffset) && withinRowOffset > 0) top += Math.min(withinRowOffset, Math.max(0, rowHeight - 1));
     return Math.max(0, Math.min(Math.max(0, totalHeight - height), top));
 }
 

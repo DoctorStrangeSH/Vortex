@@ -58,6 +58,9 @@ test('navigation targets unread and pinned messages with safe viewport clamping'
     assert.equal(getMessageNavigationTop(messages, offsets, 'z', 240, 'end'), 360);
     assert.equal(getMessageNavigationTop(messages, offsets, 'a', 240, 'center'), 0);
     assert.equal(getMessageNavigationTop(messages, offsets, 'missing', 240), null);
+    assert.equal(getMessageNavigationTop(messages, offsets, 'unread', 240, 'start', 45), 145);
+    assert.equal(getMessageNavigationTop(messages, offsets, 'unread', 240, 'start', 1000), 299);
+    assert.equal(getMessageNavigationTop(messages, offsets, 'unread', 240, 'start', -10), 100);
 });
 
 test('prepending older history preserves the visible scroll anchor', () => {

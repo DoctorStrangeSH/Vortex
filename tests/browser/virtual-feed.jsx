@@ -16,6 +16,7 @@ function VirtualFeedHarness() {
 
     window.virtualFeedQA = {
         navigate: id => setNavigationTarget({ id, align: 'center', requestId: ++requestRef.current }),
+        navigateWithin: (id, offset) => setNavigationTarget({ id, align: 'start', offset, requestId: ++requestRef.current }),
         prepend: () => setMessages(current => [...Array.from({ length: 40 }, (_, index) => ({ id: `older-${index}`, type: 'message' })), ...current]),
         append: () => setMessages(current => [...current, { id: `new-${current.length}`, type: 'message' }]),
         markUnread: id => setUnreadId(id),

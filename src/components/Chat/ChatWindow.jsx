@@ -393,18 +393,18 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
     };
     useEffect(() => {
         if (messagesLoading || initialScrollDoneRef.current) return;
-        const rememberedId = getRememberedReadingPosition(readingPositionsRef.current, chat?.id);
-        if (canRestoreReadingAnchor(rememberedId, messages)) {
+        const remembered = getRememberedReadingPosition(readingPositionsRef.current, chat?.id);
+        if (canRestoreReadingAnchor(remembered, messages)) {
             initialScrollDoneRef.current = true;
             shouldAutoScroll.current = false;
             setShowJumpToLatest(true);
             if (virtualEnabled) {
-                setVirtualNavigation({ chatId: chat.id, id: rememberedId, align: 'start', requestId: ++virtualNavigationRequestRef.current });
+                setVirtualNavigation({ chatId: chat.id, id: remembered.id, offset: remembered.offset, align: 'start', requestId: ++virtualNavigationRequestRef.current });
             } else {
                 requestAnimationFrame(() => {
                     const container = messagesContainerRef.current;
-                    const row = Array.from(container?.querySelectorAll('[data-msg-id]') ?? []).find(element => element.dataset.msgId === rememberedId);
-                    if (container && row) container.scrollTop += row.getBoundingClientRect().top - container.getBoundingClientRect().top;
+                    const row = Array.from(container?.querySelectorAll('[data-msg-id]') ?? []).find(element => element.dataset.msgId === remembered.id);
+                    if (container && row) container.scrollTop += row.getBoundingClientRect().top - container.getBoundingClientRect().top + remembered.offset;
                 });
             }
             requestAnimationFrame(() => markVisibleAsReadRef.current?.());

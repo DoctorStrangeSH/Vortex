@@ -64,7 +64,7 @@ export function VirtualMessageList({ messages, renderMessage, loading, onScrollT
         if (container.clientHeight <= 0) return;
         const requestKey = JSON.stringify([navigationTarget.id, navigationTarget.requestId ?? 0]);
         if (handledNavigationRef.current === requestKey) return;
-        const top = getMessageNavigationTop(messages, offsets, navigationTarget.id, container.clientHeight, navigationTarget.align);
+        const top = getMessageNavigationTop(messages, offsets, navigationTarget.id, container.clientHeight, navigationTarget.align, navigationTarget.offset);
         // Keep the request pending if older history has not been loaded yet.
         if (top === null) {
             // A newly prepended page changes the first ID, allowing one more request.
@@ -79,7 +79,7 @@ export function VirtualMessageList({ messages, renderMessage, loading, onScrollT
         container.scrollTop = top;
         setViewport({ top, height: container.clientHeight });
         handledNavigationRef.current = requestKey;
-    }, [messages, offsets, viewport.height, navigationTarget?.id, navigationTarget?.requestId, navigationTarget?.align, onMissingTarget]);
+    }, [messages, offsets, viewport.height, navigationTarget?.id, navigationTarget?.requestId, navigationTarget?.align, navigationTarget?.offset, onMissingTarget]);
 
     useLayoutEffect(() => {
         const container = containerRef.current;

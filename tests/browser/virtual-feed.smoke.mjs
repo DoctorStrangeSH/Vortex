@@ -105,6 +105,17 @@ try {
     const unreadMetrics = await page.evaluate(() => window.virtualFeedQA.metrics());
     assert.ok(unreadMetrics.mountedRows < 50, 'unread navigation with older history must remain virtualized');
     assert.ok(await page.locator('[data-qa-id="message-800"] [data-unread-divider]').count(), 'unread marker must remain attached to its message after history expands');
+
+    // Restoring a reading position may target a point inside a long message.
+    await page.evaluate(() => window.virtualFeedQA.navigateWithin('message-700', 32));
+    await page.waitForSelector('[data-qa-id="message-700"]');
+    await page.waitForFunction(() => {
+        const container = document.querySelector('[role="region"][aria-label="Сообщения"]');
+        const row = document.querySelector('[data-message-id="message-700"]');
+        if (!container || !row) return false;
+        const position = container.getBoundingClientRect().top - row.getBoundingClientRect().top;
+        return position > 15 && position < 55;
+    });
     assert.deepEqual(errors, [], 'the browser should have no uncaught page errors');
     console.log('Virtual browser smoke test passed:', { desktop: metrics, mobile: mobileMetrics });
 } finally {
