@@ -445,3 +445,44 @@ test('second account receives a realtime message and author sees its read receip
         unsubscribe();
     }
 });
+
+test('read receipts, edits and deletion propagate live to the other account', { skip: !available }, async () => {
+    const alice = environment.authenticatedContext('alice').firestore();
+    const bob = environment.authenticatedContext('bob').firestore();
+    const id = 'realtime-lifecycle-two-accounts';
+    const aliceMessage = doc(alice, 'chats/chat-a/messages', id);
+    const bobMessage = doc(bob, 'chats/chat-a/messages', id);
+
+    // Subscribe before each mutation, so a missed listener event cannot be masked by getDoc.
+    const awaitLiveState = (reference, matches, mutate) => new Promise((resolve, reject) => {
+        let unsubscribe = () => {};
+        const timeout = setTimeout(() => finish(new Error('Timed out waiting for live message state')), 10000);
+        let finished = false;
+        function finish(error, snapshot) {
+            if (finished) return;
+            finished = true;
+            clearTimeout(timeout);
+            unsubscribe();
+            if (error) reject(error);
+            else resolve(snapshot);
+        }
+        unsubscribe = onSnapshot(reference, snapshot => {
+            if (matches(snapshot)) finish(null, snapshot);
+        }, finish);
+        Promise.resolve().then(mutate).catch(finish);
+    });
+
+    await awaitLiveState(bobMessage, snapshot => snapshot.exists() && snapshot.data().text === 'Первое сообщение',
+        () => assertSucceeds(setDoc(aliceMessage, { senderId: 'alice', text: 'Первое сообщение', readBy: [] })));
+    const receipt = await awaitLiveState(aliceMessage,
+        snapshot => snapshot.exists() && snapshot.data().readBy?.includes('bob'),
+        () => assertSucceeds(updateDoc(bobMessage, { readBy: arrayUnion('bob') })));
+    assert.deepEqual(receipt.data().readBy, ['bob']);
+    const edited = await awaitLiveState(bobMessage,
+        snapshot => snapshot.exists() && snapshot.data().text === 'Исправленное сообщение' && snapshot.data().isEdited,
+        () => assertSucceeds(updateDoc(aliceMessage, { text: 'Исправленное сообщение', isEdited: true })));
+    assert.equal(edited.data().senderId, 'alice');
+    const deleted = await awaitLiveState(bobMessage, snapshot => !snapshot.exists(),
+        () => assertSucceeds(deleteDoc(aliceMessage)));
+    assert.equal(deleted.exists(), false);
+});
