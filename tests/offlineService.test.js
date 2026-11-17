@@ -419,3 +419,37 @@ test('returning from a background tab retries queued messages without a focus ev
     assert.deepEqual(sent, ['background-id']);
     assert.deepEqual(service.getQueue(), []);
 });
+
+test('returning to the app recovers a missed online event without duplicating the queued message', async () => {
+    const windowListeners = new Map();
+    const documentListeners = new Map();
+    const network = { onLine: false };
+    const visibilityTarget = {
+        visibilityState: 'hidden',
+        addEventListener: (name, callback) => documentListeners.set(name, callback)
+    };
+    const eventTarget = { addEventListener: (name, callback) => windowListeners.set(name, callback) };
+    const { storage } = createService();
+    const service = new OfflineService({
+        storage, network, eventTarget, visibilityTarget, createId: () => 'stable-offline-id'
+    });
+    await service.addToQueue({ type: 'sendMessage', user: { uid: 'alice' }, text: 'Не потеряй меня' });
+    service.setActiveUser('alice');
+    const delivered = [];
+    service.executeAction = async action => { delivered.push(action.id); };
+    service.init();
+
+    // The browser went online while suspended, and did not dispatch 'online'.
+    network.onLine = true;
+    visibilityTarget.visibilityState = 'visible';
+    documentListeners.get('visibilitychange')();
+    await service.processingPromise;
+    assert.equal(service.isOnline, true);
+    assert.deepEqual(delivered, ['stable-offline-id']);
+    assert.deepEqual(service.getQueue(), []);
+
+    // A subsequent focus event cannot send the already confirmed action again.
+    windowListeners.get('focus')();
+    await service.processingPromise;
+    assert.deepEqual(delivered, ['stable-offline-id']);
+});

@@ -3,6 +3,7 @@ import { assertQueuedMessageOwner } from './queuedMessageOwner.js';
 export class OfflineService {
     constructor({ storage = globalThis.localStorage, network = globalThis.navigator, eventTarget = globalThis.window, visibilityTarget = globalThis.document, createId = () => globalThis.crypto.randomUUID(), locks = network?.locks } = {}) {
         this.storage = storage;
+        this.network = network;
         this.eventTarget = eventTarget;
         this.visibilityTarget = visibilityTarget;
         this.createId = createId;
@@ -26,14 +27,12 @@ export class OfflineService {
         // A transient Firestore failure may clear without a browser 'online'
         // transition. Retry when the user returns to this tab.
         this.eventTarget?.addEventListener('focus', () => {
-            if (this.isOnline && this.activeUid) this.processQueue();
+            this.resumeOnReturn();
         });
         // Returning from a background tab does not always dispatch window focus
         // (notably in mobile browsers). Resume pending writes when visible again.
         this.visibilityTarget?.addEventListener('visibilitychange', () => {
-            if (this.visibilityTarget.visibilityState === 'visible' && this.isOnline && this.activeUid) {
-                this.processQueue();
-            }
+            if (this.visibilityTarget.visibilityState === 'visible') this.resumeOnReturn();
         });
         this.eventTarget?.addEventListener('storage', event => {
             if (event.key !== 'offlineQueue') return;
@@ -42,6 +41,17 @@ export class OfflineService {
             if (this.isOnline && this.activeUid) this.processQueue();
         });
         if (this.isOnline && this.activeUid) this.processQueue();
+    }
+
+    resumeOnReturn() {
+        // Mobile browsers may miss the online event while suspended. The fresh
+        // navigator hint can restore delivery, but it is not a server health
+        // check: an offline hint must not cancel an already working connection.
+        if (!this.isOnline && this.network?.onLine === true) {
+            this.goOnline();
+        } else if (this.isOnline && this.activeUid) {
+            this.processQueue();
+        }
     }
 
     goOnline() {
