@@ -63,6 +63,56 @@ test('queue stops on disconnection and resumes with unchanged IDs', async () => 
     assert.equal(calls, 1);
 });
 
+test('network switches during an in-flight send preserve message order and avoid duplicates', async () => {
+    const { service, storage } = createService();
+    service.goOffline();
+    service.activeUid = 'alice';
+    await service.addToQueue({ type: 'sendMessage', user: { uid: 'alice' }, text: 'Первое' });
+    await service.addToQueue({ type: 'sendMessage', user: { uid: 'alice' }, text: 'Второе' });
+    const ids = service.getQueue().map(action => action.id);
+    let releaseFirst;
+    const firstPending = new Promise(resolve => { releaseFirst = resolve; });
+    let firstStarted;
+    const started = new Promise(resolve => { firstStarted = resolve; });
+    const sends = [];
+    service.executeAction = async action => {
+        sends.push(action.id);
+        if (action.id === ids[0]) {
+            firstStarted();
+            await firstPending;
+        }
+    };
+
+    service.goOnline();
+    const flushing = service.processingPromise;
+    await started;
+    service.goOffline();
+    service.goOnline(); // Network switches before the first write is confirmed.
+    service.goOffline();
+    releaseFirst();
+    await flushing;
+    assert.deepEqual(sends, [ids[0]], 'a confirmed first write must not retry');
+    assert.deepEqual(service.getQueue().map(action => action.id), [ids[1]]);
+    assert.deepEqual(JSON.parse(storage.getItem('offlineQueue')).map(action => action.id), [ids[1]]);
+
+    service.goOnline();
+    await service.processingPromise;
+    assert.deepEqual(sends, ids);
+    assert.deepEqual(service.getQueue(), []);
+});
+
+test('repeated network events notify listeners only when connectivity actually changes', () => {
+    const { service } = createService();
+    const states = [];
+    service.onChange(online => states.push(online));
+    service.goOnline();
+    service.goOnline();
+    service.goOffline();
+    service.goOffline();
+    service.goOnline();
+    assert.deepEqual(states, [false, true]);
+});
+
 test('a corrupted stored queue cannot prevent the messenger from starting', async () => {
     const { storage } = createService();
     storage.setItem('offlineQueue', '{broken-json');
