@@ -1,9 +1,10 @@
 import { assertQueuedMessageOwner } from './queuedMessageOwner.js';
 
 export class OfflineService {
-    constructor({ storage = globalThis.localStorage, network = globalThis.navigator, eventTarget = globalThis.window, createId = () => globalThis.crypto.randomUUID(), locks = network?.locks } = {}) {
+    constructor({ storage = globalThis.localStorage, network = globalThis.navigator, eventTarget = globalThis.window, visibilityTarget = globalThis.document, createId = () => globalThis.crypto.randomUUID(), locks = network?.locks } = {}) {
         this.storage = storage;
         this.eventTarget = eventTarget;
+        this.visibilityTarget = visibilityTarget;
         this.createId = createId;
         this.locks = locks;
         this.isOnline = network?.onLine ?? false;
@@ -26,6 +27,13 @@ export class OfflineService {
         // transition. Retry when the user returns to this tab.
         this.eventTarget?.addEventListener('focus', () => {
             if (this.isOnline && this.activeUid) this.processQueue();
+        });
+        // Returning from a background tab does not always dispatch window focus
+        // (notably in mobile browsers). Resume pending writes when visible again.
+        this.visibilityTarget?.addEventListener('visibilitychange', () => {
+            if (this.visibilityTarget.visibilityState === 'visible' && this.isOnline && this.activeUid) {
+                this.processQueue();
+            }
         });
         this.eventTarget?.addEventListener('storage', event => {
             if (event.key !== 'offlineQueue') return;

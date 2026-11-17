@@ -387,3 +387,35 @@ test('focused tab discovers persisted work even if its storage event was missed'
     assert.deepEqual(service.getQueue(), []);
     assert.deepEqual(JSON.parse(storage.getItem('offlineQueue')), []);
 });
+
+test('returning from a background tab retries queued messages without a focus event', async () => {
+    const listeners = new Map();
+    const visibilityTarget = {
+        visibilityState: 'hidden',
+        addEventListener: (event, callback) => listeners.set(event, callback)
+    };
+    const { storage } = createService();
+    const service = new OfflineService({
+        storage, network: { onLine: false }, visibilityTarget, createId: () => 'background-id'
+    });
+    await service.addToQueue({ type: 'sendMessage', user: { uid: 'alice' }, text: 'После сна' });
+    service.activeUid = 'alice';
+    service.init();
+    const sent = [];
+    service.executeAction = async action => { sent.push(action.id); };
+
+    visibilityTarget.visibilityState = 'visible';
+    listeners.get('visibilitychange')();
+    assert.deepEqual(sent, [], 'an offline return cannot send anything');
+
+    service.isOnline = true;
+    visibilityTarget.visibilityState = 'hidden';
+    listeners.get('visibilitychange')();
+    assert.deepEqual(sent, [], 'hidden tabs do not flush');
+
+    visibilityTarget.visibilityState = 'visible';
+    listeners.get('visibilitychange')();
+    await service.processingPromise;
+    assert.deepEqual(sent, ['background-id']);
+    assert.deepEqual(service.getQueue(), []);
+});
