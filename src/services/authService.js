@@ -44,9 +44,8 @@ class AuthService {
     }
 
     async register(email, password, name, username = '') {
-        if (username && !(await userService.isUsernameAvailable(username))) {
-            throw new Error('Этот username уже занят');
-        }
+        // Username reads require authentication under production Firestore rules.
+        // The profile transaction below is the authoritative uniqueness check.
         const result = await createUserWithEmailAndPassword(auth, email, password);
         saveRegistrationDraft(result.user.uid, name.trim(), username);
         await updateProfile(result.user, { displayName: name });
