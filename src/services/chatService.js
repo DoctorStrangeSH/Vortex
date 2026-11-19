@@ -1,4 +1,5 @@
 import { db } from './firebase';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import { messageService } from './messageService';
 import { privateChatId } from './privateChatId.js';
 import {
@@ -17,6 +18,10 @@ import {
     arrayUnion,
     arrayRemove
 } from 'firebase/firestore';
+
+const functions = getFunctions(undefined, 'europe-west1');
+const createGroupChatCallable = httpsCallable(functions, 'createGroupChat');
+const updateGroupMembershipCallable = httpsCallable(functions, 'updateGroupMembership');
 
 class ChatService {
     subscribeToChats(userId, callback, onError = () => {}) {
@@ -83,43 +88,33 @@ class ChatService {
     }
 
     async createGroupChat(currentUser, participantIds, groupName = 'Группа') {
-        const allParticipants = [...new Set([currentUser.uid, ...participantIds])];
-        
-        const chatData = {
-            type: 'group',
+        if (!currentUser?.uid) throw new Error('Требуется авторизация');
+        const result = await createGroupChatCallable({
             name: groupName,
-            participants: allParticipants,
-            createdBy: currentUser.uid,
-            admins: [currentUser.uid],
-            createdAt: serverTimestamp(),
-            lastMessage: `Группа "${groupName}" создана`,
-            lastMessageTime: serverTimestamp(),
-            pinnedMessages: []
-        };
+            participantIds: [...new Set(participantIds || [])].filter(uid => uid !== currentUser.uid)
+        });
+        return result.data.chatId;
+    }
 
-        const ref = await addDoc(collection(db, 'chats'), chatData);
-        return ref.id;
+    async updateGroupMembership(groupId, memberUid, action) {
+        if (!groupId || !memberUid) throw new Error('Выберите группу и участника');
+        await updateGroupMembershipCallable({ chatId: groupId, memberUid, action });
     }
 
     async addGroupMember(groupId, memberUid) {
-        if (!memberUid || typeof memberUid !== 'string') throw new Error('Выберите участника');
-        await updateDoc(doc(db, 'chats', groupId), { participants: arrayUnion(memberUid) });
+        return this.updateGroupMembership(groupId, memberUid, 'add');
     }
 
     async removeGroupMember(groupId, memberUid) {
-        if (!memberUid || typeof memberUid !== 'string') throw new Error('Выберите участника');
-        await updateDoc(doc(db, 'chats', groupId), { participants: arrayRemove(memberUid) });
+        return this.updateGroupMembership(groupId, memberUid, 'remove');
     }
 
     async leaveGroup(groupId, userUid) {
-        await this.removeGroupMember(groupId, userUid);
+        return this.updateGroupMembership(groupId, userUid, 'leave');
     }
 
     async setGroupAdmin(groupId, memberUid, enabled) {
-        if (!memberUid || typeof memberUid !== 'string') throw new Error('Выберите участника');
-        await updateDoc(doc(db, 'chats', groupId), {
-            admins: enabled ? arrayUnion(memberUid) : arrayRemove(memberUid)
-        });
+        return this.updateGroupMembership(groupId, memberUid, enabled ? 'promote' : 'demote');
     }
 
     async sendMessage(chatId, text, user, attachment = null, messageId = null) {
