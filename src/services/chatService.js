@@ -61,14 +61,16 @@ class ChatService {
 
         if (existingChat) return existingChat.id;
 
+        const orderedUsers = [currentUser, otherUser].sort((a, b) =>
+            a.uid < b.uid ? -1 : a.uid > b.uid ? 1 : 0
+        );
         const chatData = {
             type: 'private',
             createdBy: currentUser.uid,
-            participants: [currentUser.uid, otherUser.uid],
-            participantNames: [
-                currentUser.displayName || 'Пользователь',
-                otherUser.displayName || otherUser.username || 'Пользователь'
-            ],
+            participants: orderedUsers.map(user => user.uid),
+            participantNames: orderedUsers.map(user =>
+                user.displayName || user.username || 'Пользователь'
+            ),
             createdAt: serverTimestamp(),
             lastMessage: 'Чат создан',
             lastMessageTime: serverTimestamp(),
