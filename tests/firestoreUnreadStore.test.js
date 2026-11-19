@@ -92,6 +92,47 @@ test('Firestore adapter rejects invalid document identities before writing', asy
     assert.equal(db.documents.size, 0);
 });
 
+test('Firestore adapter rejects a stored counter with a non-integer value without writing', async () => {
+    const db = createFakeFirestore({
+        'users/bob/unreadChats/room-1': { count: 'one' }
+    });
+    const store = createFirestoreUnreadStore({ db, serverTimestamp: timestamp });
+
+    await assert.rejects(projectUnreadEvent(store, {
+        eventId: 'message-created-invalid-baseline',
+        chatId: 'room-1',
+        after: { senderId: 'alice', readBy: [] },
+        participants: ['alice', 'bob']
+    }), /numeric baseline/);
+
+    assert.equal(db.documents.get('users/bob/unreadChats/room-1').count, 'one');
+    assert.equal(db.documents.has('unreadProjectionEvents/message-created-invalid-baseline'), false);
+});
+
+test('Firestore adapter rolls back staged writes when projection fails', async () => {
+    const db = createFakeFirestore();
+    const store = createFirestoreUnreadStore({ db, serverTimestamp: timestamp });
+
+    await assert.rejects(store.runTransaction(async tx => {
+        await tx.hasProcessed('will-rollback');
+        await tx.getCount('bob', 'room-1');
+        tx.setCount('bob', 'room-1', 4);
+        tx.markProcessed('will-rollback');
+        throw new Error('projection-failed');
+    }), /projection-failed/);
+
+    assert.equal(db.documents.size, 0);
+});
+
+test('Firestore adapter rejects slash-containing user and chat IDs', async () => {
+    const db = createFakeFirestore();
+    const store = createFirestoreUnreadStore({ db, serverTimestamp: timestamp });
+
+    await assert.rejects(store.runTransaction(tx => tx.getCount('bob/other', 'room-1')), /Invalid unread counter identity/);
+    await assert.rejects(store.runTransaction(tx => tx.getCount('bob', 'room/other')), /Invalid unread counter identity/);
+    assert.equal(db.documents.size, 0);
+});
+
 test('Firestore adapter preserves a missing counter as a zero baseline', async () => {
     const db = createFakeFirestore();
     const store = createFirestoreUnreadStore({ db, serverTimestamp: timestamp });
