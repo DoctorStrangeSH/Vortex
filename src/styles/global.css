@@ -371,6 +371,35 @@ button:disabled { cursor: not-allowed !important; }
 .vortex-menu-item:hover { background: var(--bg-hover) !important; }
 .vortex-gallery-item { transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease; }
 .vortex-gallery-item:hover { border-color: var(--vortex-primary-light) !important; transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.25); }
+.vortex-gallery-overlay { position:fixed; inset:0; z-index:1000; display:flex; align-items:center; justify-content:center; padding:16px; background:rgba(2,5,16,.78); backdrop-filter:blur(9px); }
+.vortex-gallery { display:flex; flex-direction:column; width:min(820px,100%); max-height:min(790px,92dvh); overflow:hidden; border:1px solid var(--border-default); border-radius:24px; background:var(--bg-secondary); color:var(--text-primary); box-shadow:0 30px 90px rgba(0,0,0,.45); }
+.vortex-gallery-header { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; padding:22px 24px 16px; }
+.vortex-gallery-eyebrow { color:var(--vortex-primary-light); font-size:.65rem; font-weight:800; letter-spacing:.15em; }
+.vortex-gallery-header h3 { margin:6px 0; font-size:1.4rem; }
+.vortex-gallery-header p { margin:0; color:var(--text-secondary); font-size:.78rem; }
+.vortex-gallery-close { display:grid; place-items:center; min-width:39px; min-height:39px; border:1px solid var(--border-default); border-radius:12px; background:var(--bg-tertiary); color:var(--text-primary); cursor:pointer; }
+.vortex-gallery-tabs { display:flex; gap:7px; padding:0 24px 16px; border-bottom:1px solid var(--border-subtle); overflow-x:auto; }
+.vortex-gallery-tab { display:flex; align-items:center; gap:7px; flex-shrink:0; padding:9px 13px; border:1px solid var(--border-default); border-radius:11px; background:var(--bg-tertiary); color:var(--text-secondary); font:inherit; font-size:.82rem; cursor:pointer; }
+.vortex-gallery-tab.active { border-color:var(--vortex-primary); background:var(--bg-active); color:var(--text-primary); }
+.vortex-gallery-tab span { opacity:.72; font-size:.72rem; }
+.vortex-gallery-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); align-content:start; gap:12px; min-height:160px; padding:18px 24px 24px; overflow-y:auto; overscroll-behavior:contain; }
+.vortex-gallery-item { position:relative; display:block; width:100%; aspect-ratio:1; padding:0; overflow:hidden; border:1px solid var(--border-default); border-radius:15px; background:var(--bg-tertiary); color:var(--text-primary); cursor:pointer; }
+.vortex-gallery-item img { object-fit:cover; }
+.vortex-gallery-item video { object-fit:cover; pointer-events:none; }
+.vortex-gallery-badge { position:absolute; left:9px; bottom:9px; padding:5px 8px; border-radius:7px; background:rgba(5,7,17,.78); color:#fff; font-size:.68rem; }
+.vortex-gallery-empty { grid-column:1/-1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:9px; padding:36px 16px; color:var(--text-secondary); text-align:center; }
+.vortex-gallery-empty strong { color:var(--text-primary); }
+.vortex-gallery-empty span { font-size:.82rem; }
+.vortex-gallery-file { grid-column:1/-1; display:flex; align-items:center; gap:12px; padding:12px; border:1px solid var(--border-default); border-radius:13px; background:var(--bg-tertiary); }
+.vortex-gallery-file-icon { display:grid; place-items:center; width:39px; height:39px; flex-shrink:0; border-radius:11px; background:var(--bg-active); color:var(--vortex-primary-light); }
+.vortex-gallery-file-name { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:.84rem; }
+.vortex-gallery-file a, .vortex-gallery-file button { padding:8px 10px; border:1px solid var(--border-default); border-radius:9px; background:var(--bg-active); color:var(--text-primary); font:inherit; font-size:.78rem; cursor:pointer; text-decoration:none; }
+.vortex-gallery-file-pending { color:var(--text-secondary); font-size:.75rem; }
+.vortex-gallery-preview { position:fixed; inset:0; z-index:2000; display:flex; align-items:center; justify-content:center; padding:16px; background:rgba(2,4,12,.97); }
+.vortex-gallery-preview-close { position:absolute; top:20px; right:20px; display:grid; place-items:center; width:44px; height:44px; border:1px solid rgba(255,255,255,.25); border-radius:13px; background:rgba(255,255,255,.1); color:#fff; cursor:pointer; }
+.vortex-gallery-preview-navigation { position:absolute; bottom:24px; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:22px; padding:8px 12px; border:1px solid rgba(255,255,255,.2); border-radius:14px; background:rgba(15,17,30,.9); color:#fff; font-size:.8rem; }
+.vortex-gallery-preview-navigation button { width:36px; height:36px; border:0; border-radius:10px; background:rgba(255,255,255,.1); color:#fff; font-size:1.2rem; cursor:pointer; }
+@media (max-width:560px) { .vortex-gallery-overlay { align-items:flex-end; padding:0; } .vortex-gallery { width:100%; max-height:94dvh; border-radius:22px 22px 0 0; } .vortex-gallery-header { padding:19px 16px 14px; } .vortex-gallery-tabs { padding:0 16px 14px; } .vortex-gallery-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; padding:12px; } }
 .vortex-pinned { border-left: 3px solid var(--vortex-primary); }
 .vortex-pinned { transition: background-color .18s ease, border-color .18s ease; }
 .vortex-pinned:hover { background: var(--bg-hover) !important; }
