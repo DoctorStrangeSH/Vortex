@@ -35,6 +35,40 @@ test('nonmember cannot read a private chat or its messages', { skip: !available 
     await assertFails(getDoc(doc(eve, 'chats/chat-a/messages/m1')));
 });
 
+test('two users can create a new private dialog and exchange the first message privately', { skip: !available }, async () => {
+    const alice = environment.authenticatedContext('alice').firestore();
+    const bob = environment.authenticatedContext('bob').firestore();
+    const eve = environment.authenticatedContext('eve').firestore();
+    const chatId = 'dm_5_alice_3_bob';
+    const aliceChat = doc(alice, 'chats', chatId);
+    const bobChat = doc(bob, 'chats', chatId);
+    const eveChat = doc(eve, 'chats', chatId);
+
+    assert.equal((await assertSucceeds(getDoc(aliceChat))).exists(), false);
+    await assertSucceeds(setDoc(aliceChat, {
+        type: 'private', createdBy: 'alice', participants: ['alice', 'bob'],
+        participantNames: ['Alice', 'Bob'], createdAt: serverTimestamp(),
+        lastMessage: 'Чат создан', lastMessageTime: serverTimestamp(), pinnedMessages: []
+    }));
+    assert.equal((await assertSucceeds(getDoc(bobChat))).data().type, 'private');
+    await assertFails(getDoc(eveChat));
+
+    const messageId = 'first-message';
+    const batch = writeBatch(alice);
+    batch.set(doc(alice, 'chats', chatId, 'messages', messageId), {
+        senderId: 'alice', senderName: 'Alice', text: 'Привет!', type: 'text',
+        createdAt: serverTimestamp(), readBy: []
+    });
+    batch.update(aliceChat, { lastMessage: 'Привет!', lastMessageTime: serverTimestamp() });
+    await assertSucceeds(batch.commit());
+
+    const message = await assertSucceeds(getDoc(doc(bob, 'chats', chatId, 'messages', messageId)));
+    assert.equal(message.data().text, 'Привет!');
+    await assertSucceeds(updateDoc(doc(bob, 'chats', chatId, 'messages', messageId), { readBy: arrayUnion('bob') }));
+    assert.deepEqual((await assertSucceeds(getDoc(doc(alice, 'chats', chatId, 'messages', messageId)))).data().readBy, ['bob']);
+    await assertFails(getDoc(doc(eve, 'chats', chatId, 'messages', messageId)));
+});
+
 test('only authenticated participants can create messages in a chat', { skip: !available }, async () => {
     const alice = environment.authenticatedContext('alice').firestore();
     const eve = environment.authenticatedContext('eve').firestore();
