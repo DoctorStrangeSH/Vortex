@@ -28,6 +28,7 @@ import { ContextMenu } from './ContextMenu';
 import { ReactionPicker } from './ReactionPicker';
 import { PinnedMessage } from './PinnedMessage';
 import { MediaGallery } from './MediaGallery';
+import { ImageViewer } from './ImageViewer';
 import { PollCreator } from './PollCreator';
 import { PollMessage } from './PollMessage';
 import { ThemeCustomizer } from '../Theme/ThemeCustomizer';
@@ -1036,7 +1037,7 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
             {showPollCreator && <PollCreator onSend={handlePollSend} onClose={() => setShowPollCreator(false)} />}
             {showTheme && <ThemeCustomizer onClose={() => setShowTheme(false)} />}
             {showStatus && <StatusPicker userId={user.uid} onClose={() => setShowStatus(false)} />}
-            {previewImage && <div style={s.imageOverlay} onClick={() => setPreviewImage(null)}><img src={previewImage} style={s.imagePreview} /></div>}
+            {previewImage && <ImageViewer messages={messages} selectedId={previewImage} onClose={() => setPreviewImage(null)} />}
             {nowPlaying && <div style={s.miniPlayer}><span>🎵</span><div>{nowPlaying.name}</div><audio controls src={nowPlaying.src} autoPlay /><button onClick={() => setNowPlaying(null)}>✕</button></div>}
 
             {sendNotice && <div style={s.sendNotice} role="status">
