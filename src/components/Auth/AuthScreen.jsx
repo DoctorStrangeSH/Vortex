@@ -14,6 +14,7 @@ export function AuthScreen({ pendingUser = null }) {
     const [usernameChecking, setUsernameChecking] = useState(false);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
 
     // Проверка username на лету
     const checkUsername = async (value) => {
@@ -75,6 +76,15 @@ export function AuthScreen({ pendingUser = null }) {
 
     return (
         <div class="vortex-auth-screen" style={styles.wrapper}>
+            <aside class="vortex-auth-story" aria-label="Знакомство с Vortex">
+                <div class="vortex-auth-story-inner">
+                    <div class="vortex-auth-story-kicker"><span class="vortex-auth-story-spark" /> НОВОЕ ПРОСТРАНСТВО ДЛЯ ОБЩЕНИЯ</div>
+                    <div class="vortex-auth-story-symbol" aria-hidden="true"><BrandMark size={160} /></div>
+                    <h2>На одной<br /><em>волне.</em></h2>
+                    <p>Важные люди, живые разговоры и моменты, к которым хочется возвращаться.</p>
+                    <div class="vortex-auth-story-foot"><span>✦</span> VORTEX <span class="vortex-auth-story-divider" /> МЕССЕНДЖЕР НОВОГО ПОКОЛЕНИЯ</div>
+                </div>
+            </aside>
             <div class="vortex-auth-card" style={styles.card}>
                 {/* Логотип */}
                 <div style={styles.logoSection}>
@@ -115,9 +125,11 @@ export function AuthScreen({ pendingUser = null }) {
                     {(mode === 'register' || mode === 'complete') && (
                         <>
                             <div style={styles.fieldGroup}>
-                                <label style={styles.label}>Имя</label>
+                                <label for="vortex-auth-name" style={styles.label}>Имя</label>
                                 <input
+                                    id="vortex-auth-name"
                                     type="text"
+                                    autocomplete="name"
                                     value={name}
                                     onInput={(e) => setName(e.target.value)}
                                     placeholder="Ваше имя"
@@ -127,11 +139,13 @@ export function AuthScreen({ pendingUser = null }) {
                             </div>
 
                             <div style={styles.fieldGroup}>
-                                <label style={styles.label}>Username</label>
+                                <label for="vortex-auth-username" style={styles.label}>Логин</label>
                                 <div style={styles.usernameWrapper}>
                                     <span style={styles.usernamePrefix}>@</span>
                                     <input
+                                        id="vortex-auth-username"
                                         type="text"
+                                        autocomplete="username"
                                         value={username}
                                         onInput={(e) => checkUsername(e.target.value)}
                                         placeholder="username"
@@ -143,7 +157,7 @@ export function AuthScreen({ pendingUser = null }) {
                                     />
                                 </div>
                                 {username.length >= 3 && (
-                                    <div style={{
+                                    <div role="status" aria-live="polite" style={{
                                         ...styles.statusText,
                                         color: usernameStatus.includes('✅') ? 'var(--vortex-secondary)' : 
                                                usernameStatus.includes('❌') ? 'var(--vortex-danger)' : 'var(--text-tertiary)'
@@ -156,9 +170,11 @@ export function AuthScreen({ pendingUser = null }) {
                     )}
 
                     {mode !== 'complete' && <><div style={styles.fieldGroup}>
-                        <label style={styles.label}>Email</label>
+                        <label for="vortex-auth-email" style={styles.label}>Электронная почта</label>
                         <input
+                            id="vortex-auth-email"
                             type="email"
+                            autocomplete="email"
                             value={email}
                             onInput={(e) => setEmail(e.target.value)}
                             placeholder="user@example.com"
@@ -168,15 +184,21 @@ export function AuthScreen({ pendingUser = null }) {
                     </div>
 
                     <div style={styles.fieldGroup}>
-                        <label style={styles.label}>Пароль</label>
-                        <input
-                            type="password"
-                            value={password}
-                            onInput={(e) => setPassword(e.target.value)}
-                            placeholder="••••••••"
-                                                        class="vortex-form-input" style={styles.input}
-                            required
-                        />
+                        <label for="vortex-auth-password" style={styles.label}>Пароль</label>
+                        <div class="vortex-auth-password-wrap">
+                            <input
+                                id="vortex-auth-password"
+                                type={showPassword ? 'text' : 'password'}
+                                autocomplete={mode === 'register' ? 'new-password' : 'current-password'}
+                                minLength={mode === 'register' ? 6 : undefined}
+                                value={password}
+                                onInput={(e) => setPassword(e.target.value)}
+                                placeholder="••••••••"
+                                class="vortex-form-input" style={styles.input}
+                                required
+                            />
+                            <button type="button" class="vortex-auth-password-toggle" aria-label={showPassword ? 'Скрыть пароль' : 'Показать пароль'} aria-pressed={showPassword} onClick={() => setShowPassword(!showPassword)}>{showPassword ? 'Скрыть' : 'Показать'}</button>
+                        </div>
                     </div></>}
 
                     {error && (
@@ -187,7 +209,7 @@ export function AuthScreen({ pendingUser = null }) {
 
                     <button
                         type="submit"
-                        disabled={loading || (mode !== 'login' && usernameStatus.includes('❌'))}
+                        disabled={loading || usernameChecking || (mode !== 'login' && usernameStatus.includes('❌'))}
                         class="vortex-primary-button" style={{
                             ...styles.submitBtn,
                             opacity: loading ? 0.7 : 1
@@ -227,7 +249,7 @@ const styles = {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        height: '100%',
+        minHeight: '100%',
         background: 'var(--bg-primary)'
     },
     card: {
