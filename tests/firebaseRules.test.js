@@ -25,6 +25,16 @@ if (available) {
         if (!response.ok) throw new Error(`Unable to seed ${path}: ${response.status}`);
     }
 }
+
+async function seedDocument(path, fields) {
+    const response = await fetch(`http://${process.env.FIRESTORE_EMULATOR_HOST}/v1/projects/demo-vortex/databases/(default)/documents/${path}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer owner' },
+        body: JSON.stringify({ fields })
+    });
+    if (!response.ok) throw new Error(`Unable to seed ${path}: ${response.status}`);
+    return response;
+}
 after(async () => { await environment?.cleanup(); });
 
 test('unread projections are readable only by their owner and never client-writable', { skip: !available }, async () => {
@@ -50,6 +60,33 @@ test('unread projections are readable only by their owner and never client-writa
     await assertFails(updateDoc(ownProjection, { count: 4 }));
     await assertFails(deleteDoc(ownProjection));
 });
+
+test('group creators cannot delete a group document directly, while private chat owners can', { skip: !available }, async () => {
+    const alice = environment.authenticatedContext('alice').firestore();
+    const groupRef = doc(alice, 'chats', 'group-delete-guard');
+    await seedDocument('chats/group-delete-guard', {
+        type: { stringValue: 'group' },
+        name: { stringValue: 'Команда' },
+        createdBy: { stringValue: 'alice' },
+        participants: { arrayValue: { values: [{ stringValue: 'alice' }, { stringValue: 'bob' }] } },
+        admins: { arrayValue: { values: [{ stringValue: 'alice' }] } }
+    });
+    await assertFails(deleteDoc(groupRef));
+
+    const privateRef = doc(alice, 'chats', 'private-delete-allowed');
+    await assertSucceeds(setDoc(privateRef, {
+        type: 'private',
+        createdBy: 'alice',
+        participants: ['alice', 'bob'],
+        participantNames: ['Alice', 'Bob'],
+        createdAt: serverTimestamp(),
+        lastMessage: 'Чат создан',
+        lastMessageTime: serverTimestamp(),
+        pinnedMessages: []
+    }));
+    await assertSucceeds(deleteDoc(privateRef));
+});
+
 
 test('nonmember cannot read a private chat or its messages', { skip: !available }, async () => {
     const alice = environment.authenticatedContext('alice').firestore();
