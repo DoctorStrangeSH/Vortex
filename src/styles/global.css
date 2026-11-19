@@ -291,6 +291,16 @@ button:disabled { cursor: not-allowed !important; }
 .vortex-search:focus-within { border-color: var(--vortex-primary-light) !important; box-shadow: 0 0 0 3px rgba(137,104,255,.13); }
 .vortex-chat-item { transition: background .18s ease, border-color .18s ease, transform .18s ease; }
 .vortex-chat-item:hover { background: var(--bg-hover) !important; }
+.vortex-chat-list { scrollbar-gutter: stable; }
+.vortex-chat-item { position: relative; border: 1px solid transparent; min-height: 70px; gap: 2px; }
+.vortex-chat-item::before { content: ''; position: absolute; inset: 11px auto 11px 0; width: 3px; border-radius: 4px; background: transparent; transition: background-color .18s ease; }
+.vortex-chat-item[aria-current="true"]::before { background: var(--vortex-primary-light); }
+.vortex-chat-item[aria-current="true"] .vortex-chat-name { color: var(--text-primary); }
+.vortex-chat-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.4; }
+.vortex-chat-time { align-self: flex-start; padding-top: 5px; font-variant-numeric: tabular-nums; }
+.vortex-chat-more { min-width: 34px; min-height: 36px; transition: background-color .18s ease, color .18s ease; }
+.vortex-chat-more:hover, .vortex-chat-more[aria-expanded="true"] { background: var(--bg-active) !important; color: var(--text-primary) !important; }
+.vortex-chat-item:focus-visible { box-shadow: inset 0 0 0 1px var(--focus-ring); }
 .vortex-chat-item:focus-visible { outline-offset: -2px; }
 .vortex-chat-item[aria-current="true"] { background: var(--bg-active) !important; border-color: rgba(165,137,255,.29) !important; }
 .vortex-icon-button { border: 1px solid transparent !important; }
@@ -309,6 +319,8 @@ button:disabled { cursor: not-allowed !important; }
     .vortex-sidebar-header { min-height: 66px; }
     .vortex-chat-header { min-height: 64px; }
     .vortex-composer { padding: .65rem .6rem !important; }
+    .vortex-chat-list { scrollbar-gutter: auto; }
+    .vortex-chat-item { min-height: 64px; }
 }
 
 /* Conversation surfaces */
