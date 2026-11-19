@@ -13,6 +13,7 @@ import { typingService } from '../../services/typingService';
 import { reactionService } from '../../services/reactionService';
 import { soundService } from '../../services/soundService';
 import { offlineService } from '../../services/offlineService';
+import { queuedMessagePresentation } from '../../services/queuedMessagePresentation.js';
 import { selfDestructService } from '../../services/selfDestructService';
 import { exportService } from '../../services/exportService';
 import { wallpaperService } from '../../services/wallpaperService';
@@ -929,11 +930,23 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
                 <div style={s.offlineBar}>📴 Нет соединения. Текстовые сообщения сохраняются в очереди; вложения отправляйте после подключения.</div>
             )}
             {queuedForChat.length > 0 && (
-                <div style={s.queueBar} role="status">
-                    <span>{failedForChat ? `⚠️ Ошибка отправки: ${failedForChat}` : !isOnline ? '⏳ Ожидает подключения' : '⏳ Ожидает отправки'} · В очереди: {queuedForChat.length}</span>
-                    {isOnline && <button type="button" style={s.retryBtn} disabled={queuedForChat.some(action => action.status === 'sending')} onClick={() => offlineService.processQueue()}>
-                        Повторить
-                    </button>}
+                <div style={{ ...s.queueBar, flexDirection: 'column', alignItems: 'stretch' }} role="status" aria-label="Сообщения в очереди">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+                        <span>{failedForChat ? `⚠️ Не отправлено: ${failedForChat}` : !isOnline ? '⏳ Ожидает подключения' : '⏳ Очередь отправки'} · {queuedForChat.length}</span>
+                        {isOnline && <button type="button" style={s.retryBtn} disabled={queuedForChat.some(action => action.status === 'sending')} onClick={() => offlineService.processQueue()}>
+                            Повторить
+                        </button>}
+                    </div>
+                    <div style={{ display: 'grid', gap: 5 }}>
+                        {queuedForChat.slice(0, 3).map(action => {
+                            const presentation = queuedMessagePresentation(action, isOnline);
+                            return <div key={action.id} style={{ display: 'flex', gap: 9, alignItems: 'center', minWidth: 0, fontSize: '0.74rem' }}>
+                                <span aria-label={presentation.label} title={presentation.label} style={{ color: presentation.kind === 'failed' ? 'var(--vortex-danger)' : 'var(--text-secondary)', flexShrink: 0 }}>{presentation.symbol} {presentation.label}</span>
+                                <span title={action.text} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0, opacity: .8 }}>{action.text}</span>
+                            </div>;
+                        })}
+                        {queuedForChat.length > 3 && <span style={{ color: 'var(--text-tertiary)' }}>И ещё {queuedForChat.length - 3} сообщений…</span>}
+                    </div>
                 </div>
             )}
 
