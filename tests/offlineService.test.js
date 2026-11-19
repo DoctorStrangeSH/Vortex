@@ -32,6 +32,25 @@ test('offline messages remain persisted when sending fails and disappear after c
     assert.deepEqual(JSON.parse(storage.getItem('offlineQueue')), []);
 });
 
+test('online messages are durably queued before delivery confirmation', async () => {
+    const { service, storage } = createService();
+    service.activeUid = 'alice';
+    let releaseDelivery;
+    const pendingDelivery = new Promise(resolve => { releaseDelivery = resolve; });
+    let started;
+    const deliveryStarted = new Promise(resolve => { started = resolve; });
+    service.executeAction = async () => { started(); await pendingDelivery; };
+
+    await service.addToQueue({ type: 'sendMessage', chatId: 'chat-a', text: 'Привет', user: { uid: 'alice' } });
+    await deliveryStarted;
+    assert.equal(JSON.parse(storage.getItem('offlineQueue'))[0].id, 'test-message-1');
+    assert.equal(service.getQueue()[0].status, 'sending');
+
+    releaseDelivery();
+    await service.processingPromise;
+    assert.deepEqual(JSON.parse(storage.getItem('offlineQueue')), []);
+});
+
 test('parallel queue flushes cannot send the same action twice', async () => {
     const { service, storage } = createService();
     await service.addToQueue({ type: 'sendMessage', text: 'Один раз' });
