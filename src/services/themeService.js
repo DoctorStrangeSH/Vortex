@@ -11,6 +11,7 @@ class ThemeService {
     get() { return this.theme; }
 
     setTheme(theme) {
+        if (theme !== 'dark' && theme !== 'light') return;
         this.theme = theme;
         localStorage.setItem('vortex-theme', theme);
         this.apply();
@@ -44,7 +45,7 @@ class ThemeService {
 
     getPresetThemes() {
         return {
-            'default': { name: 'Стандартная', primary: '#7C3AED', secondary: '#06D6A0' },
+            'default': { name: 'Obsidian Iris', primary: '#8968FF', secondary: '#6FE2CA' },
             'ocean': { name: 'Океан', primary: '#0EA5E9', secondary: '#06B6D4' },
             'sunset': { name: 'Закат', primary: '#F59E0B', secondary: '#EF4444' },
             'forest': { name: 'Лес', primary: '#10B981', secondary: '#34D399' },
@@ -52,6 +53,15 @@ class ThemeService {
             'midnight': { name: 'Полночь', primary: '#1E1B4B', secondary: '#312E81' },
             'gold': { name: 'Золото', primary: '#D97706', secondary: '#FBBF24' }
         };
+    }
+
+    getActivePreset() {
+        const primary = this.customColors?.['--vortex-primary'];
+        const secondary = this.customColors?.['--vortex-secondary'];
+        return Object.entries(this.getPresetThemes()).find(([, preset]) =>
+            preset.primary.toLowerCase() === primary?.toLowerCase() &&
+            preset.secondary.toLowerCase() === secondary?.toLowerCase()
+        )?.[0] || null;
     }
 
     applyPreset(presetName) {
