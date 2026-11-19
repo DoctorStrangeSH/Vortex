@@ -1,6 +1,8 @@
-import { useState, useEffect } from 'preact/hooks';
+import { useState, useEffect, useRef } from 'preact/hooks';
 import { authService } from '../../services/authService';
 import { userService } from '../../services/userService';
+import { Icon } from '../UI/Icon';
+import { updateProfile as updateFirebaseProfile } from 'firebase/auth';
 
 export function ProfileModal({ onClose }) {
     const [profile, setProfile] = useState(null);
@@ -8,34 +10,44 @@ export function ProfileModal({ onClose }) {
     const [bio, setBio] = useState('');
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState('');
+    const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState(false);
+    const closeTimer = useRef(null);
 
     useEffect(() => {
-        loadProfile();
+        let active = true;
+        const user = authService.getCurrentUser();
+        if (!user) { setLoading(false); setLoadError(true); return; }
+        userService.getUserProfile(user.uid).then(data => {
+            if (!active) return;
+            if (!data) { setLoadError(true); return; }
+            setProfile(data);
+            setName(data.displayName || '');
+            setBio(data.bio || '');
+        }).catch(() => { if (active) setLoadError(true); })
+            .finally(() => { if (active) setLoading(false); });
+        return () => { active = false; if (closeTimer.current) clearTimeout(closeTimer.current); };
     }, []);
 
-    const loadProfile = async () => {
-        const user = authService.getCurrentUser();
-        if (!user) return;
-
-        const data = await userService.getUserProfile(user.uid);
-        setProfile(data);
-        setName(data?.displayName || '');
-        setBio(data?.bio || '');
-    };
-
     const handleSave = async () => {
+        const trimmedName = name.trim();
+        if (saving || loading || loadError) return;
+        if (trimmedName.length < 2 || trimmedName.length > 80) { setMessage('Имя должно содержать от 2 до 80 символов'); return; }
+        if (bio.length > 500) { setMessage('Описание не должно превышать 500 символов'); return; }
         setSaving(true);
         setMessage('');
 
         try {
             await userService.updateProfile(authService.getCurrentUser().uid, {
-                displayName: name,
+                displayName: trimmedName,
                 bio: bio
             });
+            try { await updateFirebaseProfile(authService.getCurrentUser(), { displayName: trimmedName }); }
+            catch (error) { console.warn('Имя в Firebase Auth обновится при следующем входе', error); }
             setMessage('✅ Профиль обновлён!');
-            setTimeout(() => onClose?.(), 1000);
+            closeTimer.current = setTimeout(() => onClose?.(), 1000);
         } catch (err) {
-            setMessage('❌ Ошибка сохранения');
+            setMessage(err.code === 'permission-denied' ? 'Нет доступа к сохранению профиля. Проверьте правила Firestore.' : '❌ Не удалось сохранить профиль. Попробуйте ещё раз.');
         } finally {
             setSaving(false);
         }
@@ -59,31 +71,38 @@ export function ProfileModal({ onClose }) {
     const user = authService.getCurrentUser();
 
     return (
-        <div class="vortex-dialog-overlay" style={styles.overlay} onClick={onClose}>
+        <div class="vortex-dialog-overlay" style={styles.overlay} onClick={() => { if (!saving) onClose?.(); }}>
             <div class="vortex-profile-modal vortex-dialog-surface" role="dialog" aria-modal="true" aria-label="Профиль" style={styles.modal} onClick={(e) => e.stopPropagation()}>
                 {/* Заголовок */}
-                <div style={styles.header}>
-                    <h3 style={styles.title}>👤 Профиль</h3>
-                    <button type="button" aria-label="Закрыть профиль" class="vortex-icon-button" onClick={onClose} style={styles.closeBtn}>✕</button>
+                <div class="vortex-profile-header" style={styles.header}>
+                    <div><div class="vortex-profile-eyebrow">VORTEX · ВАШЕ ПРОСТРАНСТВО</div><h3 style={styles.title}>Мой профиль</h3></div>
+                    <button type="button" disabled={saving} aria-label="Закрыть профиль" class="vortex-icon-button" onClick={onClose} style={styles.closeBtn}><Icon name="close" size={20} /></button>
                 </div>
 
                 {/* Тело */}
-                <div style={styles.body}>
+                <div class="vortex-profile-body" style={styles.body}>
+                    {loading && <div class="vortex-profile-status" role="status">Загружаем профиль…</div>}
+                    {loadError && <div class="vortex-profile-status" role="alert">Не удалось загрузить профиль. Закройте окно и попробуйте снова.</div>}
+                    {!loading && !loadError && <>
                     {/* Аватар */}
-                    <div style={styles.avatarSection}>
+                    <div class="vortex-profile-hero" style={styles.avatarSection}>
                         <div style={{
                             ...styles.avatar,
                             background: getAvatarColor(name || user?.email)
                         }}>
                             {(name || user?.email || '?').charAt(0).toUpperCase()}
                         </div>
+                        <h4>{name.trim() || 'Ваше имя'}</h4>
+                        <p>@{profile?.username || 'логин не задан'}</p>
                     </div>
 
                     {/* Поля */}
                     <div style={styles.field}>
-                        <label style={styles.label}>Имя</label>
+                        <label for="vortex-profile-name" style={styles.label}>Имя</label>
                         <input
+                            id="vortex-profile-name"
                             type="text"
+                            maxLength={80}
                             value={name}
                             onInput={(e) => setName(e.target.value)}
                             class="vortex-form-input" style={styles.input}
@@ -92,32 +111,35 @@ export function ProfileModal({ onClose }) {
                     </div>
 
                     <div style={styles.field}>
-                        <label style={styles.label}>Username</label>
+                        <label style={styles.label}>Логин</label>
                         <div style={styles.usernameDisplay}>
                             @{profile?.username || 'не задан'}
                         </div>
                     </div>
 
                     <div style={styles.field}>
-                        <label style={styles.label}>Email</label>
+                        <label style={styles.label}>Электронная почта</label>
                         <div style={styles.usernameDisplay}>
                             {user?.email}
                         </div>
                     </div>
 
                     <div style={styles.field}>
-                        <label style={styles.label}>Bio</label>
+                        <label for="vortex-profile-bio" style={styles.label}>О себе</label>
                         <textarea
+                            id="vortex-profile-bio"
+                            maxLength={500}
                             value={bio}
                             onInput={(e) => setBio(e.target.value)}
                             class="vortex-form-input" style={styles.textarea}
                             placeholder="Расскажите о себе..."
                             rows={3}
                         />
+                        <div class="vortex-profile-counter">{bio.length} / 500</div>
                     </div>
 
                     {message && (
-                        <div role="status" style={{
+                        <div role="status" aria-live="polite" style={{
                             ...styles.message,
                             background: message.includes('✅') ? 'rgba(6,214,160,0.1)' : 'rgba(239,68,68,0.1)',
                             color: message.includes('✅') ? 'var(--vortex-secondary)' : 'var(--vortex-danger)'
@@ -128,14 +150,15 @@ export function ProfileModal({ onClose }) {
 
                     <button
                         type="button" class="vortex-primary-button" onClick={handleSave}
-                        disabled={saving}
+                        disabled={saving || name.trim().length < 2}
                         style={{
                             ...styles.saveBtn,
                             opacity: saving ? 0.7 : 1
                         }}
                     >
-                        {saving ? 'Сохранение...' : '💾 Сохранить'}
+                        {saving ? 'Сохранение…' : 'Сохранить изменения'}
                     </button>
+                    </>}
                 </div>
             </div>
         </div>
