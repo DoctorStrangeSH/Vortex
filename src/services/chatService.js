@@ -4,7 +4,6 @@ import { messageService } from './messageService';
 import { privateChatId } from './privateChatId.js';
 import {
     collection,
-    addDoc,
     query,
     where,
     onSnapshot,
@@ -13,10 +12,7 @@ import {
     doc,
     setDoc,
     getDoc,
-    runTransaction,
-    updateDoc,
-    arrayUnion,
-    arrayRemove
+    runTransaction
 } from 'firebase/firestore';
 
 const functions = getFunctions(undefined, 'europe-west1');
