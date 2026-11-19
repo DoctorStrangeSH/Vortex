@@ -1,25 +1,28 @@
 import { db } from './firebase';
-import { doc, setDoc, onSnapshot, serverTimestamp } from 'firebase/firestore';
+import { doc, updateDoc, onSnapshot, serverTimestamp } from 'firebase/firestore';
+import { authService } from './authService';
 
 class PresenceService {
     startTracking() {
-        const uid = window._vortexUser;
+        const uid = authService.getCurrentUser()?.uid;
         if (!uid) return;
         
-        const userRef = doc(db, 'users', uid);
-        setDoc(userRef, { isOnline: true, lastSeen: serverTimestamp() }, { merge: true });
+        const userRef = doc(db, 'publicProfiles', uid);
+        updateDoc(userRef, { isOnline: true, lastSeen: serverTimestamp() }).catch(console.error);
         
         setInterval(() => {
-            setDoc(userRef, { isOnline: true, lastSeen: serverTimestamp() }, { merge: true });
+            if (authService.getCurrentUser()?.uid === uid) {
+                updateDoc(userRef, { isOnline: true, lastSeen: serverTimestamp() }).catch(console.error);
+            }
         }, 30000);
 
         window.addEventListener('beforeunload', () => {
-            setDoc(userRef, { isOnline: false, lastSeen: serverTimestamp() }, { merge: true });
+            updateDoc(userRef, { isOnline: false, lastSeen: serverTimestamp() }).catch(() => {});
         });
     }
 
     watchUser(uid, callback) {
-        const userRef = doc(db, 'users', uid);
+        const userRef = doc(db, 'publicProfiles', uid);
         return onSnapshot(userRef, (snap) => {
             const data = snap.data();
             callback({ isOnline: data?.isOnline || false, lastSeen: data?.lastSeen?.toDate?.() || null });

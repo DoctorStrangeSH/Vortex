@@ -59,12 +59,12 @@ export function ProfileModal({ onClose }) {
     const user = authService.getCurrentUser();
 
     return (
-        <div style={styles.overlay} onClick={onClose}>
-            <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
+        <div class="vortex-dialog-overlay" style={styles.overlay} onClick={onClose}>
+            <div class="vortex-profile-modal vortex-dialog-surface" role="dialog" aria-modal="true" aria-label="Профиль" style={styles.modal} onClick={(e) => e.stopPropagation()}>
                 {/* Заголовок */}
                 <div style={styles.header}>
                     <h3 style={styles.title}>👤 Профиль</h3>
-                    <button onClick={onClose} style={styles.closeBtn}>✕</button>
+                    <button type="button" aria-label="Закрыть профиль" class="vortex-icon-button" onClick={onClose} style={styles.closeBtn}>✕</button>
                 </div>
 
                 {/* Тело */}
@@ -77,9 +77,6 @@ export function ProfileModal({ onClose }) {
                         }}>
                             {(name || user?.email || '?').charAt(0).toUpperCase()}
                         </div>
-                        <button style={styles.changeAvatarBtn}>
-                            📷 Изменить аватар
-                        </button>
                     </div>
 
                     {/* Поля */}
@@ -89,7 +86,7 @@ export function ProfileModal({ onClose }) {
                             type="text"
                             value={name}
                             onInput={(e) => setName(e.target.value)}
-                            style={styles.input}
+                            class="vortex-form-input" style={styles.input}
                             placeholder="Ваше имя"
                         />
                     </div>
@@ -113,14 +110,14 @@ export function ProfileModal({ onClose }) {
                         <textarea
                             value={bio}
                             onInput={(e) => setBio(e.target.value)}
-                            style={styles.textarea}
+                            class="vortex-form-input" style={styles.textarea}
                             placeholder="Расскажите о себе..."
                             rows={3}
                         />
                     </div>
 
                     {message && (
-                        <div style={{
+                        <div role="status" style={{
                             ...styles.message,
                             background: message.includes('✅') ? 'rgba(6,214,160,0.1)' : 'rgba(239,68,68,0.1)',
                             color: message.includes('✅') ? 'var(--vortex-secondary)' : 'var(--vortex-danger)'
@@ -130,7 +127,7 @@ export function ProfileModal({ onClose }) {
                     )}
 
                     <button
-                        onClick={handleSave}
+                        type="button" class="vortex-primary-button" onClick={handleSave}
                         disabled={saving}
                         style={{
                             ...styles.saveBtn,
@@ -160,10 +157,10 @@ const styles = {
     modal: {
         background: 'var(--bg-secondary)',
         border: '1px solid var(--border-default)',
-        borderRadius: '20px',
-        width: '440px',
-        maxWidth: '90vw',
-        boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)',
+        borderRadius: '24px',
+        width: '480px',
+        maxWidth: '94vw',
+        boxShadow: '0 30px 90px rgba(0, 0, 0, 0.55)',
         animation: 'slideUp 0.25s ease',
         overflow: 'hidden'
     },
@@ -182,7 +179,7 @@ const styles = {
     closeBtn: {
         width: '32px',
         height: '32px',
-        borderRadius: '50%',
+        borderRadius: '24px',
         background: 'transparent',
         border: 'none',
         color: 'var(--text-secondary)',

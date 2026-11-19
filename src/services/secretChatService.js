@@ -7,6 +7,7 @@ class SecretChatService {
     async createSecretChat(user1, user2) {
         const chatData = {
             type: 'secret',
+            createdBy: user1.uid,
             participants: [user1.uid, user2.uid],
             createdAt: serverTimestamp(),
             encryptionKey: await encryptionService.exportPublicKey()

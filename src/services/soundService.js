@@ -1,31 +1,42 @@
-class SoundService {
-    constructor() {
-        this.enabled = localStorage.getItem('vortex-sound') !== 'off';
-        this.currentSound = localStorage.getItem('vortex-sound-type') || 'default';
-        this.volume = parseFloat(localStorage.getItem('vortex-sound-volume') || '0.5');
+// Reuse one Web Audio context for the lifetime of the page. Browsers limit
+// active contexts; creating a new one for every incoming message leaks resources.
+export class SoundService {
+    constructor({ storage = globalThis.localStorage, createAudioContext = () => {
+        const AudioContext = globalThis.AudioContext || globalThis.webkitAudioContext;
+        if (!AudioContext) throw new Error('Web Audio недоступен');
+        return new AudioContext();
+    }, schedule = globalThis.setTimeout } = {}) {
+        this.storage = storage;
+        this.createAudioContext = createAudioContext;
+        this.schedule = schedule;
+        this.enabled = storage?.getItem('vortex-sound') !== 'off';
+        this.currentSound = storage?.getItem('vortex-sound-type') || 'default';
+        this.volume = Number.parseFloat(storage?.getItem('vortex-sound-volume') || '0.5');
+        if (!Number.isFinite(this.volume)) this.volume = 0.5;
+        this.context = null;
     }
 
     async playMessageSound() {
-        if (!this.enabled) return;
-        
+        if (!this.enabled || this.currentSound === 'silent') return;
         try {
-            const ctx = new (window.AudioContext || window.webkitAudioContext)();
-            
+            if (!this.context || this.context.state === 'closed') this.context = this.createAudioContext();
+            const ctx = this.context;
+            if (ctx.state === 'suspended') await ctx.resume();
             switch (this.currentSound) {
                 case 'default':
                     this.playBeep(ctx, 800, 0.1);
                     break;
                 case 'chime':
                     this.playBeep(ctx, 1200, 0.08);
-                    setTimeout(() => this.playBeep(ctx, 1600, 0.06), 100);
+                    this.schedule(() => {
+                        if (this.enabled && this.currentSound === 'chime' && ctx.state !== 'closed') this.playBeep(ctx, 1600, 0.06);
+                    }, 100);
                     break;
                 case 'pop':
                     this.playBeep(ctx, 600, 0.05);
                     break;
-                case 'silent':
-                    break;
             }
-        } catch (e) {}
+        } catch { /* Audio autoplay permission may not yet be granted. */ }
     }
 
     playBeep(ctx, freq, duration) {
@@ -42,17 +53,17 @@ class SoundService {
 
     setSound(type) {
         this.currentSound = type;
-        localStorage.setItem('vortex-sound-type', type);
+        this.storage?.setItem('vortex-sound-type', type);
     }
 
     setVolume(vol) {
-        this.volume = vol;
-        localStorage.setItem('vortex-sound-volume', vol);
+        this.volume = Number.isFinite(vol) ? Math.max(0, Math.min(1, vol)) : 0.5;
+        this.storage?.setItem('vortex-sound-volume', this.volume);
     }
 
     toggle() {
         this.enabled = !this.enabled;
-        localStorage.setItem('vortex-sound', this.enabled ? 'on' : 'off');
+        this.storage?.setItem('vortex-sound', this.enabled ? 'on' : 'off');
         return this.enabled;
     }
 

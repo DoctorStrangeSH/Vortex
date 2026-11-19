@@ -1,4 +1,5 @@
 import { db } from './firebase';
+import { normalizeUsername } from './usernamePolicy.js';
 import {
     doc,
     setDoc,
@@ -7,40 +8,73 @@ import {
     query,
     collection,
     where,
-    limit
+    limit,
+    deleteField,
+    runTransaction
 } from 'firebase/firestore';
 
 class UserService {
     // Сохранить пользователя при регистрации
     async createUser(userData) {
         const { uid, email, displayName, username } = userData;
-        
-        await setDoc(doc(db, 'users', uid), {
+        const normalizedUsername = username ? normalizeUsername(username) : '';
+        const userRef = doc(db, 'users', uid);
+        const publicRef = doc(db, 'publicProfiles', uid);
+        const usernameRef = normalizedUsername ? doc(db, 'usernames', normalizedUsername) : null;
+        const profile = {
             uid,
             email,
             displayName,
-            username,
+            username: normalizedUsername,
             createdAt: new Date(),
             updatedAt: new Date()
+        };
+        await runTransaction(db, async transaction => {
+            if (usernameRef) {
+                const claim = await transaction.get(usernameRef);
+                if (claim.exists() && claim.data().uid !== uid) {
+                    throw new Error('Этот username уже занят');
+                }
+            }
+            const currentProfile = await transaction.get(userRef);
+            if (currentProfile.exists()) throw new Error('Профиль уже существует');
+            transaction.set(userRef, profile);
+            transaction.set(publicRef, { uid, username: normalizedUsername, displayName: displayName || '' });
+            if (usernameRef) transaction.set(usernameRef, { username: normalizedUsername, uid });
         });
-        
-        if (username) {
-            await setDoc(doc(db, 'usernames', username), {
-                username,
-                uid,
-                email
-            });
-        }
+    }
+
+    // Existing accounts are published only after the owner has signed in.
+    // Never copy email or private settings into the searchable collection.
+    async ensurePublicProfile(uid) {
+        const privateRef = doc(db, 'users', uid);
+        const publicRef = doc(db, 'publicProfiles', uid);
+        await runTransaction(db, async transaction => {
+            const profile = await transaction.get(privateRef);
+            if (!profile.exists()) return;
+            const publicProfile = await transaction.get(publicRef);
+            const data = profile.data();
+            const claimRef = data.username ? doc(db, 'usernames', data.username) : null;
+            const claim = claimRef ? await transaction.get(claimRef) : null;
+            if (!publicProfile.exists()) {
+                transaction.set(publicRef, {
+                    uid,
+                    username: data.username || '',
+                    displayName: data.displayName || '',
+                    bio: data.bio || ''
+                });
+            }
+            if (claim?.exists() && claim.data().uid === uid && Object.hasOwn(claim.data(), 'email')) {
+                transaction.update(claimRef, { email: deleteField() });
+            }
+        });
     }
 
     // Проверить, свободен ли username
     async isUsernameAvailable(username) {
-        const q = query(
-            collection(db, 'usernames'),
-            where('username', '==', username)
-        );
-        const snapshot = await getDocs(q);
-        return snapshot.empty;
+        const normalized = normalizeUsername(username);
+        const snapshot = await getDoc(doc(db, 'usernames', normalized));
+        return !snapshot.exists();
     }
 
     // Найти пользователя по email или @username
@@ -49,41 +83,27 @@ class UserService {
         
         // Поиск по @username
         if (input.startsWith('@')) {
-            const username = input.substring(1).toLowerCase();
-            const q = query(
-                collection(db, 'usernames'),
-                where('username', '==', username)
-            );
-            const snapshot = await getDocs(q);
-            
-            if (!snapshot.empty) {
-                const data = snapshot.docs[0].data();
-                const userDoc = await getDoc(doc(db, 'users', data.uid));
+            const username = normalizeUsername(input);
+            const snapshot = await getDoc(doc(db, 'usernames', username));
+            if (snapshot.exists()) {
+                const data = snapshot.data();
+                const userDoc = await getDoc(doc(db, 'publicProfiles', data.uid));
                 return userDoc.exists() ? userDoc.data() : null;
             }
             return null;
         }
         
-        // Поиск по email
+        // Email is private; exposing its index would allow account enumeration.
         if (input.includes('@')) {
-            const q = query(
-                collection(db, 'users'),
-                where('email', '==', input)
-            );
-            const snapshot = await getDocs(q);
-            return snapshot.empty ? null : snapshot.docs[0].data();
+            return null;
         }
         
         // Поиск по username без @
-        const q = query(
-            collection(db, 'usernames'),
-            where('username', '==', input.toLowerCase())
-        );
-        const snapshot = await getDocs(q);
-        
-        if (!snapshot.empty) {
-            const data = snapshot.docs[0].data();
-            const userDoc = await getDoc(doc(db, 'users', data.uid));
+        const username = normalizeUsername(input);
+        const snapshot = await getDoc(doc(db, 'usernames', username));
+        if (snapshot.exists()) {
+            const data = snapshot.data();
+            const userDoc = await getDoc(doc(db, 'publicProfiles', data.uid));
             return userDoc.exists() ? userDoc.data() : null;
         }
         
@@ -92,9 +112,9 @@ class UserService {
 
     // Поиск пользователей (для глобального поиска)
     async searchUsers(searchText, maxResults = 10) {
-        const text = searchText.toLowerCase();
+        const text = searchText.trim().toLowerCase().replace(/^@/, '');
         const q = query(
-            collection(db, 'users'),
+                collection(db, 'publicProfiles'),
             where('username', '>=', text),
             where('username', '<=', text + '\uf8ff'),
             limit(maxResults)
@@ -116,6 +136,13 @@ class UserService {
             ...data,
             updatedAt: new Date()
         }, { merge: true });
+        const publicData = {};
+        for (const key of ['displayName', 'bio']) {
+            if (Object.hasOwn(data, key)) publicData[key] = data[key];
+        }
+        if (Object.keys(publicData).length) {
+            await setDoc(doc(db, 'publicProfiles', uid), publicData, { merge: true });
+        }
     }
 }
 

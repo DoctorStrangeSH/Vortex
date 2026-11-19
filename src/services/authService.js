@@ -32,9 +32,24 @@ class AuthService {
     }
 
     async register(email, password, name, username = '') {
+        if (username && !(await userService.isUsernameAvailable(username))) {
+            throw new Error('Этот username уже занят');
+        }
         const result = await createUserWithEmailAndPassword(auth, email, password);
         await updateProfile(result.user, { displayName: name });
         await userService.createUser({ uid: result.user.uid, email, displayName: name, username });
+        this.notifyAuthChange();
+    }
+
+    async completeRegistration(user, name, username) {
+        if (!user || auth.currentUser?.uid !== user.uid) throw new Error('Сессия регистрации недействительна');
+        await updateProfile(user, { displayName: name });
+        await userService.createUser({ uid: user.uid, email: user.email, displayName: name, username });
+        this.notifyAuthChange();
+    }
+
+    notifyAuthChange() {
+        this.listeners.forEach(listener => listener(this.currentUser));
     }
 
     async logout() {

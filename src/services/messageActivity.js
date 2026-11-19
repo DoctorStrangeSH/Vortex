@@ -1,0 +1,54 @@
+// Snapshot updates also arrive for edits, reactions, and read receipts.
+// Only genuinely new incoming message IDs should make an audible alert.
+export function getNewIncomingIds(previousIds, messages, ownUid) {
+    // Firestore's recent-message window can shift backwards after deletion or
+    // pagination. Older entries entering that window are not new arrivals.
+    const lastKnownIndex = messages.findLastIndex(message => previousIds.has(message.id));
+    const candidates = lastKnownIndex >= 0 ? messages.slice(lastKnownIndex + 1) : messages;
+    return candidates.filter(message =>
+        message.senderId !== ownUid &&
+        !message.readBy?.includes(ownUid) &&
+        !previousIds.has(message.id)
+    ).map(message => message.id);
+}
+
+// Keep a bounded history across subscription snapshots. A message temporarily
+// dropped from Firestore's recent window must not become "new" when it returns.
+export function rememberRecentMessageIds(previousIds, messages, limit = 2000) {
+    const known = new Set(previousIds ?? []);
+    const boundedLimit = Number.isInteger(limit) && limit > 0 ? limit : 2000;
+    for (const message of messages) {
+        if (!message?.id) continue;
+        // Refresh the newest entries so they survive pruning older IDs.
+        known.delete(message.id);
+        known.add(message.id);
+    }
+    while (known.size > boundedLimit) known.delete(known.values().next().value);
+    return known;
+}
+
+export function getUnreadIncomingIds(messages, ownUid, attemptedIds) {
+    return messages.filter(message => message.senderId !== ownUid && !message.readBy?.includes(ownUid) && !attemptedIds.has(message.id)).map(message => message.id);
+}
+
+export function getFirstUnreadIncomingId(messages, ownUid) {
+    return messages.find(message => message.senderId !== ownUid && !message.readBy?.includes(ownUid))?.id ?? null;
+}
+
+// Only the foreground, focused tab should play in-app sounds. Background
+// notifications require a separate server-backed push implementation.
+export function shouldPlayIncomingSound({ visibilityState, hasFocus }) {
+    return visibilityState === 'visible' && hasFocus;
+}
+
+export function shouldMarkMessagesRead({ visibilityState, hasFocus }) {
+    return visibilityState === 'visible' && hasFocus;
+}
+
+// A message is read only after a meaningful part of its bubble enters the
+// scroll viewport, not merely because its chat is open.
+export function isMessageVisible(messageRect, containerRect) {
+    const height = Math.max(0, messageRect.bottom - messageRect.top);
+    const overlap = Math.max(0, Math.min(messageRect.bottom, containerRect.bottom) - Math.max(messageRect.top, containerRect.top));
+    return height > 0 && overlap >= Math.min(24, height / 2);
+}

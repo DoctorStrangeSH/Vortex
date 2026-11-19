@@ -1,5 +1,6 @@
 import { db } from './firebase';
 import { messageService } from './messageService';
+import { privateChatId } from './privateChatId.js';
 import {
     collection,
     addDoc,
@@ -10,7 +11,11 @@ import {
     getDocs,
     doc,
     setDoc,
-    getDoc
+    getDoc,
+    runTransaction,
+    updateDoc,
+    arrayUnion,
+    arrayRemove
 } from 'firebase/firestore';
 
 class ChatService {
@@ -35,6 +40,12 @@ class ChatService {
     }
 
     async createChat(currentUser, otherUser) {
+        const stableId = privateChatId(currentUser?.uid, otherUser?.uid);
+        const stableRef = doc(db, 'chats', stableId);
+        const stableChat = await getDoc(stableRef);
+        if (stableChat.exists()) return stableId;
+
+        // Preserve pre-existing chats created before deterministic IDs were introduced.
         const existingQuery = query(
             collection(db, 'chats'),
             where('participants', 'array-contains', currentUser.uid)
@@ -45,18 +56,18 @@ class ChatService {
             const data = doc.data();
             return data.participants.includes(otherUser.uid) && 
                    data.participants.length === 2 &&
-                   data.type !== 'group';
+                   (data.type === 'private' || !data.type);
         });
 
         if (existingChat) return existingChat.id;
 
         const chatData = {
             type: 'private',
+            createdBy: currentUser.uid,
             participants: [currentUser.uid, otherUser.uid],
-            participantEmails: [currentUser.email, otherUser.email],
             participantNames: [
-                currentUser.displayName || currentUser.email,
-                otherUser.displayName || otherUser.email
+                currentUser.displayName || 'Пользователь',
+                otherUser.displayName || otherUser.username || 'Пользователь'
             ],
             createdAt: serverTimestamp(),
             lastMessage: 'Чат создан',
@@ -64,12 +75,15 @@ class ChatService {
             pinnedMessages: []
         };
 
-        const ref = await addDoc(collection(db, 'chats'), chatData);
-        return ref.id;
+        await runTransaction(db, async transaction => {
+            const existing = await transaction.get(stableRef);
+            if (!existing.exists()) transaction.set(stableRef, chatData);
+        });
+        return stableId;
     }
 
     async createGroupChat(currentUser, participantIds, groupName = 'Группа') {
-        const allParticipants = [currentUser.uid, ...participantIds];
+        const allParticipants = [...new Set([currentUser.uid, ...participantIds])];
         
         const chatData = {
             type: 'group',
@@ -87,8 +101,29 @@ class ChatService {
         return ref.id;
     }
 
-    async sendMessage(chatId, text, user, attachment = null) {
-        await messageService.sendMessage(chatId, user, text, attachment);
+    async addGroupMember(groupId, memberUid) {
+        if (!memberUid || typeof memberUid !== 'string') throw new Error('Выберите участника');
+        await updateDoc(doc(db, 'chats', groupId), { participants: arrayUnion(memberUid) });
+    }
+
+    async removeGroupMember(groupId, memberUid) {
+        if (!memberUid || typeof memberUid !== 'string') throw new Error('Выберите участника');
+        await updateDoc(doc(db, 'chats', groupId), { participants: arrayRemove(memberUid) });
+    }
+
+    async leaveGroup(groupId, userUid) {
+        await this.removeGroupMember(groupId, userUid);
+    }
+
+    async setGroupAdmin(groupId, memberUid, enabled) {
+        if (!memberUid || typeof memberUid !== 'string') throw new Error('Выберите участника');
+        await updateDoc(doc(db, 'chats', groupId), {
+            admins: enabled ? arrayUnion(memberUid) : arrayRemove(memberUid)
+        });
+    }
+
+    async sendMessage(chatId, text, user, attachment = null, messageId = null) {
+        await messageService.sendMessage(chatId, user, text, attachment, messageId);
     }
 
     subscribeToMessages(chatId, callback) {

@@ -1,0 +1,25 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function member(chatId) {
+      return request.auth != null &&
+        request.auth.uid in firestore.get(/databases/(default)/documents/chats/$(chatId)).data.participants;
+    }
+
+    match /chats/{chatId}/media/{userId}/{fileId} {
+      allow read: if member(chatId);
+      allow create: if member(chatId) && request.auth.uid == userId &&
+        request.resource.size > 0 && request.resource.size <= 25 * 1024 * 1024 &&
+        request.resource.contentType is string &&
+        request.resource.contentType.size() <= 128 &&
+        request.resource.contentType.matches('^[a-z0-9][a-z0-9.+-]*/[a-z0-9][a-z0-9.+-]*$') &&
+        !(request.resource.contentType in ['text/html','image/svg+xml','application/javascript','text/javascript','application/x-javascript','application/xhtml+xml','application/xml','text/xml']) &&
+        fileId.matches('^[A-Za-z0-9_-]{1,128}$') &&
+        userId.matches('^[A-Za-z0-9_-]{1,128}$');
+      allow delete: if member(chatId) && request.auth.uid == userId;
+      allow update: if false;
+    }
+
+    match /{allPaths=**} { allow read, write: if false; }
+  }
+}

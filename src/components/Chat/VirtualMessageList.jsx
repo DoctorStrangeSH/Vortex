@@ -1,63 +1,152 @@
-import { useState, useEffect, useRef, useCallback } from 'preact/hooks';
+import { useState, useEffect, useRef, useMemo, useLayoutEffect } from 'preact/hooks';
+import { buildMessageOffsets, getVisibleMessageRange, indexMessagesById, shouldUpdateMeasuredHeight, scrollAnchorAdjustment, getMessageNavigationTop, getPrependedScrollOffset, estimatedMessageHeight, isNearVirtualBottom, getOldestMessageAnchorId } from '../../services/virtualMessageLayout.js';
 
-export function VirtualMessageList({ messages, renderMessage, loading, onScrollToBottom }) {
+// Can share the main chat's scroll container and callbacks during opt-in rollout.
+export function VirtualMessageList({ messages, renderMessage, loading, onScrollToBottom, onScrollChange, onVisibleRowsChange, onMissingTarget, navigationTarget = null, externalContainerRef, className, style }) {
     const containerRef = useRef(null);
-    const [visibleRange, setVisibleRange] = useState({ start: 0, end: 20 });
-    const ITEM_HEIGHT = 60; // Примерная высота сообщения
-    const BUFFER = 10; // Сообщений сверху/снизу для плавности
+    const handledNavigationRef = useRef(null);
+    const missingNavigationRef = useRef(null);
+    const previousAnchorRef = useRef({ id: null, top: 0 });
+    const measuredHeights = useRef(new Map());
+    const pendingBottomStickRef = useRef(false);
+    const wasAtBottomRef = useRef(false);
+    const onVisibleRowsChangeRef = useRef(onVisibleRowsChange);
+    onVisibleRowsChangeRef.current = onVisibleRowsChange;
+    const [revision, setRevision] = useState(0);
+    const [viewport, setViewport] = useState({ top: 0, height: 600 });
+    const offsets = useMemo(() => buildMessageOffsets(messages, measuredHeights.current), [messages, revision]);
+    const range = getVisibleMessageRange(offsets, viewport.top, viewport.height);
 
-    const totalHeight = messages.length * ITEM_HEIGHT;
-
-    const handleScroll = useCallback(() => {
-        const el = containerRef.current;
-        if (!el) return;
-
-        const scrollTop = el.scrollTop;
-        const containerHeight = el.clientHeight;
-        
-        const start = Math.max(0, Math.floor(scrollTop / ITEM_HEIGHT) - BUFFER);
-        const end = Math.min(
-            messages.length,
-            Math.ceil((scrollTop + containerHeight) / ITEM_HEIGHT) + BUFFER
-        );
-
-        setVisibleRange({ start, end });
-
-        // Автоскролл?
-        const atBottom = el.scrollHeight - scrollTop - containerHeight < 100;
-        if (atBottom && onScrollToBottom) onScrollToBottom(true);
-    }, [messages.length]);
+    // Read receipts rely on actual message DOM nodes, which are mounted only
+    // after the virtual range changes. Notify after Preact commits those rows.
+    useLayoutEffect(() => {
+        onVisibleRowsChangeRef.current?.();
+    }, [range.start, range.end, revision, messages]);
 
     useEffect(() => {
-        handleScroll();
-    }, [messages.length]);
+        const ids = new Set(messages.map(message => message.id));
+        for (const id of measuredHeights.current.keys()) {
+            if (!ids.has(id)) measuredHeights.current.delete(id);
+        }
+    }, [messages]);
 
-    // Скролл вниз
-    const scrollToBottom = () => {
-        const el = containerRef.current;
-        if (el) el.scrollTop = el.scrollHeight;
+    useLayoutEffect(() => {
+        const container = containerRef.current;
+        if (!container) return;
+        const update = () => setViewport({ top: container.scrollTop, height: container.clientHeight });
+        update();
+        if (typeof ResizeObserver === 'undefined') {
+            window.addEventListener('resize', update);
+            return () => window.removeEventListener('resize', update);
+        }
+        const observer = new ResizeObserver(update);
+        observer.observe(container);
+        return () => observer.disconnect();
+    }, []);
+
+    useLayoutEffect(() => {
+        const container = containerRef.current;
+        if (!container) return;
+        const previous = previousAnchorRef.current;
+        const adjustment = getPrependedScrollOffset(previous.id, messages, offsets, previous.top);
+        const oldestId = getOldestMessageAnchorId(messages);
+        const anchorIndex = oldestId === null ? -1 : messages.findIndex(row => row.id === oldestId);
+        const index = anchorIndex < 0 ? 0 : anchorIndex;
+        previousAnchorRef.current = { id: messages[index]?.id ?? null, top: offsets[index] ?? 0 };
+        if (!adjustment) return;
+        container.scrollTop += adjustment;
+        setViewport({ top: container.scrollTop, height: container.clientHeight });
+    }, [messages, offsets]);
+
+    useLayoutEffect(() => {
+        const container = containerRef.current;
+        if (!container || !navigationTarget?.id) return;
+        if (container.clientHeight <= 0) return;
+        const requestKey = JSON.stringify([navigationTarget.id, navigationTarget.requestId ?? 0]);
+        if (handledNavigationRef.current === requestKey) return;
+        const top = getMessageNavigationTop(messages, offsets, navigationTarget.id, container.clientHeight, navigationTarget.align, navigationTarget.offset);
+        // Keep the request pending if older history has not been loaded yet.
+        if (top === null) {
+            // A newly prepended page changes the first ID, allowing one more request.
+            const missingKey = JSON.stringify([requestKey, getOldestMessageAnchorId(messages)]);
+            if (missingNavigationRef.current !== missingKey) {
+                missingNavigationRef.current = missingKey;
+                onMissingTarget?.(navigationTarget.id);
+            }
+            return;
+        }
+        missingNavigationRef.current = null;
+        container.scrollTop = top;
+        setViewport({ top, height: container.clientHeight });
+        handledNavigationRef.current = requestKey;
+    }, [messages, offsets, viewport.height, navigationTarget?.id, navigationTarget?.requestId, navigationTarget?.align, navigationTarget?.offset, onMissingTarget]);
+
+    useLayoutEffect(() => {
+        const container = containerRef.current;
+        if (!container || !pendingBottomStickRef.current) return;
+        pendingBottomStickRef.current = false;
+        container.scrollTop = Math.max(0, container.scrollHeight - container.clientHeight);
+        wasAtBottomRef.current = true;
+        setViewport({ top: container.scrollTop, height: container.clientHeight });
+    }, [revision]);
+
+    useLayoutEffect(() => {
+        if (typeof ResizeObserver === 'undefined') return;
+        const container = containerRef.current;
+        if (!container) return;
+        const indexById = indexMessagesById(messages);
+        const observer = new ResizeObserver(entries => {
+            let changed = false;
+            let adjustment = 0;
+            // Read the last confirmed scroll position: the browser may already
+            // have enlarged scrollHeight before notifying ResizeObserver.
+            // The previous virtual offsets are not affected by an overflowing
+            // image yet, unlike the browser's already updated scrollHeight.
+            const wasAtBottom = wasAtBottomRef.current || isNearVirtualBottom(
+                offsets[offsets.length - 1], container.scrollTop, container.clientHeight
+            );
+            for (const entry of entries) {
+                const id = entry.target.dataset.messageId;
+                const index = indexById.get(id);
+                if (index === undefined) continue;
+                const height = entry.borderBoxSize?.[0]?.blockSize ?? entry.target.getBoundingClientRect().height;
+                const previous = measuredHeights.current.get(id) ?? estimatedMessageHeight(messages[index]);
+                if (!shouldUpdateMeasuredHeight(height, previous)) continue;
+                measuredHeights.current.set(id, height);
+                changed = true;
+                adjustment += scrollAnchorAdjustment(offsets[index + 1], container.scrollTop, previous, height);
+            }
+            if (changed) {
+                if (wasAtBottom) pendingBottomStickRef.current = true;
+                else if (adjustment) container.scrollTop += adjustment;
+                setRevision(value => value + 1);
+            }
+        });
+        for (const row of container.querySelectorAll('[data-message-id]')) observer.observe(row);
+        return () => observer.disconnect();
+    }, [messages, range.start, range.end, revision]);
+
+    const onScroll = () => {
+        const container = containerRef.current;
+        if (!container) return;
+        wasAtBottomRef.current = isNearVirtualBottom(container.scrollHeight, container.scrollTop, container.clientHeight);
+        setViewport({ top: container.scrollTop, height: container.clientHeight });
+        onScrollToBottom?.(wasAtBottomRef.current);
+        onScrollChange?.();
     };
 
-    const visibleMessages = messages.slice(visibleRange.start, visibleRange.end);
-
     return (
-        <div ref={containerRef} onScroll={handleScroll} style={{
-            flex: 1,
-            overflowY: 'auto',
-            position: 'relative',
-            padding: '0.6rem 0.8rem'
-        }}>
-            <div style={{ height: totalHeight, position: 'relative' }}>
-                {visibleMessages.map((msg, i) => {
-                    const actualIndex = visibleRange.start + i;
+        <div class={className} role="region" aria-label="Сообщения" tabIndex={0} ref={node => { containerRef.current = node; if (externalContainerRef) externalContainerRef.current = node; }} onScroll={onScroll} onWheel={() => { pendingBottomStickRef.current = false; }} onTouchStart={() => { pendingBottomStickRef.current = false; }} onKeyDown={() => { pendingBottomStickRef.current = false; }} style={{ flex: 1, overflowY: 'auto', position: 'relative', padding: '0.6rem 0.8rem', ...style }}>
+            <div style={{ height: offsets[offsets.length - 1], position: 'relative' }}>
+                {messages.slice(range.start, range.end).map((message, index) => {
+                    const actualIndex = range.start + index;
                     return (
-                        <div key={msg.id} style={{
+                        <div key={message.id} data-message-id={message.id} style={{
                             position: 'absolute',
-                            top: actualIndex * ITEM_HEIGHT,
-                            width: '100%',
-                            height: ITEM_HEIGHT
+                            top: offsets[actualIndex],
+                            width: '100%'
                         }}>
-                            {renderMessage(msg, actualIndex)}
+                            {renderMessage(message, actualIndex)}
                         </div>
                     );
                 })}

@@ -23,9 +23,11 @@ export function PinnedMessage({ messages, onUnpin, onScrollTo, currentUserId }) 
     };
 
     return (
-        <div style={s.container} onClick={handleClick}>
+        <div class="vortex-pinned" style={s.container}>
             <div style={s.content}>
-                <div style={s.info}>
+                <button type="button" class="vortex-pinned-target" style={{...s.info, ...s.target}}
+                    aria-label={`Перейти к закреплённому сообщению ${currentIndex + 1} из ${messages.length}`}
+                    onClick={handleClick}>
                     <div style={s.topRow}>
                         <span style={s.icon}>📌</span>
                         <span style={s.counter}>
@@ -38,13 +40,14 @@ export function PinnedMessage({ messages, onUnpin, onScrollTo, currentUserId }) 
                         )}
                         <span style={s.text}>{current.text}</span>
                     </div>
-                </div>
+                </button>
 
                 {/* Кнопка "Все" */}
                 {messages.length > 1 && (
-                    <button 
+                    <button type="button"
                         onClick={(e) => { e.stopPropagation(); onUnpin(null); }} 
                         style={s.showAll}
+                        aria-label={`Показать все закреплённые сообщения (${messages.length})`}
                         title="Показать все закреплённые"
                     >
                         Все
@@ -52,16 +55,17 @@ export function PinnedMessage({ messages, onUnpin, onScrollTo, currentUserId }) 
                 )}
 
                 {/* Открепить текущее */}
-                <button 
+                <button type="button"
                     onClick={(e) => { e.stopPropagation(); onUnpin(current.id); }} 
                     style={s.close}
+                    aria-label="Открепить это сообщение"
                     title="Открепить"
                 >✕</button>
             </div>
 
             {/* Точки-индикаторы */}
             {messages.length > 1 && (
-                <div style={s.dots}>
+                <div style={s.dots} aria-hidden="true">
                     {messages.map((_, i) => (
                         <div 
                             key={i} 
@@ -79,7 +83,7 @@ export function PinnedMessage({ messages, onUnpin, onScrollTo, currentUserId }) 
 
 const s = {
     container: {
-        background: 'rgba(124, 58, 237, 0.08)',
+        background: 'rgba(137, 104, 255, 0.075)',
         borderBottom: '1px solid var(--border-subtle)',
         cursor: 'pointer',
         transition: 'background 0.15s',
@@ -89,13 +93,14 @@ const s = {
         display: 'flex',
         alignItems: 'center',
         gap: '6px',
-        padding: '0.5rem 0.75rem'
+        padding: '0.65rem 1rem'
     },
     info: {
         flex: 1,
         minWidth: 0,
         overflow: 'hidden'
     },
+    target: { display:'block', textAlign:'left', border:'none', background:'transparent', color:'inherit', cursor:'pointer', padding:0, fontFamily:'inherit' },
     topRow: {
         display: 'flex',
         alignItems: 'center',

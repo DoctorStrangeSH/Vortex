@@ -1,7 +1,6 @@
 import { db } from './firebase';
 import {
     collection,
-    addDoc,
     query,
     orderBy,
     limit,
@@ -13,25 +12,52 @@ import {
     setDoc,
     getDocs,
     getDoc,
-    arrayUnion
+    getDocFromServer,
+    arrayUnion,
+    writeBatch,
+    startAfter
 } from 'firebase/firestore';
+import { validateOutgoingMessage, MESSAGE_PAGE_SIZE } from './messageValidation.js';
 
 class MessageService {
-    subscribeToMessages(chatId, callback) {
+    subscribeToMessages(chatId, callback, onError) {
         const q = query(
             collection(db, 'chats', chatId, 'messages'),
-            orderBy('createdAt', 'asc')
+            orderBy('createdAt', 'desc'),
+            limit(MESSAGE_PAGE_SIZE)
         );
         return onSnapshot(q, (snapshot) => {
             const messages = [];
             snapshot.forEach((doc) => {
                 messages.push({ id: doc.id, ...doc.data() });
             });
-            callback(messages);
-        });
+            callback(messages.reverse(), snapshot.docs.at(-1) || null, snapshot.size === MESSAGE_PAGE_SIZE);
+        }, onError);
     }
 
-    async sendMessage(chatId, user, text, attachment = null) {
+    async fetchOlderMessages(chatId, cursor) {
+        if (!cursor) return { messages: [], cursor: null, hasMore: false };
+        const snapshot = await getDocs(query(
+            collection(db, 'chats', chatId, 'messages'),
+            orderBy('createdAt', 'desc'),
+            startAfter(cursor),
+            limit(MESSAGE_PAGE_SIZE)
+        ));
+        return {
+            messages: snapshot.docs.map(message => ({ id: message.id, ...message.data() })).reverse(),
+            cursor: snapshot.docs.at(-1) || null,
+            hasMore: snapshot.size === MESSAGE_PAGE_SIZE
+        };
+    }
+
+    async sendMessage(chatId, user, text, attachment = null, messageId = null) {
+        validateOutgoingMessage({ chatId, user, text, attachment });
+        const messageRef = messageId
+            ? doc(db, 'chats', chatId, 'messages', messageId)
+            : doc(collection(db, 'chats', chatId, 'messages'));
+        // Offline retries reuse the same message ID. If the previous attempt
+        // committed before the connection dropped, it must not send a duplicate.
+        if (messageId && (await getDoc(messageRef)).exists()) return;
         const messageData = {
             senderId: user.uid,
             senderName: user.displayName || user.email,
@@ -45,9 +71,8 @@ class MessageService {
             messageData.fileData = attachment.fileData;
             messageData.fileName = attachment.fileName;
             messageData.fileSize = attachment.fileSize || 0;
+            if (attachment.storagePath) messageData.storagePath = attachment.storagePath;
         }
-
-        await addDoc(collection(db, 'chats', chatId, 'messages'), messageData);
 
         const lastMsg = attachment 
             ? (attachment.type === 'image' ? '📷 Фото' : 
@@ -57,10 +82,20 @@ class MessageService {
                '📎 Файл')
             : text;
 
-        await setDoc(doc(db, 'chats', chatId), {
+        // Message and preview are committed together, so a failed write cannot
+        // leave the chat preview behind the newest message.
+        const batch = writeBatch(db);
+        batch.set(messageRef, messageData);
+        batch.update(doc(db, 'chats', chatId), {
             lastMessage: lastMsg,
             lastMessageTime: serverTimestamp()
-        }, { merge: true });
+        });
+        await batch.commit();
+    }
+
+    async messageExists(chatId, messageId) {
+        // An offline cached miss is not proof that the server lacks the message.
+        return (await getDocFromServer(doc(db, 'chats', chatId, 'messages', messageId))).exists();
     }
 
     async editMessage(chatId, messageId, newText) {

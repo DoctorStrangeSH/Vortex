@@ -1,7 +1,9 @@
 class ThemeService {
     constructor() {
         this.theme = localStorage.getItem('vortex-theme') || 'dark';
-        this.customColors = JSON.parse(localStorage.getItem('vortex-custom-colors') || 'null');
+        try { this.customColors = JSON.parse(localStorage.getItem('vortex-custom-colors') || 'null'); }
+        catch { this.customColors = null; }
+        if (!this.customColors || Array.isArray(this.customColors) || typeof this.customColors !== 'object') this.customColors = null;
         this.listeners = [];
         this.apply();
     }
@@ -21,6 +23,8 @@ class ThemeService {
 
     // Кастомные цвета
     setCustomColor(variable, value) {
+        if (!['--vortex-primary', '--vortex-secondary', '--gradient-brand'].includes(variable)) return;
+        if (typeof value !== 'string' || !value || /[;{}]/.test(value)) return;
         if (!this.customColors) this.customColors = {};
         this.customColors[variable] = value;
         localStorage.setItem('vortex-custom-colors', JSON.stringify(this.customColors));
@@ -29,6 +33,9 @@ class ThemeService {
     }
 
     resetCustomColors() {
+        for (const variable of ['--vortex-primary', '--vortex-secondary', '--gradient-brand']) {
+            document.documentElement.style.removeProperty(variable);
+        }
         this.customColors = null;
         localStorage.removeItem('vortex-custom-colors');
         this.apply();
@@ -53,6 +60,7 @@ class ThemeService {
 
         this.setCustomColor('--vortex-primary', preset.primary);
         this.setCustomColor('--vortex-secondary', preset.secondary);
+        this.setCustomColor('--gradient-brand', `linear-gradient(135deg, ${preset.primary}, ${preset.secondary})`);
     }
 
     apply() {
