@@ -190,7 +190,7 @@ service cloud.firestore {
         (member(resource.data) && (resource.data.type != 'channel' || request.auth.uid in resource.data.admins) &&
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastMessage','lastMessageTime','pinnedMessages'])) ||
         validChannelMembershipChange() || validGroupMemberChange() || validGroupAdminChange());
-      allow delete: if signedIn() && resource.data.createdBy == request.auth.uid;
+      allow delete: if signedIn() && resource.data.createdBy == request.auth.uid && resource.data.type != 'group';
       match /messages/{messageId} {
         allow read: if chatMember(chatId);
         allow create: if chatMember(chatId) && validMessage(request.resource.data, chatId) &&
