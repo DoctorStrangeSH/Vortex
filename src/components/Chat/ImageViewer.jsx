@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { useAttachmentSource } from '../../services/useAttachmentSource.js';
 import { getAdjacentGalleryMedia } from '../../services/mediaGallerySelection.js';
+import { getImageSwipeDirection } from '../../services/imageViewerGestures.js';
 import { Icon } from '../UI/Icon';
 
 const ZOOM_MIN = 1;
@@ -28,6 +29,7 @@ export function ImageViewer({ messages, selectedId, onClose }) {
     const [zoom, setZoom] = useState(1);
     const closeRef = useRef(null);
     const dialogRef = useRef(null);
+    const touchStartRef = useRef(null);
     const stateRef = useRef({ images, currentId, onClose });
     stateRef.current = { images, currentId, onClose };
     const current = images.find(image => image.id === currentId);
@@ -36,6 +38,18 @@ export function ImageViewer({ messages, selectedId, onClose }) {
     const navigate = direction => {
         const adjacent = getAdjacentGalleryMedia(stateRef.current.images, stateRef.current.currentId, direction);
         if (adjacent) { setCurrentId(adjacent.id); setZoom(1); }
+    };
+
+    const handleTouchStart = event => {
+        touchStartRef.current = event.touches.length === 1
+            ? { x: event.touches[0].clientX, y: event.touches[0].clientY } : null;
+    };
+    const handleTouchEnd = event => {
+        const start = touchStartRef.current;
+        touchStartRef.current = null;
+        if (!start || event.changedTouches.length !== 1) return;
+        const direction = getImageSwipeDirection(start, { x: event.changedTouches[0].clientX, y: event.changedTouches[0].clientY }, zoom);
+        if (direction) navigate(direction);
     };
 
     useEffect(() => {
@@ -60,7 +74,7 @@ export function ImageViewer({ messages, selectedId, onClose }) {
     return (
         <div ref={dialogRef} class="vortex-image-viewer" role="dialog" aria-modal="true" aria-label="Просмотр изображений">
             <header class="vortex-image-viewer-toolbar">
-                <div class="vortex-image-viewer-title"><span>МЕДИА · {position || '—'} / {images.length}</span><strong>{current?.fileName || 'Изображение'}</strong></div>
+                <div class="vortex-image-viewer-title"><span aria-live="polite">МЕДИА · {position || '—'} / {images.length}</span><strong>{current?.fileName || 'Изображение'}</strong></div>
                 <div class="vortex-image-viewer-tools">
                     <button type="button" aria-label="Уменьшить изображение" disabled={zoom <= ZOOM_MIN} onClick={() => setZoom(value => Math.max(ZOOM_MIN, value - ZOOM_STEP))}>−</button>
                     <button type="button" aria-label="Вернуть исходный масштаб" onClick={() => setZoom(1)}>{Math.round(zoom * 100)}%</button>
@@ -68,7 +82,8 @@ export function ImageViewer({ messages, selectedId, onClose }) {
                     <button ref={closeRef} type="button" aria-label="Закрыть изображение" onClick={onClose}><Icon name="close" /></button>
                 </div>
             </header>
-            <div class="vortex-image-viewer-stage">
+            <div class="vortex-image-viewer-stage" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd} onTouchCancel={() => { touchStartRef.current = null; }}
+                onDblClick={() => setZoom(value => value === 1 ? 2 : 1)}>
                 <ImageViewerContent key={currentId} message={current} zoom={zoom} />
             </div>
             {images.length > 1 && <nav class="vortex-image-viewer-navigation" aria-label="Навигация по изображениям">
