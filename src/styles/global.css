@@ -363,7 +363,11 @@ button:disabled { cursor: not-allowed !important; }
 .vortex-reaction:hover { background: rgba(137,104,255,.25) !important; border-color: var(--vortex-primary-light) !important; transform: translateY(-1px); }
 .vortex-reaction-picker { backdrop-filter: blur(22px); }
 .vortex-reaction-choice:hover { background: var(--bg-hover) !important; }
+.vortex-reaction-choice { min-width: 34px; min-height: 34px; transition: background-color .16s ease, transform .16s ease; }
+.vortex-reaction-choice:hover { transform: translateY(-2px) scale(1.08); }
+.vortex-reaction-choice:focus-visible { outline: 2px solid var(--focus-ring) !important; outline-offset: 1px; }
 .vortex-context-menu { backdrop-filter: blur(22px); }
+.vortex-context-menu { max-height: calc(100dvh - 16px); overflow-y: auto; overscroll-behavior: contain; }
 .vortex-menu-item:hover { background: var(--bg-hover) !important; }
 .vortex-gallery-item { transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease; }
 .vortex-gallery-item:hover { border-color: var(--vortex-primary-light) !important; transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.25); }
