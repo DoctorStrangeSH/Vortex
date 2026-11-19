@@ -292,6 +292,16 @@ button:disabled { cursor: not-allowed !important; }
 .vortex-chat-item { transition: background .18s ease, border-color .18s ease, transform .18s ease; }
 .vortex-chat-item:hover { background: var(--bg-hover) !important; }
 .vortex-chat-list { scrollbar-gutter: stable; }
+.vortex-chat-list-notice { display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; gap:12px; padding:clamp(24px,6vh,60px) 18px; min-height:260px; color:var(--text-secondary); }
+.vortex-chat-list-notice h3 { color:var(--text-primary); font-size:1rem; font-weight:750; letter-spacing:-.025em; }
+.vortex-chat-list-notice p { max-width:240px; font-size:.79rem; line-height:1.6; }
+.vortex-chat-list-symbol { width:84px; height:84px; display:grid; place-items:center; border:1px solid rgba(157,124,255,.22); border-radius:28px; color:var(--vortex-primary-light); background:radial-gradient(circle at 30% 20%,rgba(137,104,255,.24),rgba(137,104,255,.06)); box-shadow:0 18px 42px rgba(43,28,108,.2); margin-bottom:8px; }
+.vortex-chat-list-action { background:var(--gradient-brand); border:0; border-radius:12px; color:#fff; font:inherit; font-size:.8rem; font-weight:700; padding:11px 19px; cursor:pointer; margin-top:8px; box-shadow:0 10px 24px rgba(113,88,227,.25); }
+.vortex-chat-list-action:hover { filter:brightness(1.09); }
+.vortex-chat-list-action:focus-visible { outline:2px solid var(--vortex-primary-light); outline-offset:3px; }
+.vortex-chat-list-loader { width:34px; height:34px; border:3px solid var(--border-default); border-top-color:var(--vortex-primary-light); border-radius:50%; animation:vortexListSpin .8s linear infinite; }
+@keyframes vortexListSpin { to { transform:rotate(360deg); } }
+@media (prefers-reduced-motion:reduce) { .vortex-chat-list-loader { animation:none; } }
 .vortex-chat-item { position: relative; border: 1px solid transparent; min-height: 70px; gap: 2px; }
 .vortex-chat-item::before { content: ''; position: absolute; inset: 11px auto 11px 0; width: 3px; border-radius: 4px; background: transparent; transition: background-color .18s ease; }
 .vortex-chat-item[aria-current="true"]::before { background: var(--vortex-primary-light); }
