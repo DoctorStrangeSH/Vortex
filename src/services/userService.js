@@ -2,7 +2,6 @@ import { db } from './firebase';
 import { normalizeUsername } from './usernamePolicy.js';
 import {
     doc,
-    setDoc,
     getDoc,
     getDocs,
     query,
@@ -10,7 +9,8 @@ import {
     where,
     limit,
     deleteField,
-    runTransaction
+    runTransaction,
+    writeBatch
 } from 'firebase/firestore';
 
 class UserService {
@@ -132,7 +132,8 @@ class UserService {
 
     // Обновить профиль
     async updateProfile(uid, data) {
-        await setDoc(doc(db, 'users', uid), {
+        const batch = writeBatch(db);
+        batch.set(doc(db, 'users', uid), {
             ...data,
             updatedAt: new Date()
         }, { merge: true });
@@ -141,8 +142,9 @@ class UserService {
             if (Object.hasOwn(data, key)) publicData[key] = data[key];
         }
         if (Object.keys(publicData).length) {
-            await setDoc(doc(db, 'publicProfiles', uid), publicData, { merge: true });
+            batch.set(doc(db, 'publicProfiles', uid), publicData, { merge: true });
         }
+        await batch.commit();
     }
 }
 
