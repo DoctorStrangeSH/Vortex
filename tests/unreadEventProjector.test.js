@@ -24,6 +24,37 @@ function fakeTransactionalStore() {
     };
 }
 
+function fakeSerializedTransactionalStore() {
+    const counts = new Map();
+    const events = new Set();
+    let tail = Promise.resolve();
+    return {
+        counts,
+        events,
+        async runTransaction(callback) {
+            let release;
+            const previous = tail;
+            tail = new Promise(resolve => { release = resolve; });
+            await previous;
+            try {
+                const stagedCounts = new Map(counts);
+                const stagedEvents = new Set(events);
+                const result = await callback({
+                    hasProcessed: async id => stagedEvents.has(id),
+                    getCount: async (uid, chatId) => stagedCounts.get(`${uid}/${chatId}`) ?? 0,
+                    setCount: (uid, chatId, count) => stagedCounts.set(`${uid}/${chatId}`, count),
+                    markProcessed: id => stagedEvents.add(id)
+                });
+                counts.clear(); for (const [key, value] of stagedCounts) counts.set(key, value);
+                events.clear(); for (const id of stagedEvents) events.add(id);
+                return result;
+            } finally {
+                release();
+            }
+        }
+    };
+}
+
 const data = { senderId: 'alice', readBy: [] };
 const participants = ['alice', 'bob', 'charlie'];
 
@@ -34,6 +65,33 @@ test('one event increments each recipient only once across retries', async () =>
     assert.equal((await projectUnreadEvent(store, event)).applied, false);
     assert.deepEqual(Object.fromEntries(store.counts), { 'bob/room': 1, 'charlie/room': 1 });
     assert.equal(store.events.size, 1);
+});
+
+test('concurrent duplicate deliveries apply the same event only once', async () => {
+    const store = fakeSerializedTransactionalStore();
+    const event = { eventId: 'concurrent-create', chatId: 'room', after: data, participants };
+
+    const results = await Promise.all(Array.from({ length: 12 }, () => projectUnreadEvent(store, event)));
+
+    assert.equal(results.filter(result => result.applied).length, 1);
+    assert.equal(results.filter(result => !result.applied).length, 11);
+    assert.deepEqual(Object.fromEntries(store.counts), { 'bob/room': 1, 'charlie/room': 1 });
+    assert.deepEqual([...store.events], ['concurrent-create']);
+});
+
+test('concurrent distinct message events do not lose recipient increments', async () => {
+    const store = fakeSerializedTransactionalStore();
+    const events = Array.from({ length: 8 }, (_, index) => ({
+        eventId: `message-${index}`,
+        chatId: 'room',
+        after: { senderId: 'alice', readBy: [] },
+        participants
+    }));
+
+    await Promise.all(events.map(event => projectUnreadEvent(store, event)));
+
+    assert.deepEqual(Object.fromEntries(store.counts), { 'bob/room': 8, 'charlie/room': 8 });
+    assert.equal(store.events.size, 8);
 });
 
 test('read and delete events reconcile with creation without decrementing twice', async () => {
