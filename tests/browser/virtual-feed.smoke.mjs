@@ -1,6 +1,7 @@
 // Runs explicitly in CI, not as part of the Node unit-test discovery.
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { setTimeout as delay } from 'node:timers/promises';
 import { chromium } from 'playwright-core';
 
@@ -21,7 +22,8 @@ try {
     }
     assert.ok(ready, 'Vite browser-test fixture should start');
 
-    browser = await chromium.launch({ channel: 'chrome', headless: true, args: ['--no-sandbox'] });
+    const browserBinary = existsSync('/usr/bin/chromium') ? { executablePath: '/usr/bin/chromium' } : { channel: 'chrome' };
+    browser = await chromium.launch({ ...browserBinary, headless: true, args: ['--no-sandbox'] });
     const page = await browser.newPage({ viewport: { width: 1000, height: 800 } });
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
@@ -116,6 +118,22 @@ try {
         const position = container.getBoundingClientRect().top - row.getBoundingClientRect().top;
         return position > 15 && position < 55;
     });
+
+    // A small browser window must allow reaching the registration submit button.
+    await page.setViewportSize({ width: 360, height: 420 });
+    await page.goto(`${origin}/tests/browser/auth-scroll.html`);
+    await page.getByRole('tab', { name: 'Регистрация' }).click();
+    const submit = page.getByRole('button', { name: 'Зарегистрироваться', exact: true });
+    const scrollInfo = await page.evaluate(() => {
+        const screen = document.querySelector('.vortex-auth-screen');
+        return { clientHeight: screen.clientHeight, scrollHeight: screen.scrollHeight };
+    });
+    assert.ok(scrollInfo.scrollHeight > scrollInfo.clientHeight, 'small-height signup screen should be scrollable');
+    await submit.scrollIntoViewIfNeeded();
+    assert.ok(await submit.isVisible(), 'signup button should become visible on a small screen');
+    const buttonBounds = await submit.boundingBox();
+    assert.ok(buttonBounds.y >= 0 && buttonBounds.y + buttonBounds.height <= 420, 'signup button should fit inside the small viewport after scrolling');
+
     assert.deepEqual(errors, [], 'the browser should have no uncaught page errors');
     console.log('Virtual browser smoke test passed:', { desktop: metrics, mobile: mobileMetrics });
 } finally {
