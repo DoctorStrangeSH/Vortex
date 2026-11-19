@@ -45,6 +45,28 @@ test('read and delete events reconcile with creation without decrementing twice'
     assert.deepEqual(Object.fromEntries(store.counts), { 'bob/room': 0, 'charlie/room': 0 });
 });
 
+test('out-of-order delete and create events converge without clamping intermediate negative counts', async () => {
+    const store = fakeTransactionalStore();
+    const createdMessage = data;
+
+    // The delete trigger may arrive before the corresponding create trigger.
+    const deleted = await projectUnreadEvent(store, {
+        eventId: 'delete-arrived-first', chatId: 'room',
+        before: createdMessage, participants
+    });
+    assert.equal(deleted.applied, true);
+    assert.deepEqual(Object.fromEntries(store.counts), { 'bob/room': -1, 'charlie/room': -1 });
+
+    // Applying the delayed create event must restore the correct final count.
+    const created = await projectUnreadEvent(store, {
+        eventId: 'create-arrived-later', chatId: 'room',
+        after: createdMessage, participants
+    });
+    assert.equal(created.applied, true);
+    assert.deepEqual(Object.fromEntries(store.counts), { 'bob/room': 0, 'charlie/room': 0 });
+    assert.equal(store.events.size, 2);
+});
+
 test('failed transaction does not write event receipt or partial counters', async () => {
     const store = fakeTransactionalStore();
     store.counts.set('charlie/room', NaN);
