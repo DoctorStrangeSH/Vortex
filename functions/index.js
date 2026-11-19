@@ -9,7 +9,7 @@ const options = { region: 'europe-west1' };
 
 function callableError(error) {
     if (error instanceof HttpsError) throw error;
-    throw new HttpsError('failed-precondition', error?.message || 'Не удалось изменить группу');
+    throw new HttpsError('internal', 'Не удалось изменить группу. Попробуйте ещё раз.');
 }
 
 export const createGroupChat = onCall(options, async request => {
