@@ -169,6 +169,11 @@ service cloud.firestore {
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastMessage','lastMessageTime','pinnedMessages'])) ||
         validChannelMembershipChange());
       allow delete: if signedIn() && resource.data.createdBy == request.auth.uid;
+      match /membershipHistory/{eventId} {
+        // Membership events are immutable and visible only to current chat members.
+        allow read: if chatMember(chatId);
+        allow write: if false;
+      }
       match /messages/{messageId} {
         allow read: if chatMember(chatId);
         allow create: if chatMember(chatId) && validMessage(request.resource.data, chatId) &&
