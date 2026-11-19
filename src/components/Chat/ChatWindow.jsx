@@ -490,21 +490,21 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
         const isEditing = !!editingMessage;
         sendingRef.current = true;
         setSending(true);
-        setSendNotice(isEditing ? 'Сохранение изменений…' : navigator.onLine ? 'Отправляется…' : 'Добавляется в очередь…');
+        setSendNotice(isEditing ? 'Сохранение изменений…' : 'Добавляется в очередь отправки…');
 
         try {
-            if (!navigator.onLine && !isEditing) {
+            if (!isEditing) {
+                // All text messages use a durable ID, even while online. If a
+                // Firestore acknowledgement is lost, retrying cannot duplicate it.
                 await offlineService.addToQueue({ type: 'sendMessage', chatId: targetChatId, text: finalText, user: { uid: user.uid, displayName: user.displayName } });
             } else if (isEditing) {
                 if (!navigator.onLine) throw new Error('Редактирование требует подключения к интернету');
                 await messageService.editMessage(targetChatId, editingMessage.id, finalText);
-            } else {
-                await chatService.sendMessage(targetChatId, finalText, user);
             }
             if (activeSubscriptionRef.current === sendSubscriptionToken) {
                 setText(current => current === finalText ? '' : current);
                 if (isEditing) setEditingMessage(null);
-                setSendNotice(isEditing ? 'Изменения сохранены' : navigator.onLine ? 'Отправлено' : 'Ожидает подключения');
+                setSendNotice(isEditing ? 'Изменения сохранены' : navigator.onLine ? 'В очереди отправки' : 'Ожидает подключения');
             }
         } catch (error) {
             if (activeSubscriptionRef.current === sendSubscriptionToken) setSendNotice(error.message || 'Ошибка отправки — сообщение осталось в поле ввода');
