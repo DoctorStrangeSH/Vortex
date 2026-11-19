@@ -526,6 +526,20 @@ button:disabled { cursor: not-allowed !important; }
 .vortex-form-input:focus { border-color: var(--vortex-primary-light) !important; box-shadow: 0 0 0 3px rgba(137,104,255,.16); }
 .vortex-primary-button:hover:not(:disabled) { box-shadow: 0 8px 24px rgba(126,99,236,.35); transform: translateY(-1px); }
 .vortex-profile-modal, .vortex-settings-modal { backdrop-filter: blur(20px); }
+.vortex-settings-modal { overflow:hidden; max-height:calc(100dvh - 32px) !important; }
+.vortex-settings-header { background:linear-gradient(130deg,rgba(137,104,255,.14),rgba(137,104,255,.025)); }
+.vortex-settings-header h3 { font-weight:800; font-size:1.25rem; letter-spacing:-.03em; }
+.vortex-settings-eyebrow { color:var(--vortex-primary-light); letter-spacing:.14em; font-size:.65rem; font-weight:750; margin-bottom:6px; }
+.vortex-settings-mode { display:grid; grid-template-columns:1fr 1fr; gap:9px; padding:15px 16px 8px; }
+.vortex-settings-mode button { display:flex; align-items:center; justify-content:center; gap:9px; padding:13px 10px; border:1px solid var(--border-default); border-radius:14px; background:var(--bg-tertiary); color:var(--text-secondary); cursor:pointer; font:inherit; font-size:.84rem; font-weight:700; }
+.vortex-settings-mode button.is-active { color:var(--text-primary); background:var(--bg-active); border-color:rgba(137,104,255,.65); box-shadow:0 6px 20px rgba(137,104,255,.13); }
+.vortex-theme-preset { display:flex; flex-direction:column; align-items:flex-start; gap:5px; font-weight:700; }
+.vortex-theme-preset.is-active { border-color:var(--vortex-primary-light) !important; box-shadow:0 0 0 2px rgba(137,104,255,.14); }
+.vortex-theme-swatch { box-shadow:inset 0 1px 0 rgba(255,255,255,.2); }
+.vortex-theme-choice { color:var(--text-tertiary); font-size:.67rem; font-weight:500; }
+.vortex-theme-preset.is-active .vortex-theme-choice { color:var(--vortex-secondary); }
+.vortex-settings-modal button:focus-visible { outline:2px solid var(--vortex-primary-light); outline-offset:3px; }
+@media (max-width:480px) { .vortex-settings-modal { max-width:calc(100vw - 20px) !important; } .vortex-settings-modal .vortex-theme-preset { padding:9px !important; } }
 .vortex-profile-modal { max-height: min(90dvh, 850px); overflow-y:auto !important; }
 .vortex-profile-header { background:linear-gradient(135deg,rgba(137,104,255,.14),rgba(66,90,169,.035)); }
 .vortex-profile-eyebrow { color:var(--vortex-primary-light); font-size:.63rem; letter-spacing:.15em; font-weight:800; margin-bottom:6px; }

@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'preact/hooks';
-import { themeStore } from '../../stores/themeStore';
+import { themeService } from '../../services/themeService';
 import { Icon } from '../UI/Icon';
 
-export function BurgerMenu({ user, onLogout, onProfile, onContacts, onTasks }) {
+export function BurgerMenu({ user, onLogout, onProfile, onContacts, onTasks, onTheme }) {
     const [isOpen, setIsOpen] = useState(false);
-    const [currentTheme, setCurrentTheme] = useState(themeStore.get());
+    const [currentTheme, setCurrentTheme] = useState(themeService.get());
+    useEffect(() => themeService.onChange(() => setCurrentTheme(themeService.get())), []);
     useEffect(() => {
         if (!isOpen) return;
         const onKey = e => { if (e.key === 'Escape') setIsOpen(false); };
@@ -12,7 +13,7 @@ export function BurgerMenu({ user, onLogout, onProfile, onContacts, onTasks }) {
         return () => document.removeEventListener('keydown', onKey);
     }, [isOpen]);
     const choose = fn => { setIsOpen(false); fn?.(); };
-    const toggleTheme = () => { themeStore.toggle(); setCurrentTheme(themeStore.get()); };
+    const toggleTheme = () => themeService.toggle();
     return <>
         <button type="button" aria-label="Открыть меню" aria-expanded={isOpen} aria-controls="vortex-main-menu" onClick={() => setIsOpen(true)} style={styles.toggle}><Icon name="menu" size={21}/></button>
         {isOpen && <div onClick={() => setIsOpen(false)} style={styles.scrim} aria-hidden="true" />}
@@ -31,6 +32,7 @@ export function BurgerMenu({ user, onLogout, onProfile, onContacts, onTasks }) {
                 <MenuItem icon="tasks" title="Задачи" subtitle="Ваши дела" onClick={() => choose(onTasks)} />
                 <div style={styles.divider}/>
                 <MenuItem icon={currentTheme === 'dark' ? 'moon' : 'sun'} title={currentTheme === 'dark' ? 'Тёмная тема' : 'Светлая тема'} subtitle="Переключить оформление" onClick={toggleTheme}/>
+                <MenuItem icon="palette" title="Оформление" subtitle="Темы и цвета Vortex" onClick={() => choose(onTheme)} />
                 <div style={styles.divider}/>
                 <MenuItem icon="logout" title="Выйти из аккаунта" subtitle="Завершить сеанс" danger onClick={() => choose(onLogout)}/>
             </div>

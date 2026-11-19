@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'preact/hooks';
 import { themeService } from '../../services/themeService';
+import { Icon } from '../UI/Icon';
 
 export function ThemeCustomizer({ onClose }) {
     const [activeTab, setActiveTab] = useState('presets');
     const [primaryColor, setPrimaryColor] = useState('#8968FF');
     const [secondaryColor, setSecondaryColor] = useState('#6FE2CA');
+    const [mode, setMode] = useState(themeService.get());
+    const [selectedPreset, setSelectedPreset] = useState(() => themeService.getActivePreset());
     const presets = themeService.getPresetThemes();
 
     useEffect(() => {
@@ -13,6 +16,7 @@ export function ThemeCustomizer({ onClose }) {
         const secondary = getComputedStyle(root).getPropertyValue('--vortex-secondary').trim();
         setPrimaryColor(primary || '#8968FF');
         setSecondaryColor(secondary || '#6FE2CA');
+        return themeService.onChange(() => setMode(themeService.get()));
     }, []);
 
     const handleColorChange = (type, value) => {
@@ -23,10 +27,12 @@ export function ThemeCustomizer({ onClose }) {
         }
         if (type === 'primary') {
             setPrimaryColor(value);
+            setSelectedPreset(null);
             themeService.setCustomColor('--vortex-primary', value);
             themeService.setCustomColor('--gradient-brand', `linear-gradient(135deg, ${value}, ${secondaryColor})`);
         } else {
             setSecondaryColor(value);
+            setSelectedPreset(null);
             themeService.setCustomColor('--vortex-secondary', value);
             themeService.setCustomColor('--gradient-brand', `linear-gradient(135deg, ${primaryColor}, ${value})`);
         }
@@ -34,6 +40,7 @@ export function ThemeCustomizer({ onClose }) {
 
     const applyPreset = (name) => {
         themeService.applyPreset(name);
+        setSelectedPreset(name);
         const preset = presets[name];
         setPrimaryColor(preset.primary);
         setSecondaryColor(preset.secondary);
@@ -41,6 +48,7 @@ export function ThemeCustomizer({ onClose }) {
 
     const resetColors = () => {
         themeService.resetCustomColors();
+        setSelectedPreset(null);
         const styles = getComputedStyle(document.documentElement);
         setPrimaryColor(styles.getPropertyValue('--vortex-primary').trim());
         setSecondaryColor(styles.getPropertyValue('--vortex-secondary').trim());
@@ -48,24 +56,29 @@ export function ThemeCustomizer({ onClose }) {
 
     return (
         <div class="vortex-dialog-overlay" style={s.overlay} onClick={onClose}>
-            <div class="vortex-settings-modal vortex-dialog-surface" role="dialog" aria-modal="true" aria-label="Настройка темы" style={s.modal} onClick={e => e.stopPropagation()}>
-                <div style={s.header}>
-                    <h3>✦ Оформление</h3>
-                    <button type="button" aria-label="Закрыть настройки" onClick={onClose} style={s.closeBtn}>✕</button>
+            <div class="vortex-settings-modal vortex-dialog-surface" role="dialog" aria-modal="true" aria-labelledby="vortex-theme-title" style={s.modal} onClick={e => e.stopPropagation()}>
+                <div class="vortex-settings-header" style={s.header}>
+                    <div><div class="vortex-settings-eyebrow">ВАШ VORTEX · ВАШИ ПРАВИЛА</div><h3 id="vortex-theme-title">Оформление</h3></div>
+                    <button type="button" aria-label="Закрыть настройки" onClick={onClose} style={s.closeBtn}><Icon name="close" size={20} /></button>
                 </div>
 
-                <div style={s.tabs}>
-                    <button onClick={() => setActiveTab('presets')} style={{...s.tab, background: activeTab === 'presets' ? 'var(--bg-active)' : 'transparent'}}>🎨 Темы</button>
-                    <button onClick={() => setActiveTab('custom')} style={{...s.tab, background: activeTab === 'custom' ? 'var(--bg-active)' : 'transparent'}}>🎯 Своё</button>
+                <div class="vortex-settings-mode" role="group" aria-label="Яркость интерфейса">
+                    <button type="button" aria-pressed={mode === 'dark'} class={mode === 'dark' ? 'is-active' : ''} onClick={() => themeService.setTheme('dark')}><Icon name="moon" size={18} /> Тёмная</button>
+                    <button type="button" aria-pressed={mode === 'light'} class={mode === 'light' ? 'is-active' : ''} onClick={() => themeService.setTheme('light')}><Icon name="sun" size={18} /> Светлая</button>
+                </div>
+
+                <div role="tablist" aria-label="Настройка цветов" style={s.tabs}>
+                    <button type="button" role="tab" aria-selected={activeTab === 'presets'} onClick={() => setActiveTab('presets')} style={{...s.tab, background: activeTab === 'presets' ? 'var(--bg-active)' : 'transparent'}}>Коллекция тем</button>
+                    <button type="button" role="tab" aria-selected={activeTab === 'custom'} onClick={() => setActiveTab('custom')} style={{...s.tab, background: activeTab === 'custom' ? 'var(--bg-active)' : 'transparent'}}>Свои цвета</button>
                 </div>
 
                 <div style={s.body}>
                     {activeTab === 'presets' && (
                         <div style={s.presets}>
                             {Object.entries(presets).map(([key, preset]) => (
-                                <button type="button" class="vortex-theme-preset" aria-label={`Применить тему ${preset.name}`} key={key} onClick={() => applyPreset(key)} style={s.presetItem}>
-                                    <div style={{...s.presetPreview, background: `linear-gradient(135deg, ${preset.primary}, ${preset.secondary})`}} />
-                                    <span>{preset.name}</span>
+                                <button type="button" class={`vortex-theme-preset ${selectedPreset === key ? 'is-active' : ''}`} aria-label={`Применить тему ${preset.name}`} aria-pressed={selectedPreset === key} key={key} onClick={() => applyPreset(key)} style={s.presetItem}>
+                                    <div class="vortex-theme-swatch" style={{...s.presetPreview, background: `linear-gradient(135deg, ${preset.primary}, ${preset.secondary})`}} />
+                                    <span>{preset.name}</span><span class="vortex-theme-choice">{selectedPreset === key ? '✓ Выбрана' : 'Применить'}</span>
                                 </button>
                             ))}
                         </div>
@@ -74,17 +87,17 @@ export function ThemeCustomizer({ onClose }) {
                     {activeTab === 'custom' && (
                         <div>
                             <div style={s.field}>
-                                <label>Основной цвет</label>
+                                <label for="vortex-theme-primary">Основной цвет</label>
                                 <div style={s.colorRow}>
-                                    <input type="color" value={primaryColor} onInput={e => handleColorChange('primary', e.target.value)} style={s.colorInput} />
-                                    <input type="text" value={primaryColor} onInput={e => handleColorChange('primary', e.target.value)} style={s.textInput} />
+                                    <input aria-label="Выбрать основной цвет" type="color" value={/^#[\da-f]{6}$/i.test(primaryColor) ? primaryColor : '#8968FF'} onInput={e => handleColorChange('primary', e.target.value)} style={s.colorInput} />
+                                    <input id="vortex-theme-primary" type="text" maxLength={7} value={primaryColor} onInput={e => handleColorChange('primary', e.target.value)} style={s.textInput} />
                                 </div>
                             </div>
                             <div style={s.field}>
-                                <label>Акцентный цвет</label>
+                                <label for="vortex-theme-secondary">Акцентный цвет</label>
                                 <div style={s.colorRow}>
-                                    <input type="color" value={secondaryColor} onInput={e => handleColorChange('secondary', e.target.value)} style={s.colorInput} />
-                                    <input type="text" value={secondaryColor} onInput={e => handleColorChange('secondary', e.target.value)} style={s.textInput} />
+                                    <input aria-label="Выбрать акцентный цвет" type="color" value={/^#[\da-f]{6}$/i.test(secondaryColor) ? secondaryColor : '#6FE2CA'} onInput={e => handleColorChange('secondary', e.target.value)} style={s.colorInput} />
+                                    <input id="vortex-theme-secondary" type="text" maxLength={7} value={secondaryColor} onInput={e => handleColorChange('secondary', e.target.value)} style={s.textInput} />
                                 </div>
                             </div>
                             <button type="button" onClick={resetColors} style={s.resetBtn}>Сбросить цвета</button>

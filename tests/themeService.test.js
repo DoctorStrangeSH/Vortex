@@ -22,10 +22,16 @@ test('theme presets update gradients and reset removes applied overrides', async
         const { themeService } = await import('../src/services/themeService.js');
         themeService.applyPreset('forest');
         assert.equal(styles.get('--vortex-primary'), '#10B981');
+        assert.equal(themeService.getActivePreset(), 'forest');
         assert.match(styles.get('--gradient-brand'), /#10B981.*#34D399/);
+        themeService.setTheme('light');
+        assert.equal(themeService.get(), 'light');
+        themeService.setTheme('unexpected');
+        assert.equal(themeService.get(), 'light');
         themeService.resetCustomColors();
         assert.equal(styles.size, 0);
         assert.equal(saved.has('vortex-custom-colors'), false);
+        assert.equal(themeService.getActivePreset(), null);
         themeService.setCustomColor('--other-property', 'red');
         assert.equal(styles.size, 0);
     } finally {
