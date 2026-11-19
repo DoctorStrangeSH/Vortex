@@ -88,8 +88,8 @@ export function MessageBubble({ msg, own, other, avatarColor, isMobile, isPinned
                             {attachmentSource && !mediaFailed ? (
                                 msg.type === 'image' ? (
                                     <img src={attachmentSource} alt={msg.fileName || 'Изображение'} role="button" tabIndex={0} aria-label={`Открыть изображение ${msg.fileName || ''}`.trim()} style={s.image}
-                                        onClick={() => onImageClick?.(attachmentSource)} onLoad={() => onMediaReady?.()}
-                                        onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onImageClick?.(attachmentSource); } }}
+                                        onClick={() => onImageClick?.(msg.id)} onLoad={() => onMediaReady?.()}
+                                        onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onImageClick?.(msg.id); } }}
                                         onError={() => setDecodeFailedSource(attachmentSource)} />
                                 ) : (
                                     <video controls src={attachmentSource} style={s.video} preload="metadata" onLoadedMetadata={() => onMediaReady?.()}
