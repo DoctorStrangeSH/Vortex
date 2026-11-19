@@ -9,6 +9,16 @@ const options = { region: 'europe-west1' };
 
 function callableError(error) {
     if (error instanceof HttpsError) throw error;
+    const message = error?.message || '';
+    if (/Некоррект|Название группы|Список участников|Неизвестная операция|Покинуть группу можно/.test(message)) {
+        throw new HttpsError('invalid-argument', message);
+    }
+    if (/Только администратор|Только владелец|Операцию может выполнить только участник|Можно покинуть только|Создатель группы|Нельзя изменить права владельца/.test(message)) {
+        throw new HttpsError('permission-denied', message);
+    }
+    if (/уже состоит|не состоит|не является администратором|должен остаться|не более 10|лимит участников|повреждён/.test(message)) {
+        throw new HttpsError('failed-precondition', message);
+    }
     throw new HttpsError('internal', 'Не удалось изменить группу. Попробуйте ещё раз.');
 }
 
