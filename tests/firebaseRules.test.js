@@ -163,6 +163,30 @@ test('username and profile are claimed atomically; another user cannot take the 
     await assertFails(setDoc(doc(bob, 'users/bob'), { uid: 'bob', username: 'sherlock' }));
 });
 
+test('registration rejects missing or mismatched username claim and public profile', { skip: !available }, async () => {
+    const newUser = environment.authenticatedContext('new-registration').firestore();
+    const privateProfile = doc(newUser, 'users/new-registration');
+    const publicProfile = doc(newUser, 'publicProfiles/new-registration');
+    const usernameClaim = doc(newUser, 'usernames/new-registration');
+    const profile = { uid: 'new-registration', email: 'new@example.test', displayName: 'New User', username: 'new-registration' };
+
+    await assertFails(setDoc(privateProfile, profile));
+    await assertFails(setDoc(usernameClaim, { uid: 'new-registration', username: 'new-registration' }));
+    await assertFails(setDoc(publicProfile, { uid: 'new-registration', username: 'new-registration', displayName: 'New User' }));
+
+    const forged = writeBatch(newUser);
+    forged.set(privateProfile, profile);
+    forged.set(usernameClaim, { uid: 'another-user', username: 'new-registration' });
+    forged.set(publicProfile, { uid: 'new-registration', username: 'new-registration', displayName: 'New User' });
+    await assertFails(forged.commit());
+
+    const valid = writeBatch(newUser);
+    valid.set(privateProfile, profile);
+    valid.set(usernameClaim, { uid: 'new-registration', username: 'new-registration' });
+    valid.set(publicProfile, { uid: 'new-registration', username: 'new-registration', displayName: 'New User' });
+    await assertSucceeds(valid.commit());
+});
+
 test('private profile protects email while public directory supports search', { skip: !available }, async () => {
     const alice = environment.authenticatedContext('alice').firestore();
     const bob = environment.authenticatedContext('bob').firestore();
