@@ -4,6 +4,16 @@
 
 ## Разработка
 
+### Публикация на GitHub Pages
+
+GitHub Pages должен публиковать **собранный Vite-сайт**, а не исходный `index.html`.
+В настройках репозитория **Settings → Pages → Build and deployment → Source** выберите
+**GitHub Actions**. Workflow `Deploy Vortex to GitHub Pages` собирает `dist` с базовым
+путём `/Vortex/` и публикует его по адресу `https://doctorstrangesh.github.io/Vortex/`.
+Если вместо приложения пустой экран и браузер запрашивает `/src/main.jsx` (404),
+это означает, что Pages по-прежнему раздаёт исходники. Запуск workflow вручную
+доступен в Actions после выбора GitHub Actions как источника публикации.
+
 ```bash
 npm ci
 npm run dev
