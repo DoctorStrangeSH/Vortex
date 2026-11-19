@@ -163,6 +163,14 @@ test('username and profile are claimed atomically; another user cannot take the 
     await assertFails(setDoc(doc(bob, 'users/bob'), { uid: 'bob', username: 'sherlock' }));
 });
 
+test('username lookup requires sign-in, while signed-in users can check an unused name', { skip: !available }, async () => {
+    const guest = environment.unauthenticatedContext().firestore();
+    const alice = environment.authenticatedContext('alice').firestore();
+    await assertFails(getDoc(doc(guest, 'usernames/unused-name')));
+    const availableName = await assertSucceeds(getDoc(doc(alice, 'usernames/unused-name')));
+    assert.equal(availableName.exists(), false);
+});
+
 test('registration rejects missing or mismatched username claim and public profile', { skip: !available }, async () => {
     const newUser = environment.authenticatedContext('new-registration').firestore();
     const privateProfile = doc(newUser, 'users/new-registration');
