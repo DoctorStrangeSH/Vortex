@@ -377,6 +377,13 @@ button:disabled { cursor: not-allowed !important; }
 .vortex-pinned:focus-visible { outline: 2px solid var(--focus-ring) !important; outline-offset: -3px; }
 .vortex-pinned button { min-height: 32px; transition: background-color .18s ease, color .18s ease; }
 .vortex-pinned button:hover { background: var(--bg-active) !important; color: var(--text-primary) !important; }
+.vortex-pinned-dialog-item { display:flex; width:100%; align-items:center; gap:12px; padding:12px; border:1px solid transparent; border-radius:13px; background:transparent; color:var(--text-primary); cursor:pointer; text-align:left; font:inherit; }
+.vortex-pinned-dialog-item:hover, .vortex-pinned-dialog-item:focus-visible { background:var(--bg-hover); border-color:var(--border-default); }
+.vortex-pinned-dialog-number { display:grid; place-items:center; width:34px; height:34px; flex-shrink:0; border-radius:11px; background:var(--bg-active); color:var(--vortex-primary-light); font-size:.8rem; font-weight:700; }
+.vortex-pinned-dialog-copy { display:flex; flex:1; min-width:0; flex-direction:column; gap:4px; }
+.vortex-pinned-dialog-sender { color:var(--vortex-primary-light); font-size:.78rem; font-weight:700; }
+.vortex-pinned-dialog-text { color:var(--text-secondary); font-size:.83rem; overflow-wrap:anywhere; display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:3; overflow:hidden; }
+@media (max-width:560px) { .vortex-pinned-overlay { align-items:flex-end !important; padding:0 !important; } .vortex-pinned-dialog { border-radius:22px 22px 0 0 !important; width:100% !important; max-height:88dvh !important; } }
 [data-theme="light"] .vortex-bubble-other { background: #fff !important; }
 
 /* Identity and settings screens — Obsidian Iris */
