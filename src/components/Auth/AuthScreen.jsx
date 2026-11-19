@@ -33,6 +33,13 @@ export function AuthScreen({ pendingUser = null }) {
             setUsernameChecking(false);
             return;
         }
+        if (mode === 'register' && !pendingUser) {
+            // Firestore username lookups are not public; registration will claim
+            // this name atomically after Firebase Authentication succeeds.
+            setUsernameStatus('Доступность проверим после создания аккаунта');
+            setUsernameChecking(false);
+            return;
+        }
         let active = true;
         setUsernameStatus('');
         setUsernameChecking(true);
@@ -47,7 +54,7 @@ export function AuthScreen({ pendingUser = null }) {
             }
         }, 300);
         return () => { active = false; clearTimeout(timer); };
-    }, [username, mode]);
+    }, [username, mode, pendingUser]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
