@@ -25,6 +25,16 @@ if (available) {
         if (!response.ok) throw new Error(`Unable to seed ${path}: ${response.status}`);
     }
 }
+
+async function seedDocument(path, fields) {
+    const response = await fetch(`http://${process.env.FIRESTORE_EMULATOR_HOST}/v1/projects/demo-vortex/databases/(default)/documents/${path}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer owner' },
+        body: JSON.stringify({ fields })
+    });
+    if (!response.ok) throw new Error(`Unable to seed ${path}: ${response.status}`);
+    return response;
+}
 after(async () => { await environment?.cleanup(); });
 
 test('unread projections are readable only by their owner and never client-writable', { skip: !available }, async () => {
