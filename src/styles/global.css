@@ -334,6 +334,16 @@ button:disabled { cursor: not-allowed !important; }
 }
 
 /* Conversation surfaces */
+.vortex-message-stack { min-width: 0; }
+.vortex-bubble { min-width: 0; max-width: 100%; }
+.vortex-message-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+.vortex-message-meta { font-variant-numeric: tabular-nums; user-select: none; }
+.vortex-file-attachment { min-width: 0; max-width: 100%; border-radius: 10px; padding: 3px; }
+.vortex-file-attachment:hover { background: rgba(255,255,255,.09); }
+.vortex-file-attachment > div { min-width: 0; }
+.vortex-file-name { overflow-wrap: anywhere; }
+.vortex-reaction-list { max-width: 100%; }
+.vortex-reaction:focus-visible, .vortex-file-attachment:focus-visible { outline: 2px solid var(--focus-ring) !important; outline-offset: 2px; }
 @media (max-width: 768px) {
     .vortex-chat-heading { max-width: min(34vw, 200px); }
     .vortex-header-actions { gap: 0 !important; }
