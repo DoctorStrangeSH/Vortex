@@ -13,7 +13,10 @@ function fakeTransactionalStore(participantIds = participants) {
             const stagedEvents = new Set(events);
             const result = await callback({
                 hasProcessed: async id => stagedEvents.has(id),
-                getParticipants: async () => participantIds,
+                getParticipants: async () => {
+                    if (!Array.isArray(participantIds) || participantIds.length === 0) throw new Error('trusted participants are required');
+                    return participantIds;
+                },
                 getCount: async (uid, chatId) => stagedCounts.get(`${uid}/${chatId}`) ?? 0,
                 setCount: (uid, chatId, count) => stagedCounts.set(`${uid}/${chatId}`, count),
                 markProcessed: id => stagedEvents.add(id)
@@ -42,7 +45,10 @@ function fakeSerializedTransactionalStore(participantIds = participants) {
                 const stagedEvents = new Set(events);
                 const result = await callback({
                     hasProcessed: async id => stagedEvents.has(id),
-                    getParticipants: async () => participantIds,
+                    getParticipants: async () => {
+                        if (!Array.isArray(participantIds) || participantIds.length === 0) throw new Error('trusted participants are required');
+                        return participantIds;
+                    },
                     getCount: async (uid, chatId) => stagedCounts.get(`${uid}/${chatId}`) ?? 0,
                     setCount: (uid, chatId, count) => stagedCounts.set(`${uid}/${chatId}`, count),
                     markProcessed: id => stagedEvents.add(id)
