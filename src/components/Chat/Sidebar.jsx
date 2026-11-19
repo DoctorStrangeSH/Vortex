@@ -21,6 +21,8 @@ const readLocalIds = key => {
 
 export function Sidebar({ user, activeChat, onSelectChat }) {
     const [chats, setChats] = useState([]);
+    const [chatsState, setChatsState] = useState('loading');
+    const [chatsRetry, setChatsRetry] = useState(0);
     const [showNewChatModal, setShowNewChatModal] = useState(false);
     const [newChatMode, setNewChatMode] = useState('personal');
     const [showProfile, setShowProfile] = useState(false);
@@ -45,8 +47,15 @@ export function Sidebar({ user, activeChat, onSelectChat }) {
     const optionsMenuRef = useRef(null);
 
     useEffect(() => {
-        return chatService.subscribeToChats(user.uid, setChats);
-    }, [user.uid]);
+        setChatsState('loading');
+        return chatService.subscribeToChats(user.uid, list => {
+            setChats(list);
+            setChatsState('ready');
+        }, error => {
+            console.error('Не удалось получить список чатов', error);
+            setChatsState('error');
+        });
+    }, [user.uid, chatsRetry]);
 
     useEffect(() => {
         setHiddenChats(readLocalIds(hiddenChatsKey));
@@ -192,8 +201,22 @@ export function Sidebar({ user, activeChat, onSelectChat }) {
             </div>
 
             <div class="vortex-chat-list" style={st.chatList} aria-label="Список переписок">
-                {visibleChats.length === 0 ? (
-                    <div style={st.empty}><div style={{fontSize:'3rem'}}>💬</div><p>{globalSearch.trim() ? 'Переписки не найдены' : 'Нет чатов'}</p><p style={{fontSize:'0.75rem'}}>{globalSearch.trim() ? 'Попробуйте другое название чата' : '+ создать чат'}</p></div>
+                {chatsState === 'loading' ? (
+                    <div class="vortex-chat-list-notice" role="status"><div class="vortex-chat-list-loader" aria-hidden="true" /><p>Загружаем переписки…</p></div>
+                ) : chatsState === 'error' ? (
+                    <div class="vortex-chat-list-notice" role="alert">
+                        <div class="vortex-chat-list-symbol"><Icon name="info" size={27} /></div>
+                        <h3>Не удалось загрузить чаты</h3>
+                        <p>Проверьте соединение или доступ к базе данных.</p>
+                        <button class="vortex-chat-list-action" type="button" onClick={() => setChatsRetry(value => value + 1)}>Повторить</button>
+                    </div>
+                ) : visibleChats.length === 0 ? (
+                    <div class="vortex-chat-list-notice">
+                        <div class="vortex-chat-list-symbol"><BrandMark size={48} /></div>
+                        <h3>{globalSearch.trim() ? 'Ничего не найдено' : hiddenAvailable.length > 0 ? 'Чаты скрыты' : 'Начните с приветствия'}</h3>
+                        <p>{globalSearch.trim() ? 'Попробуйте другой запрос или найдите человека по @username.' : hiddenAvailable.length > 0 ? 'Ваши диалоги находятся в разделе скрытых переписок.' : 'Найдите человека, создайте группу или свой первый канал.'}</p>
+                        {globalSearch.trim() ? <button type="button" class="vortex-chat-list-action" onClick={() => handleGlobalSearch('')}>Очистить поиск</button> : <button type="button" class="vortex-chat-list-action" onClick={() => { setNewChatMode('personal'); setShowNewChatModal(true); }}>Новый диалог <span aria-hidden="true">↗</span></button>}
+                    </div>
                 ) : visibleChats.map(chat => {
                     const { name } = getChatData(chat);
                     const color = getAvatarColor(name);
