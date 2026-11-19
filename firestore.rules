@@ -155,6 +155,12 @@ service cloud.firestore {
         request.resource.data.uid == resource.data.uid && request.resource.data.username == resource.data.username;
       allow delete: if false;
     }
+      match /unreadChats/{chatId} {
+        // Unread counters are server-maintained projections; clients may only observe their own.
+        allow read: if signedIn() && request.auth.uid == userId;
+        allow create, update, delete: if false;
+      }
+    }
     match /publicProfiles/{userId} {
       allow read: if signedIn();
       allow create: if signedIn() && request.auth.uid == userId && validPublicProfile(request.resource.data,userId) &&
