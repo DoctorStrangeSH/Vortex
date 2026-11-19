@@ -35,12 +35,13 @@ export function buildGroupMembershipChange(chat, command) {
     if (!chat.participants.includes(actorUid)) throw new Error('Операцию может выполнить только участник группы');
     const isAdmin = chat.admins.includes(actorUid);
     const isMember = chat.participants.includes(memberUid);
+    const isMemberAdmin = chat.admins.includes(memberUid);
     if (['promote', 'demote'].includes(action)) {
         if (actorUid !== chat.createdBy) throw new Error('Только владелец может управлять администраторами');
         if (!isMember) throw new Error('Пользователь не состоит в группе');
         if (memberUid === chat.createdBy) throw new Error('Нельзя изменить права владельца');
-        if (action === 'promote' && isAdmin) throw new Error('Пользователь уже администратор');
-        if (action === 'demote' && !isAdmin) throw new Error('Пользователь не является администратором');
+        if (action === 'promote' && isMemberAdmin) throw new Error('Пользователь уже администратор');
+        if (action === 'demote' && !isMemberAdmin) throw new Error('Пользователь не является администратором');
         const admins = action === 'promote' ? [...chat.admins, memberUid] : chat.admins.filter(uid => uid !== memberUid);
         if (admins.length > 10) throw new Error('В группе может быть не более 10 администраторов');
         return { participants: [...chat.participants], admins, event: { uid: memberUid, action, actorUid } };
