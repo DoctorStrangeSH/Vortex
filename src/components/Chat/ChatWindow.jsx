@@ -18,6 +18,7 @@ import { exportService } from '../../services/exportService';
 import { wallpaperService } from '../../services/wallpaperService';
 import { ChatHeader } from './ChatHeader';
 import { PinnedMessagesDialog } from './PinnedMessagesDialog';
+import { ChatInfoDialog } from './ChatInfoDialog';
 import { BrandMark } from '../UI/BrandMark';
 import { GroupMembersPanel } from './GroupMembersPanel';
 import { MessageBubble } from './MessageBubble';
@@ -78,6 +79,7 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
     const [showReactions, setShowReactions] = useState(null);
     const [showGallery, setShowGallery] = useState(false);
     const [showAllPinned, setShowAllPinned] = useState(false);
+    const [showInfo, setShowInfo] = useState(false);
     const [showPollCreator, setShowPollCreator] = useState(false);
     const [showTheme, setShowTheme] = useState(false);
     const [showStatus, setShowStatus] = useState(false);
@@ -169,6 +171,7 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
         setContextMenu(null);
         setShowReactions(null);
         setShowAllPinned(false);
+        setShowInfo(false);
         setShowMembers(false);
         setShowPollCreator(false);
         setShowTheme(false);
@@ -936,6 +939,7 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
             <ChatHeader
                 chat={chat} user={user} other={other} avatarColor={avatarColor}
                 otherStatus={otherStatus} isTyping={isTyping} isMobile={isMobile}
+                onShowInfo={() => setShowInfo(true)}
                 onBack={onBack} onShowGallery={() => setShowGallery(true)}
                 onShowTheme={() => setShowTheme(true)} onShowStatus={() => setShowStatus(true)}
                 onShowMembers={() => setShowMembers(true)}
@@ -1022,6 +1026,13 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
             {micDenied && <div style={s.micOverlay} onClick={() => setMicDenied(false)}><div style={s.micPrompt}><div>🎙️</div><h3>Микрофон запрещён</h3><p>📱 iPhone: Настройки → Safari → Микрофон<br/>📱 Android: Настройки → Приложения → Браузер → Разрешения</p><button onClick={retryMicAccess} style={s.micAllowBtn}>🔄 Попробовать снова</button></div></div>}
             {showGallery && <MediaGallery messages={messages} onClose={() => setShowGallery(false)} />}
             {showAllPinned && <PinnedMessagesDialog messages={pinnedMessages} onClose={() => setShowAllPinned(false)} onSelect={id => { handleScrollToPinned(id); setShowAllPinned(false); }} />}
+            {showInfo && <ChatInfoDialog chat={chat} other={other} avatarColor={avatarColor} loadedCount={messages.length} pinnedCount={pinnedMessages.length}
+                onClose={() => setShowInfo(false)}
+                onGallery={() => { setShowInfo(false); setShowGallery(true); }}
+                onPinned={() => { setShowInfo(false); setShowAllPinned(true); }}
+                onMembers={() => { setShowInfo(false); setShowMembers(true); }}
+                onTheme={() => { setShowInfo(false); setShowTheme(true); }}
+                onExport={() => { setShowInfo(false); handleExport(); }} />}
             {showPollCreator && <PollCreator onSend={handlePollSend} onClose={() => setShowPollCreator(false)} />}
             {showTheme && <ThemeCustomizer onClose={() => setShowTheme(false)} />}
             {showStatus && <StatusPicker userId={user.uid} onClose={() => setShowStatus(false)} />}
