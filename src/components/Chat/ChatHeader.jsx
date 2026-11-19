@@ -1,5 +1,5 @@
 import { Icon } from '../UI/Icon';
-export function ChatHeader({ chat, user, other, avatarColor, otherStatus, isTyping, isMobile, onBack, onShowGallery, onShowTheme, onShowStatus, onShowMembers, onExport }) {
+export function ChatHeader({ chat, user, other, avatarColor, otherStatus, isTyping, isMobile, onBack, onShowInfo, onShowGallery, onShowTheme, onShowStatus, onShowMembers, onExport }) {
     const formatLastSeen = (date) => {
         if (!date) return '';
         const diff = Math.floor((new Date() - date) / 1000);
@@ -23,6 +23,7 @@ export function ChatHeader({ chat, user, other, avatarColor, otherStatus, isTypi
                 </div>
             </div>
             <div class="vortex-header-actions" style={s.actions}>
+                <button type="button" class="vortex-icon-button" style={s.btn} onClick={onShowInfo} title="Информация о чате" aria-label="Информация о чате"><Icon name="info" /></button>
                 {chat.type === 'group' && <button type="button" class="vortex-icon-button" style={s.btn} onClick={onShowMembers} title="Участники группы" aria-label="Участники группы"><Icon name="users" /></button>}
                 <button type="button" class="vortex-icon-button" style={s.btn} onClick={onShowTheme} title="Оформление" aria-label="Настройки оформления"><Icon name="palette" /></button>
                 <button type="button" class="vortex-icon-button" style={s.btn} onClick={onShowStatus} title="Статус" aria-label="Настроить статус"><Icon name="smile" /></button>
