@@ -1,4 +1,4 @@
-import { useState } from 'preact/hooks';
+import { useEffect, useState } from 'preact/hooks';
 import { BrandMark } from '../UI/BrandMark';
 import { authService } from '../../services/authService';
 import { userService } from '../../services/userService';
@@ -16,30 +16,38 @@ export function AuthScreen({ pendingUser = null }) {
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
 
-    // Проверка username на лету
-    const checkUsername = async (value) => {
-        const val = value.toLowerCase().replace(/[^a-z0-9_]/g, '');
-        setUsername(val);
-        
-        if (val.length < 3) {
-            setUsernameStatus('Минимум 3 символа');
+    // Проверяем уже введённое имя, в том числе восстановленное из черновика.
+    // Отклоняем устаревшие ответы, если пользователь продолжил печатать.
+    useEffect(() => {
+        if (mode === 'login') {
+            setUsernameChecking(false);
             return;
         }
-        
-        setUsernameChecking(true);
-        try {
-            const available = await userService.isUsernameAvailable(val);
-            if (available) {
-                setUsernameStatus('✅ Свободен');
-            } else {
-                setUsernameStatus('❌ Занят');
-            }
-        } catch (err) {
-            setUsernameStatus('Не удалось проверить доступность имени');
-        } finally {
+        if (username.length < 3) {
+            setUsernameStatus('Минимум 3 символа');
             setUsernameChecking(false);
+            return;
         }
-    };
+        if (username.length > 24) {
+            setUsernameStatus('❌ Максимум 24 символа');
+            setUsernameChecking(false);
+            return;
+        }
+        let active = true;
+        setUsernameStatus('');
+        setUsernameChecking(true);
+        const timer = setTimeout(async () => {
+            try {
+                const available = await userService.isUsernameAvailable(username);
+                if (active) setUsernameStatus(available ? '✅ Свободен' : '❌ Занят');
+            } catch {
+                if (active) setUsernameStatus('Не удалось проверить доступность логина');
+            } finally {
+                if (active) setUsernameChecking(false);
+            }
+        }, 300);
+        return () => { active = false; clearTimeout(timer); };
+    }, [username, mode]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -49,6 +57,7 @@ export function AuthScreen({ pendingUser = null }) {
         try {
             if (mode === 'complete') {
                 if (name.trim().length < 2) throw new Error('Имя должно быть минимум 2 символа');
+                if (username.length < 3 || username.length > 24) throw new Error('Логин должен содержать от 3 до 24 символов');
                 await authService.completeRegistration(pendingUser, name.trim(), username);
             } else if (mode === 'login') {
                 await authService.login(email, password);
@@ -56,8 +65,8 @@ export function AuthScreen({ pendingUser = null }) {
                 if (name.length < 2) {
                     throw new Error('Имя должно быть минимум 2 символа');
                 }
-                if (username.length < 3) {
-                    throw new Error('Username минимум 3 символа');
+                if (username.length < 3 || username.length > 24) {
+                    throw new Error('Логин должен содержать от 3 до 24 символов');
                 }
                 if (password.length < 6) {
                     throw new Error('Пароль минимум 6 символов');
@@ -147,7 +156,8 @@ export function AuthScreen({ pendingUser = null }) {
                                         type="text"
                                         autocomplete="username"
                                         value={username}
-                                        onInput={(e) => checkUsername(e.target.value)}
+                                        onInput={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+                                        maxLength={24}
                                         placeholder="username"
                                         class="vortex-form-input" style={{
                                             ...styles.input,
