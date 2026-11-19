@@ -52,3 +52,21 @@ test('rejects corrupted participant and administrator state before applying a ch
         type: 'group', createdBy: 'alice', participants: ['alice', 'bob'], admins: ['mallory']
     }, command), /повреждён/);
 });
+
+
+test('only the group owner can promote and demote administrators', () => {
+    const chat = { type: 'group', createdBy: 'alice', participants: ['alice', 'bob', 'eve'], admins: ['alice'] };
+    const promoted = buildGroupMembershipChange(chat, { actorUid: 'alice', memberUid: 'bob', action: 'promote' });
+    assert.deepEqual(promoted.admins, ['alice', 'bob']);
+    assert.equal(promoted.event.action, 'promote');
+    assert.throws(() => buildGroupMembershipChange(chat, { actorUid: 'bob', memberUid: 'eve', action: 'promote' }), /Только владелец/);
+    assert.throws(() => buildGroupMembershipChange(chat, { actorUid: 'alice', memberUid: 'alice', action: 'demote' }), /владельца/);
+    assert.throws(() => buildGroupMembershipChange(chat, { actorUid: 'alice', memberUid: 'eve', action: 'demote' }), /не является администратором/);
+});
+
+test('group administrator limit is enforced', () => {
+    const admins = ['alice', ...Array.from({ length: 9 }, (_, i) => `admin-${i}`)];
+    const participants = [...admins, 'bob'];
+    const chat = { type: 'group', createdBy: 'alice', participants, admins };
+    assert.throws(() => buildGroupMembershipChange(chat, { actorUid: 'alice', memberUid: 'bob', action: 'promote' }), /не более 10/);
+});
