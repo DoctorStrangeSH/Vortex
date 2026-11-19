@@ -170,33 +170,6 @@ service cloud.firestore {
         validChannelMembershipChange());
       // Group deletion must be coordinated by a trusted backend to clean up subcollections.
       allow delete: if signedIn() && resource.data.createdBy == request.auth.uid && resource.data.type != 'group';
-      match /messages/{messageId} {
-        allow read: if chatMember(chatId);
-        allow create: if chatMember(chatId) && validMessage(request.resource.data, chatId) &&
-          validNewAttachment(request.resource.data) &&
-          (get(/databases/$(database)/documents/chats/$(chatId)).data.type != 'channel' ||
-           request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.admins) &&
-          request.resource.data.senderId == request.auth.uid &&
-          request.resource.data.text is string && request.resource.data.text.size() <= 4096 &&
-          (!('readBy' in request.resource.data) || request.resource.data.readBy == []) &&
-          !('reactions' in request.resource.data);
-        allow update: if chatMember(chatId) && validMessage(request.resource.data, chatId) && (
-          (resource.data.senderId == request.auth.uid &&
-           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text','isEdited','editedAt','selfDestruct','destructAt'])) ||
-          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readBy']) && validReadReceiptChange()) ||
-          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions']) && validReactionChange()));
-        allow delete: if chatMember(chatId) && resource.data.senderId == request.auth.uid;
-      }
-      match /typing/{userId} {
-        allow read: if chatMember(chatId);
-        allow create, update: if chatMember(chatId) && request.auth.uid == userId &&
-          validTyping(request.resource.data, userId);
-        allow delete: if chatMember(chatId) && request.auth.uid == userId;
-      }
-    }
-    match /{document=**} { allow read, write: if false; }
-  }
-}
       match /membershipHistory/{eventId} {
         // Membership events are immutable and visible only to current chat members.
         allow read: if chatMember(chatId);
