@@ -17,6 +17,7 @@ import { selfDestructService } from '../../services/selfDestructService';
 import { exportService } from '../../services/exportService';
 import { wallpaperService } from '../../services/wallpaperService';
 import { ChatHeader } from './ChatHeader';
+import { PinnedMessagesDialog } from './PinnedMessagesDialog';
 import { BrandMark } from '../UI/BrandMark';
 import { GroupMembersPanel } from './GroupMembersPanel';
 import { MessageBubble } from './MessageBubble';
@@ -1020,7 +1021,7 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
             {showAI && <div style={s.aiMenu}><button onClick={handleSmartReply} style={s.aiItem}>💡 Умный ответ</button><button onClick={handleTranslate} style={s.aiItem}>🌍 Перевести</button><button onClick={handleSummarize} style={s.aiItem}>📊 Саммари</button></div>}
             {micDenied && <div style={s.micOverlay} onClick={() => setMicDenied(false)}><div style={s.micPrompt}><div>🎙️</div><h3>Микрофон запрещён</h3><p>📱 iPhone: Настройки → Safari → Микрофон<br/>📱 Android: Настройки → Приложения → Браузер → Разрешения</p><button onClick={retryMicAccess} style={s.micAllowBtn}>🔄 Попробовать снова</button></div></div>}
             {showGallery && <MediaGallery messages={messages} onClose={() => setShowGallery(false)} />}
-            {showAllPinned && <div style={s.modalOverlay} onClick={() => setShowAllPinned(false)}><div style={s.modal}><div style={s.modalHeader}><h3>📌 Закреплённые ({pinnedMessages.length})</h3></div><div style={s.modalBody}>{pinnedMessages.map((msg, i) => <div key={msg.id} style={s.pinnedItem} onClick={() => { handleScrollToPinned(msg.id); setShowAllPinned(false); }}><div style={s.pinnedNumber}>{i+1}</div><div><div style={s.pinnedSender}>{msg.senderName}</div><div>{msg.text}</div></div></div>)}</div></div></div>}
+            {showAllPinned && <PinnedMessagesDialog messages={pinnedMessages} onClose={() => setShowAllPinned(false)} onSelect={id => { handleScrollToPinned(id); setShowAllPinned(false); }} />}
             {showPollCreator && <PollCreator onSend={handlePollSend} onClose={() => setShowPollCreator(false)} />}
             {showTheme && <ThemeCustomizer onClose={() => setShowTheme(false)} />}
             {showStatus && <StatusPicker userId={user.uid} onClose={() => setShowStatus(false)} />}
