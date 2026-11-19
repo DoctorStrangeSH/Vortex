@@ -372,6 +372,11 @@ button:disabled { cursor: not-allowed !important; }
 .vortex-gallery-item { transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease; }
 .vortex-gallery-item:hover { border-color: var(--vortex-primary-light) !important; transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.25); }
 .vortex-pinned { border-left: 3px solid var(--vortex-primary); }
+.vortex-pinned { transition: background-color .18s ease, border-color .18s ease; }
+.vortex-pinned:hover { background: var(--bg-hover) !important; }
+.vortex-pinned:focus-visible { outline: 2px solid var(--focus-ring) !important; outline-offset: -3px; }
+.vortex-pinned button { min-height: 32px; transition: background-color .18s ease, color .18s ease; }
+.vortex-pinned button:hover { background: var(--bg-active) !important; color: var(--text-primary) !important; }
 [data-theme="light"] .vortex-bubble-other { background: #fff !important; }
 
 /* Identity and settings screens — Obsidian Iris */
