@@ -526,6 +526,16 @@ button:disabled { cursor: not-allowed !important; }
 .vortex-form-input:focus { border-color: var(--vortex-primary-light) !important; box-shadow: 0 0 0 3px rgba(137,104,255,.16); }
 .vortex-primary-button:hover:not(:disabled) { box-shadow: 0 8px 24px rgba(126,99,236,.35); transform: translateY(-1px); }
 .vortex-profile-modal, .vortex-settings-modal { backdrop-filter: blur(20px); }
+.vortex-profile-modal { max-height: min(90dvh, 850px); overflow-y:auto !important; }
+.vortex-profile-header { background:linear-gradient(135deg,rgba(137,104,255,.14),rgba(66,90,169,.035)); }
+.vortex-profile-eyebrow { color:var(--vortex-primary-light); font-size:.63rem; letter-spacing:.15em; font-weight:800; margin-bottom:6px; }
+.vortex-profile-hero { position:relative; padding:24px 12px 20px; border:1px solid var(--border-subtle); border-radius:20px; background:radial-gradient(circle at 50% 0%,rgba(137,104,255,.15),transparent 72%); }
+.vortex-profile-hero > div:first-child { border:3px solid rgba(178,153,255,.5); box-shadow:0 12px 35px rgba(102,75,211,.25); }
+.vortex-profile-hero h4 { margin-top:12px; color:var(--text-primary); font-size:1.13rem; font-weight:750; overflow-wrap:anywhere; }
+.vortex-profile-hero p { margin-top:4px; color:var(--vortex-primary-light); font-size:.8rem; overflow-wrap:anywhere; }
+.vortex-profile-body input:focus, .vortex-profile-body textarea:focus { border-color:var(--vortex-primary-light) !important; box-shadow:0 0 0 3px rgba(137,104,255,.14); }
+.vortex-profile-counter { color:var(--text-tertiary); text-align:right; margin-top:5px; font-size:.7rem; }
+.vortex-profile-status { padding:24px 14px; border:1px solid var(--border-default); border-radius:14px; text-align:center; color:var(--text-secondary); font-size:.85rem; }
 .vortex-theme-preset:hover { border-color: var(--vortex-primary-light) !important; background: var(--bg-hover) !important; }
 [data-theme="light"] .vortex-auth-screen { background: radial-gradient(ellipse at 18% 15%, rgba(128,99,239,.10), transparent 40%), var(--bg-primary) !important; }
 @media (max-width: 980px) {
