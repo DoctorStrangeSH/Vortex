@@ -51,6 +51,33 @@ test('unread projections are readable only by their owner and never client-writa
     await assertFails(deleteDoc(ownProjection));
 });
 
+test('group creators cannot delete a group document directly, while private chat owners can', { skip: !available }, async () => {
+    const alice = environment.authenticatedContext('alice').firestore();
+    const groupRef = doc(alice, 'chats', 'group-delete-guard');
+    await seedDocument('chats/group-delete-guard', {
+        type: { stringValue: 'group' },
+        name: { stringValue: 'Команда' },
+        createdBy: { stringValue: 'alice' },
+        participants: { arrayValue: { values: [{ stringValue: 'alice' }, { stringValue: 'bob' }] } },
+        admins: { arrayValue: { values: [{ stringValue: 'alice' }] } }
+    });
+    await assertFails(deleteDoc(groupRef));
+
+    const privateRef = doc(alice, 'chats', 'private-delete-allowed');
+    await assertSucceeds(setDoc(privateRef, {
+        type: 'private',
+        createdBy: 'alice',
+        participants: ['alice', 'bob'],
+        participantNames: ['Alice', 'Bob'],
+        createdAt: serverTimestamp(),
+        lastMessage: 'Чат создан',
+        lastMessageTime: serverTimestamp(),
+        pinnedMessages: []
+    }));
+    await assertSucceeds(deleteDoc(privateRef));
+});
+
+
 test('nonmember cannot read a private chat or its messages', { skip: !available }, async () => {
     const alice = environment.authenticatedContext('alice').firestore();
     const eve = environment.authenticatedContext('eve').firestore();
