@@ -1,24 +1,28 @@
-// Original vector identity: three currents orbiting a luminous center.
+// Vortex identity: three luminous currents orbiting a crystalline iris.
+// The favicon uses the same geometry in public/vortex-mark.svg.
 export function BrandMark({ size = 32, decorative = true, className = '', style }) {
     return (
-        <svg class={className} width={size} height={size} viewBox="0 0 80 80" fill="none"
+        <svg class={className} width={size} height={size} viewBox="0 0 64 64" fill="none"
             xmlns="http://www.w3.org/2000/svg" aria-hidden={decorative ? 'true' : undefined}
             role={decorative ? undefined : 'img'} aria-label={decorative ? undefined : 'Vortex'} style={style}>
             <defs>
-                <linearGradient id="vortex-mark-flow" x1="10" y1="12" x2="71" y2="69" gradientUnits="userSpaceOnUse">
-                    <stop stopColor="#E1D5FF" />
-                    <stop offset=".48" stopColor="#AE8DFF" />
-                    <stop offset="1" stopColor="#6D8DEB" />
+                <linearGradient id="vortex-mark-flow" x1="12" y1="10" x2="53" y2="55" gradientUnits="userSpaceOnUse">
+                    <stop stopColor="#E2CBFF" />
+                    <stop offset=".48" stopColor="#9C70F5" />
+                    <stop offset="1" stopColor="#547CE9" />
+                </linearGradient>
+                <linearGradient id="vortex-mark-iris" x1="25" y1="24" x2="39" y2="41" gradientUnits="userSpaceOnUse">
+                    <stop stopColor="#F7EAFF" />
+                    <stop offset="1" stopColor="#8DDDF4" />
                 </linearGradient>
             </defs>
-            <path d="M12 29C16 14 32 8 46 12C58 15 67 26 67 39"
-                stroke="url(#vortex-mark-flow)" strokeWidth="7" strokeLinecap="round" />
-            <path d="M62 51C53 66 36 72 22 63C11 56 8 42 13 31"
-                stroke="url(#vortex-mark-flow)" strokeWidth="7" strokeLinecap="round" />
-            <path d="M25 28C35 20 48 23 54 32C61 43 51 57 39 56C29 55 25 47 28 39"
-                stroke="url(#vortex-mark-flow)" strokeWidth="6" strokeLinecap="round" />
-            <circle cx="40" cy="40" r="5" fill="#F7F1FF" />
-            <circle cx="40" cy="40" r="11" stroke="#C7B3FF" strokeOpacity=".22" strokeWidth="2" />
+            <rect width="64" height="64" rx="17" fill="#101329" />
+            <rect x=".75" y=".75" width="62.5" height="62.5" rx="16.25" stroke="#C5B4FF" strokeOpacity=".2" strokeWidth="1.5" />
+            <path d="M11 31C11 18 21 10 33 10C44 10 51 16 55 24L47 28C44 21 40 19 32 19C25 19 20 24 19 32L11 36Z" fill="url(#vortex-mark-flow)" />
+            <path d="M52 22C60 32 56 45 47 52C40 57 33 57 27 54L31 45C38 48 45 45 48 39C51 34 50 29 46 25L52 22Z" fill="url(#vortex-mark-flow)" />
+            <path d="M30 55C19 57 9 49 9 38C9 32 11 28 15 24L22 30C18 35 18 41 22 45C25 48 29 49 35 47L37 54Z" fill="url(#vortex-mark-flow)" />
+            <circle cx="32" cy="33" r="10" stroke="#C1B4FF" strokeOpacity=".45" strokeWidth="2" />
+            <circle cx="32" cy="33" r="5.5" fill="url(#vortex-mark-iris)" />
         </svg>
     );
 }
