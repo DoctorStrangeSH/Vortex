@@ -12,17 +12,17 @@ export function ChatHeader({ chat, user, other, avatarColor, otherStatus, isTypi
     return (
         <div class="vortex-chat-header" style={s.header}>
             <div style={s.left}>
-                {isMobile && <button onClick={onBack} class="vortex-icon-button" style={s.backBtn}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button>}
+                {isMobile && <button type="button" onClick={onBack} aria-label="Назад к списку чатов" class="vortex-icon-button" style={s.backBtn}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button>}
                 <div style={{ ...s.avatar, background: avatarColor }}>{other.name.charAt(0).toUpperCase()}</div>
                 <div style={s.info}>
-                    <div style={s.name}>{other.name}</div>
+                    <div class="vortex-chat-heading" style={s.name} title={other.name}>{other.name}</div>
                     <div style={s.status}>
                         {isTyping ? <span style={{ color: 'var(--vortex-secondary)', fontStyle: 'italic' }}>печатает...</span> :
                         <><span style={{ ...s.dot, background: otherStatus.isOnline ? 'var(--vortex-secondary)' : 'var(--text-tertiary)' }}/>{otherStatus.isOnline ? 'В сети' : otherStatus.lastSeen ? `Был(а) ${formatLastSeen(otherStatus.lastSeen)}` : 'Не в сети'}</>}
                     </div>
                 </div>
             </div>
-            <div style={s.actions}>
+            <div class="vortex-header-actions" style={s.actions}>
                 {chat.type === 'group' && <button type="button" class="vortex-icon-button" style={s.btn} onClick={onShowMembers} title="Участники группы" aria-label="Участники группы"><Icon name="users" /></button>}
                 <button type="button" class="vortex-icon-button" style={s.btn} onClick={onShowTheme} title="Оформление" aria-label="Настройки оформления"><Icon name="palette" /></button>
                 <button type="button" class="vortex-icon-button" style={s.btn} onClick={onShowStatus} title="Статус" aria-label="Настроить статус"><Icon name="smile" /></button>
