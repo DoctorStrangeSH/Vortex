@@ -123,6 +123,18 @@ try {
     await page.setViewportSize({ width: 360, height: 420 });
     await page.goto(`${origin}/tests/browser/auth-scroll.html`);
     await page.getByRole('tab', { name: 'Регистрация' }).click();
+    await page.locator('#vortex-auth-username').fill('sherlocktest');
+    await page.getByText('Доступность проверим после создания аккаунта').waitFor();
+    // An unauthenticated signup must not query the protected usernames collection.
+    const usernameLookupRequests = [];
+    page.on('request', request => {
+        if (request.url().includes('firestore.googleapis.com') && request.url().includes('usernames')) {
+            usernameLookupRequests.push(request.url());
+        }
+    });
+    await page.locator('#vortex-auth-username').fill('sherlocktest2');
+    await page.waitForTimeout(450);
+    assert.deepEqual(usernameLookupRequests, [], 'signup should defer Firestore username lookup until sign-in');
     const submit = page.getByRole('button', { name: 'Зарегистрироваться', exact: true });
     const scrollInfo = await page.evaluate(() => {
         const screen = document.querySelector('.vortex-auth-screen');
