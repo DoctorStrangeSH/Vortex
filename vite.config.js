@@ -3,6 +3,8 @@ import preact from '@preact/preset-vite';
 
 export default defineConfig({
     plugins: [preact()],
+    // GitHub Pages serves this repository under /Vortex/, not the domain root.
+    base: process.env.GITHUB_PAGES === 'true' ? '/Vortex/' : '/',
     build: {
         rollupOptions: {
             output: {
