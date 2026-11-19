@@ -58,5 +58,5 @@ export function buildGroupMembershipChange(chat, command) {
     if (participants.length < 1 || participants.length > MAX_GROUP_MEMBERS) throw new Error('Недопустимое количество участников');
     const admins = action === 'add' ? [...chat.admins] : chat.admins.filter(uid => uid !== memberUid);
     if (!admins.length) throw new Error('В группе должен остаться хотя бы один администратор');
-    return { participants, admins, event: { uid: memberUid, action: action === 'add' ? 'join' : 'leave', actorUid } };
+    return { participants, admins, event: { uid: memberUid, action: action === 'add' ? 'join' : action, actorUid } };
 }
