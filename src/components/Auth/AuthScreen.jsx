@@ -4,11 +4,12 @@ import { authService } from '../../services/authService';
 import { userService } from '../../services/userService';
 
 export function AuthScreen({ pendingUser = null }) {
+    const [registrationDraft] = useState(() => authService.getRegistrationDraft(pendingUser));
     const [mode, setMode] = useState(pendingUser ? 'complete' : 'login');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [name, setName] = useState(pendingUser?.displayName || '');
-    const [username, setUsername] = useState('');
+    const [name, setName] = useState(registrationDraft?.name || pendingUser?.displayName || '');
+    const [username, setUsername] = useState(registrationDraft?.username || '');
     const [usernameStatus, setUsernameStatus] = useState('');
     const [usernameChecking, setUsernameChecking] = useState(false);
     const [error, setError] = useState('');
@@ -33,7 +34,7 @@ export function AuthScreen({ pendingUser = null }) {
                 setUsernameStatus('❌ Занят');
             }
         } catch (err) {
-            setUsernameStatus('');
+            setUsernameStatus('Не удалось проверить доступность имени');
         } finally {
             setUsernameChecking(false);
         }
@@ -64,7 +65,9 @@ export function AuthScreen({ pendingUser = null }) {
                 await authService.register(email, password, name, username);
             }
         } catch (err) {
-            setError(err.message || 'Ошибка');
+            setError(err.code === 'permission-denied'
+                ? 'База данных отклонила сохранение профиля. Имя и @username сохранены в этой вкладке — попробуйте позже.'
+                : err.message || 'Ошибка');
         } finally {
             setLoading(false);
         }
@@ -82,7 +85,7 @@ export function AuthScreen({ pendingUser = null }) {
 
                 {/* Табы */}
                 {mode === 'complete' && <p style={{ marginBottom: '1rem', color: 'var(--text-secondary)' }}>
-                    Аккаунт уже создан. Выберите свободный @username, чтобы завершить регистрацию.
+                    Аккаунт создан, но профиль ещё не сохранён. Проверьте имя и @username и завершите регистрацию.
                 </p>}
                 {mode !== 'complete' && <div class="vortex-auth-tabs" role="tablist" aria-label="Режим авторизации" style={styles.tabs}>
                     <button
