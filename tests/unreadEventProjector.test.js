@@ -67,6 +67,22 @@ test('one event increments each recipient only once across retries', async () =>
     assert.equal(store.events.size, 1);
 });
 
+test('a retry with the same event ID but a different payload cannot change counters', async () => {
+    const store = fakeTransactionalStore();
+    const first = { eventId: 'stable-event-id', chatId: 'room', after: data, participants };
+    const conflictingRetry = {
+        eventId: 'stable-event-id',
+        chatId: 'room',
+        after: { senderId: 'bob', readBy: [] },
+        participants
+    };
+
+    assert.equal((await projectUnreadEvent(store, first)).applied, true);
+    assert.equal((await projectUnreadEvent(store, conflictingRetry)).applied, false);
+    assert.deepEqual(Object.fromEntries(store.counts), { 'bob/room': 1, 'charlie/room': 1 });
+    assert.equal(store.events.size, 1);
+});
+
 test('concurrent duplicate deliveries apply the same event only once', async () => {
     const store = fakeSerializedTransactionalStore();
     const event = { eventId: 'concurrent-create', chatId: 'room', after: data, participants };
