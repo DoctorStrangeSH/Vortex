@@ -7,9 +7,9 @@ class PushService {
         if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
             return false;
         }
-
-        this.swRegistration = await navigator.serviceWorker.ready;
-        return true;
+        // Нет поставляемого service worker: ready может ожидать бесконечно.
+        this.swRegistration = await navigator.serviceWorker.getRegistration();
+        return Boolean(this.swRegistration?.active);
     }
 
     async subscribe(userId) {
