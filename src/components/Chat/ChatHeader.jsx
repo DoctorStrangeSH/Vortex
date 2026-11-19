@@ -1,5 +1,31 @@
 import { Icon } from '../UI/Icon';
+import { useEffect, useRef, useState } from 'preact/hooks';
 export function ChatHeader({ chat, user, other, avatarColor, otherStatus, isTyping, isMobile, onBack, onShowInfo, onShowGallery, onShowTheme, onShowStatus, onShowMembers, onExport }) {
+    const [menuOpen, setMenuOpen] = useState(false);
+    const menuRef = useRef(null);
+    const menuButtonRef = useRef(null);
+
+    useEffect(() => { setMenuOpen(false); }, [chat.id, isMobile]);
+    useEffect(() => {
+        if (!menuOpen) return;
+        const dismissOutside = event => {
+            if (!menuRef.current?.contains(event.target) && !menuButtonRef.current?.contains(event.target)) setMenuOpen(false);
+        };
+        const dismissEscape = event => {
+            if (event.key === 'Escape') { event.preventDefault(); setMenuOpen(false); menuButtonRef.current?.focus(); }
+        };
+        document.addEventListener('pointerdown', dismissOutside);
+        document.addEventListener('keydown', dismissEscape);
+        return () => { document.removeEventListener('pointerdown', dismissOutside); document.removeEventListener('keydown', dismissEscape); };
+    }, [menuOpen]);
+
+    const runAction = callback => { setMenuOpen(false); callback?.(); };
+    const extraActions = [
+        ...(chat.type === 'group' ? [{ icon: 'users', title: 'Участники группы', handler: onShowMembers }] : []),
+        { icon: 'palette', title: 'Оформление', handler: onShowTheme },
+        { icon: 'smile', title: 'Статус', handler: onShowStatus },
+        { icon: 'download', title: 'Экспорт переписки', handler: onExport }
+    ];
     const formatLastSeen = (date) => {
         if (!date) return '';
         const diff = Math.floor((new Date() - date) / 1000);
@@ -10,7 +36,7 @@ export function ChatHeader({ chat, user, other, avatarColor, otherStatus, isTypi
     };
 
     return (
-        <div class="vortex-chat-header" style={s.header}>
+        <div class="vortex-chat-header" style={{ ...s.header, position: 'relative' }}>
             <div style={s.left}>
                 {isMobile && <button type="button" onClick={onBack} aria-label="Назад к списку чатов" class="vortex-icon-button" style={s.backBtn}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button>}
                 <div style={{ ...s.avatar, background: avatarColor }}>{other.name.charAt(0).toUpperCase()}</div>
@@ -24,12 +50,13 @@ export function ChatHeader({ chat, user, other, avatarColor, otherStatus, isTypi
             </div>
             <div class="vortex-header-actions" style={s.actions}>
                 <button type="button" class="vortex-icon-button" style={s.btn} onClick={onShowInfo} title="Информация о чате" aria-label="Информация о чате"><Icon name="info" /></button>
-                {chat.type === 'group' && <button type="button" class="vortex-icon-button" style={s.btn} onClick={onShowMembers} title="Участники группы" aria-label="Участники группы"><Icon name="users" /></button>}
-                <button type="button" class="vortex-icon-button" style={s.btn} onClick={onShowTheme} title="Оформление" aria-label="Настройки оформления"><Icon name="palette" /></button>
-                <button type="button" class="vortex-icon-button" style={s.btn} onClick={onShowStatus} title="Статус" aria-label="Настроить статус"><Icon name="smile" /></button>
                 <button type="button" class="vortex-icon-button" style={s.btn} onClick={onShowGallery} title="Галерея" aria-label="Открыть галерею"><Icon name="image" /></button>
-                <button type="button" class="vortex-icon-button" style={s.btn} onClick={onExport} title="Экспорт" aria-label="Экспортировать чат"><Icon name="download" /></button>
+                {!isMobile && extraActions.map(action => <button key={action.title} type="button" class="vortex-icon-button" style={s.btn} onClick={action.handler} title={action.title} aria-label={action.title}><Icon name={action.icon} /></button>)}
+                {isMobile && <button ref={menuButtonRef} type="button" class="vortex-icon-button" style={s.btn} onClick={() => setMenuOpen(value => !value)} aria-label="Дополнительные действия" aria-expanded={menuOpen} aria-controls="vortex-header-menu"><Icon name="menu" /></button>}
             </div>
+            {isMobile && menuOpen && <div ref={menuRef} id="vortex-header-menu" class="vortex-header-menu" role="group" aria-label="Дополнительные действия с чатом">
+                {extraActions.map(action => <button key={action.title} type="button" class="vortex-header-menu-item" onClick={() => runAction(action.handler)}><Icon name={action.icon} size={18} /><span>{action.title}</span></button>)}
+            </div>}
         </div>
     );
 }
