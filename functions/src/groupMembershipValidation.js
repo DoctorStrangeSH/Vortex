@@ -24,6 +24,15 @@ export function parseGroupMembershipCommand(data, actorUid) {
 export function buildGroupMembershipChange(chat, command) {
     if (!chat || chat.type !== 'group' || !Array.isArray(chat.participants) || !Array.isArray(chat.admins)) throw new Error('Группа не найдена или имеет некорректный формат');
     const { actorUid, memberUid, action } = command;
+    if (chat.participants.length < 1 || chat.participants.length > MAX_GROUP_MEMBERS ||
+        new Set(chat.participants).size !== chat.participants.length ||
+        chat.admins.length < 1 || chat.admins.length > 10 ||
+        new Set(chat.admins).size !== chat.admins.length ||
+        !chat.participants.includes(chat.createdBy) ||
+        chat.admins.some(uid => !chat.participants.includes(uid))) {
+        throw new Error('Состав группы или список администраторов повреждён');
+    }
+    if (!chat.participants.includes(actorUid)) throw new Error('Операцию может выполнить только участник группы');
     const isAdmin = chat.admins.includes(actorUid);
     const isMember = chat.participants.includes(memberUid);
     if (action !== 'leave' && !isAdmin) throw new Error('Только администратор может управлять участниками');
