@@ -203,6 +203,25 @@ test('private profile protects email while public directory supports search', { 
     await assertSucceeds(updateDoc(doc(alice, 'publicProfiles/alice'), { displayName: 'Алиса' }));
 });
 
+test('profile edits are atomic across private and public documents', { skip: !available }, async () => {
+    const alice = environment.authenticatedContext('alice').firestore();
+    const privateRef = doc(alice, 'users/alice');
+    const publicRef = doc(alice, 'publicProfiles/alice');
+    const original = (await assertSucceeds(getDoc(privateRef))).data().displayName;
+
+    const invalid = writeBatch(alice);
+    invalid.set(privateRef, { displayName: 'Неверное обновление' }, { merge: true });
+    invalid.set(publicRef, { username: 'other-person' }, { merge: true });
+    await assertFails(invalid.commit());
+    assert.equal((await assertSucceeds(getDoc(privateRef))).data().displayName, original);
+
+    const valid = writeBatch(alice);
+    valid.set(privateRef, { displayName: 'Новое имя', bio: 'О себе' }, { merge: true });
+    valid.set(publicRef, { displayName: 'Новое имя', bio: 'О себе' }, { merge: true });
+    await assertSucceeds(valid.commit());
+    assert.equal((await assertSucceeds(getDoc(publicRef))).data().displayName, 'Новое имя');
+});
+
 test('legacy email-bearing username claims are owner-only until email removal', { skip: !available }, async () => {
     const alice = environment.authenticatedContext('alice').firestore();
     const bob = environment.authenticatedContext('bob').firestore();
