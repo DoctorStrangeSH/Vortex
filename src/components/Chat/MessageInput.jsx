@@ -12,12 +12,12 @@ export function MessageInput({ text, onTextChange, onSend, sending = false, onTy
     return (
         <div class="vortex-composer" style={s.container}>
             {editingMessage && (
-                <div style={s.editBar}>
+                <div class="vortex-edit-banner" style={s.editBar} role="status">
                     <span>✏️ Редактирование</span>
-                    <button onClick={onCancelEdit} style={s.cancelBtn}>✕</button>
+                    <button type="button" aria-label="Отменить редактирование" onClick={onCancelEdit} style={s.cancelBtn}>✕</button>
                 </div>
             )}
-            <div style={s.wrapper}>
+            <div class="vortex-composer-controls" style={s.wrapper}>
                 <button type="button" class="vortex-icon-button" aria-label="Прикрепить файл" title={uploadingAttachments ? "Отправка файлов…" : "Прикрепить файл"} style={s.btn} disabled={uploadingAttachments} onClick={() => fileInputRef.current?.click()}><Icon name="paperclip" /></button>
                 <input type="file" ref={fileInputRef} onChange={onFileSend} accept="*/*" multiple style={{ display: 'none' }} />
                 
@@ -27,7 +27,7 @@ export function MessageInput({ text, onTextChange, onSend, sending = false, onTy
                     onClick={isRecording ? onStopVoice : voiceStarting ? undefined : onStartVoice}
                     disabled={voiceStarting}
                 >{isRecording ? <Icon name="send" /> : voiceStarting ? <Icon name="loader" /> : <Icon name="microphone" />}</button>
-                {(isRecording || voiceStarting) && <div style={s.voiceStatus} role="status">
+                {(isRecording || voiceStarting) && <div class="vortex-voice-status" style={s.voiceStatus} role="status">
                     {voiceStarting ? 'Микрофон…' : `🔴 ${Math.floor(recordSeconds / 60).toString().padStart(2, '0')}:${(recordSeconds % 60).toString().padStart(2, '0')}`}
                     <button type="button" onClick={onCancelVoice} aria-label="Отменить запись" title="Отменить запись" style={s.cancelVoice}>✕</button>
                 </div>}
@@ -36,13 +36,20 @@ export function MessageInput({ text, onTextChange, onSend, sending = false, onTy
                     type="text"
                     value={text}
                     onInput={(e) => handleInput(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); if (!sending) onSend(); } }}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Escape' && editingMessage) { e.preventDefault(); onCancelEdit?.(); }
+                        if (e.key === 'Enter' && !e.isComposing && e.keyCode !== 229) {
+                            e.preventDefault();
+                            if (!sending && text.trim()) onSend();
+                        }
+                    }}
                     placeholder="Сообщение"
+                    aria-label={editingMessage ? 'Редактировать сообщение' : 'Текст сообщения'}
                     class="vortex-composer-input" style={s.input}
                 />
 
                 <button type="button" class="vortex-icon-button" aria-label="Подсказки помощника" title="Подсказки помощника" style={s.btn} onClick={onShowAI}><Icon name="sparkles" /></button>
-                <button onClick={onSend} disabled={!text.trim() || sending} aria-label={sending ? 'Отправка сообщения' : 'Отправить сообщение'}
+                <button type="button" onClick={onSend} disabled={!text.trim() || sending} aria-label={sending ? 'Отправка сообщения' : 'Отправить сообщение'}
                     class="vortex-send-button" style={{ ...s.sendBtn, opacity: text.trim() && !sending ? 1 : 0.4 }}>{sending ? <Icon name="loader" /> : <Icon name="send" />}</button>
             </div>
         </div>
