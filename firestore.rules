@@ -80,8 +80,9 @@ service cloud.firestore {
     function validReadReceiptChange() {
       let before = resource.data.get('readBy', []);
       let after = request.resource.data.get('readBy', []);
-      return before is list && after is list && after.size() == before.size() + 1 &&
-        after.hasAll(before) && request.auth.uid in after && !(request.auth.uid in before);
+      return before is list && after is list && resource.data.senderId != request.auth.uid &&
+        after.size() == before.size() + 1 && after.hasAll(before) &&
+        request.auth.uid in after && !(request.auth.uid in before);
     }
     function validReactionForKey(before, after, key) {
       let oldList = before.get(key, []);

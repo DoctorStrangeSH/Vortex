@@ -157,6 +157,13 @@ test('two participants can complete a message lifecycle: send, receive, read and
     assert.equal((await assertSucceeds(getDoc(bobMessage))).exists(), false);
 });
 
+test('authors cannot mark their own messages as read', { skip: !available }, async () => {
+    const alice = environment.authenticatedContext('alice').firestore();
+    const message = doc(alice, 'chats/chat-a/messages/self-read-denied');
+    await assertSucceeds(setDoc(message, { senderId: 'alice', text: 'Моё сообщение', readBy: [] }));
+    await assertFails(updateDoc(message, { readBy: arrayUnion('alice') }));
+});
+
 test('other participants cannot edit the author content', { skip: !available }, async () => {
     const bob = environment.authenticatedContext('bob').firestore();
     await assertFails(updateDoc(doc(bob, 'chats/chat-a/messages/m1'), { text: 'forged edit' }));
