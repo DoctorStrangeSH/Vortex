@@ -16,7 +16,7 @@ export function parseGroupMembershipCommand(data, actorUid) {
     const { chatId, memberUid, action } = data || {};
     if (typeof chatId !== 'string' || !chatId || chatId.includes('/')) throw new Error('Некорректная группа');
     if (typeof memberUid !== 'string' || !memberUid || memberUid.includes('/')) throw new Error('Некорректный участник');
-    if (!['add', 'remove', 'leave'].includes(action)) throw new Error('Неизвестная операция с участниками');
+    if (!['add', 'remove', 'leave', 'promote', 'demote'].includes(action)) throw new Error('Неизвестная операция с участниками');
     if (action === 'leave' && memberUid !== actorUid) throw new Error('Покинуть группу можно только от своего имени');
     return { chatId, memberUid, action, actorUid };
 }
@@ -35,8 +35,19 @@ export function buildGroupMembershipChange(chat, command) {
     if (!chat.participants.includes(actorUid)) throw new Error('Операцию может выполнить только участник группы');
     const isAdmin = chat.admins.includes(actorUid);
     const isMember = chat.participants.includes(memberUid);
+    if (['promote', 'demote'].includes(action)) {
+        if (actorUid !== chat.createdBy) throw new Error('Только владелец может управлять администраторами');
+        if (!isMember) throw new Error('Пользователь не состоит в группе');
+        if (memberUid === chat.createdBy) throw new Error('Нельзя изменить права владельца');
+        if (action === 'promote' && isAdmin) throw new Error('Пользователь уже администратор');
+        if (action === 'demote' && !isAdmin) throw new Error('Пользователь не является администратором');
+        const admins = action === 'promote' ? [...chat.admins, memberUid] : chat.admins.filter(uid => uid !== memberUid);
+        if (admins.length > 10) throw new Error('В группе может быть не более 10 администраторов');
+        return { participants: [...chat.participants], admins, event: { uid: memberUid, action, actorUid } };
+    }
     if (action !== 'leave' && !isAdmin) throw new Error('Только администратор может управлять участниками');
     if (action === 'leave' && actorUid !== memberUid) throw new Error('Можно покинуть только собственную группу');
+    if (action === 'add' && chat.participants.length >= MAX_GROUP_MEMBERS) throw new Error('В группе достигнут лимит участников');
     if (action === 'add' && isMember) throw new Error('Пользователь уже состоит в группе');
     if (action !== 'add' && !isMember) throw new Error('Пользователь не состоит в группе');
     if (memberUid === chat.createdBy && action !== 'add') throw new Error('Создатель группы не может покинуть её или быть удалён');
