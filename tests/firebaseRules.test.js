@@ -25,6 +25,17 @@ if (available) {
         if (!response.ok) throw new Error(`Unable to seed ${path}: ${response.status}`);
     }
 }
+
+async function seedDocument(path, fields) {
+    const response = await fetch(`http://${process.env.FIRESTORE_EMULATOR_HOST}/v1/projects/demo-vortex/databases/(default)/documents/${path}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer owner' },
+        body: JSON.stringify({ fields })
+    });
+    if (!response.ok) throw new Error(`Unable to seed ${path}: ${response.status}`);
+    return response;
+}
+
 after(async () => { await environment?.cleanup(); });
 
 test('unread projections are readable only by their owner and never client-writable', { skip: !available }, async () => {
@@ -397,11 +408,11 @@ test('new messages cannot start with forged receipts or reactions', { skip: !ava
     }));
 });
 
-test('new group cannot grant extra admin privileges or spoof the creator', { skip: !available }, async () => {
+test('group creation is restricted to the trusted callable backend', { skip: !available }, async () => {
     const alice = environment.authenticatedContext('alice').firestore();
     const groups = collection(alice, 'chats');
     const valid = { type: 'group', name: 'Команда', createdBy: 'alice', participants: ['alice', 'bob'], admins: ['alice'] };
-    await assertSucceeds(setDoc(doc(groups), valid));
+    await assertFails(setDoc(doc(groups), valid));
     await assertFails(setDoc(doc(groups), { ...valid, admins: ['alice', 'eve'] }));
     await assertFails(setDoc(doc(groups), { ...valid, createdBy: 'eve', admins: ['eve'] }));
     await assertFails(setDoc(doc(groups), { ...valid, name: 'A'.repeat(101) }));
@@ -422,40 +433,58 @@ test('message schema rejects unknown fields and oversized attachment metadata', 
     await assertFails(updateDoc(doc(alice, 'chats/chat-a/messages/m1'), { text: 123 }));
 });
 
-test('group membership is managed by admins, while ordinary members can only leave', { skip: !available }, async () => {
+test('clients cannot create, add, remove or leave groups outside trusted callables', { skip: !available }, async () => {
     const alice = environment.authenticatedContext('alice').firestore();
     const bob = environment.authenticatedContext('bob').firestore();
     const charlie = environment.authenticatedContext('charlie').firestore();
     const groupId = 'group-membership-check';
-    await assertSucceeds(setDoc(doc(alice, 'chats', groupId), {
+    const groupRef = doc(alice, 'chats', groupId);
+    await assertFails(setDoc(groupRef, {
         type: 'group', createdBy: 'alice', participants: ['alice', 'bob'], admins: ['alice']
     }));
+    await seedDocument(`chats/${groupId}`, {
+        type: { stringValue: 'group' },
+        createdBy: { stringValue: 'alice' },
+        participants: { arrayValue: { values: [{ stringValue: 'alice' }, { stringValue: 'bob' }] } },
+        admins: { arrayValue: { values: [{ stringValue: 'alice' }] } }
+    });
+    await assertSucceeds(getDoc(doc(bob, 'chats', groupId)));
     await assertFails(updateDoc(doc(bob, 'chats', groupId), { participants: arrayUnion('eve') }));
     await assertFails(updateDoc(doc(bob, 'chats', groupId), { participants: arrayRemove('alice') }));
-    await assertFails(updateDoc(doc(alice, 'chats', groupId), { participants: arrayRemove('alice') }));
-    await assertSucceeds(updateDoc(doc(alice, 'chats', groupId), { participants: arrayUnion('charlie') }));
+    await assertFails(updateDoc(groupRef, { participants: arrayRemove('alice') }));
+    await assertFails(updateDoc(groupRef, { participants: arrayUnion('charlie') }));
     await assertFails(updateDoc(doc(charlie, 'chats', groupId), { participants: arrayUnion('eve') }));
-    await assertSucceeds(updateDoc(doc(bob, 'chats', groupId), { participants: arrayRemove('bob') }));
+    await assertFails(updateDoc(doc(bob, 'chats', groupId), { participants: arrayRemove('bob') }));
+    await assertFails(updateDoc(groupRef, { participants: ['alice', 'charlie', 'eve', 'mallory'] }));
+    await seedDocument(`chats/${groupId}`, {
+        type: { stringValue: 'group' },
+        createdBy: { stringValue: 'alice' },
+        participants: { arrayValue: { values: [{ stringValue: 'alice' }] } },
+        admins: { arrayValue: { values: [{ stringValue: 'alice' }] } }
+    });
     await assertFails(getDoc(doc(bob, 'chats', groupId)));
-    await assertFails(updateDoc(doc(alice, 'chats', groupId), { participants: ['alice', 'charlie', 'eve', 'mallory'] }));
 });
 
-test('only group creator can manage admins and owner is never removed', { skip: !available }, async () => {
+test('clients cannot change group administrator roles directly', { skip: !available }, async () => {
     const alice = environment.authenticatedContext('alice').firestore();
     const bob = environment.authenticatedContext('bob').firestore();
     const groupId = 'group-admin-check';
-    await assertSucceeds(setDoc(doc(alice, 'chats', groupId), {
-        type: 'group', createdBy: 'alice', participants: ['alice', 'bob'], admins: ['alice']
-    }));
+    const groupRef = doc(alice, 'chats', groupId);
+    await seedDocument(`chats/${groupId}`, {
+        type: { stringValue: 'group' },
+        createdBy: { stringValue: 'alice' },
+        participants: { arrayValue: { values: [{ stringValue: 'alice' }, { stringValue: 'bob' }] } },
+        admins: { arrayValue: { values: [{ stringValue: 'alice' }] } }
+    });
     await assertFails(updateDoc(doc(bob, 'chats', groupId), { admins: arrayUnion('bob') }));
-    await assertFails(updateDoc(doc(alice, 'chats', groupId), { admins: arrayUnion('eve') }));
-    await assertSucceeds(updateDoc(doc(alice, 'chats', groupId), { admins: arrayUnion('bob') }));
+    await assertFails(updateDoc(groupRef, { admins: arrayUnion('eve') }));
+    await assertFails(updateDoc(groupRef, { admins: arrayUnion('bob') }));
     await assertFails(updateDoc(doc(bob, 'chats', groupId), { admins: arrayRemove('alice') }));
-    await assertFails(updateDoc(doc(alice, 'chats', groupId), { admins: arrayRemove('alice') }));
-    await assertSucceeds(updateDoc(doc(bob, 'chats', groupId), { participants: arrayUnion('eve') }));
-    await assertFails(updateDoc(doc(alice, 'chats', groupId), { participants: arrayRemove('bob') }));
-    await assertSucceeds(updateDoc(doc(alice, 'chats', groupId), { admins: arrayRemove('bob') }));
-    await assertSucceeds(updateDoc(doc(alice, 'chats', groupId), { participants: arrayRemove('bob') }));
+    await assertFails(updateDoc(groupRef, { admins: arrayRemove('alice') }));
+    await assertFails(updateDoc(doc(bob, 'chats', groupId), { participants: arrayUnion('eve') }));
+    await assertFails(updateDoc(groupRef, { participants: arrayRemove('bob') }));
+    await assertFails(updateDoc(groupRef, { admins: arrayRemove('bob') }));
+    await assertFails(updateDoc(groupRef, { participants: arrayRemove('bob') }));
 });
 
 
@@ -522,13 +551,21 @@ test('removed group member immediately loses Storage access', { skip: !available
     const aliceStorage = environment.authenticatedContext('alice').storage();
     const bobStorage = environment.authenticatedContext('bob').storage();
     const groupId = 'group-storage-revoke';
-    await assertSucceeds(setDoc(doc(aliceDb, 'chats', groupId), {
-        type: 'group', createdBy: 'alice', participants: ['alice', 'bob'], admins: ['alice']
-    }));
+    await seedDocument(`chats/${groupId}`, {
+        type: { stringValue: 'group' },
+        createdBy: { stringValue: 'alice' },
+        participants: { arrayValue: { values: [{ stringValue: 'alice' }, { stringValue: 'bob' }] } },
+        admins: { arrayValue: { values: [{ stringValue: 'alice' }] } }
+    });
     const path = `chats/${groupId}/media/alice/revoke-test`;
     await assertSucceeds(uploadString(ref(aliceStorage, path), 'hello', 'raw', { contentType: 'text/plain' }));
     assert.equal(new TextDecoder().decode(await assertSucceeds(getBytes(ref(bobStorage, path)))), 'hello');
-    await assertSucceeds(updateDoc(doc(aliceDb, 'chats', groupId), { participants: arrayRemove('bob') }));
+    await seedDocument(`chats/${groupId}`, {
+        type: { stringValue: 'group' },
+        createdBy: { stringValue: 'alice' },
+        participants: { arrayValue: { values: [{ stringValue: 'alice' }] } },
+        admins: { arrayValue: { values: [{ stringValue: 'alice' }] } }
+    });
     await assertFails(getMetadata(ref(bobStorage, path)));
     await assertFails(getBytes(ref(bobStorage, path)));
     await assertSucceeds(getMetadata(ref(aliceStorage, path)));
