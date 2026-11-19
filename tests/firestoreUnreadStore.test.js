@@ -46,7 +46,7 @@ function createFakeFirestore(seed = {}) {
 const timestamp = () => 'server-time';
 
 test('Firestore adapter atomically writes recipient counters and event receipt', async () => {
-    const db = createFakeFirestore();
+    const db = createFakeFirestore({ 'chats/room-1': { participants: ['alice', 'bob', 'charlie'] } });
     const store = createFirestoreUnreadStore({ db, serverTimestamp: timestamp });
     const result = await projectUnreadEvent(store, {
         eventId: 'message-created-1',
@@ -65,7 +65,7 @@ test('Firestore adapter atomically writes recipient counters and event receipt',
 });
 
 test('Firestore adapter treats a repeated event as an idempotent no-op', async () => {
-    const db = createFakeFirestore();
+    const db = createFakeFirestore({ 'chats/room-1': { participants: ['alice', 'bob'] } });
     const store = createFirestoreUnreadStore({ db, serverTimestamp: timestamp });
     const event = {
         eventId: 'message-created-2',
@@ -94,6 +94,7 @@ test('Firestore adapter rejects invalid document identities before writing', asy
 
 test('Firestore adapter rejects a stored counter with a non-integer value without writing', async () => {
     const db = createFakeFirestore({
+        'chats/room-1': { participants: ['alice', 'bob'] },
         'users/bob/unreadChats/room-1': { count: 'one' }
     });
     const store = createFirestoreUnreadStore({ db, serverTimestamp: timestamp });
@@ -134,7 +135,7 @@ test('Firestore adapter rejects slash-containing user and chat IDs', async () =>
 });
 
 test('Firestore adapter preserves a missing counter as a zero baseline', async () => {
-    const db = createFakeFirestore();
+    const db = createFakeFirestore({ 'chats/room-1': { participants: ['alice', 'bob'] } });
     const store = createFirestoreUnreadStore({ db, serverTimestamp: timestamp });
     await projectUnreadEvent(store, {
         eventId: 'message-created-3',
@@ -143,4 +144,41 @@ test('Firestore adapter preserves a missing counter as a zero baseline', async (
         participants: ['alice', 'bob']
     });
     assert.equal(db.documents.get('users/bob/unreadChats/room-1').count, 1);
+});
+
+test('Firestore adapter derives recipients from the chat document, not event payload', async () => {
+    const db = createFakeFirestore({ 'chats/room-1': { participants: ['alice', 'bob'] } });
+    const store = createFirestoreUnreadStore({ db, serverTimestamp: timestamp });
+
+    await projectUnreadEvent(store, {
+        eventId: 'forged-participant-list',
+        chatId: 'room-1',
+        after: { senderId: 'alice', readBy: [] },
+        participants: ['alice', 'mallory']
+    });
+
+    assert.equal(db.documents.get('users/bob/unreadChats/room-1').count, 1);
+    assert.equal(db.documents.has('users/mallory/unreadChats/room-1'), false);
+    const reads = db.operations.filter(([kind]) => kind === 'get').map(([, path]) => path);
+    assert.ok(reads.includes('chats/room-1'), 'trusted chat membership must be read transactionally');
+});
+
+test('Firestore adapter rejects missing or malformed trusted chat membership', async () => {
+    const missingDb = createFakeFirestore();
+    const missingStore = createFirestoreUnreadStore({ db: missingDb, serverTimestamp: timestamp });
+    await assert.rejects(projectUnreadEvent(missingStore, {
+        eventId: 'missing-chat',
+        chatId: 'room-1',
+        after: { senderId: 'alice', readBy: [] }
+    }), /missing chat/);
+    assert.equal(missingDb.documents.size, 0);
+
+    const malformedDb = createFakeFirestore({ 'chats/room-1': { participants: ['alice', 'alice'] } });
+    const malformedStore = createFirestoreUnreadStore({ db: malformedDb, serverTimestamp: timestamp });
+    await assert.rejects(projectUnreadEvent(malformedStore, {
+        eventId: 'duplicate-members',
+        chatId: 'room-1',
+        after: { senderId: 'alice', readBy: [] }
+    }), /invalid trusted participants/);
+    assert.equal(malformedDb.documents.size, 1);
 });

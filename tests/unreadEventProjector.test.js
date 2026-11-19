@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { projectUnreadEvent } from '../server/unreadEventProjector.js';
 
-function fakeTransactionalStore() {
+function fakeTransactionalStore(participantIds = participants) {
     const counts = new Map();
     const events = new Set();
     return {
@@ -13,6 +13,10 @@ function fakeTransactionalStore() {
             const stagedEvents = new Set(events);
             const result = await callback({
                 hasProcessed: async id => stagedEvents.has(id),
+                getParticipants: async () => {
+                    if (!Array.isArray(participantIds) || participantIds.length === 0) throw new Error('trusted participants are required');
+                    return participantIds;
+                },
                 getCount: async (uid, chatId) => stagedCounts.get(`${uid}/${chatId}`) ?? 0,
                 setCount: (uid, chatId, count) => stagedCounts.set(`${uid}/${chatId}`, count),
                 markProcessed: id => stagedEvents.add(id)
@@ -24,7 +28,7 @@ function fakeTransactionalStore() {
     };
 }
 
-function fakeSerializedTransactionalStore() {
+function fakeSerializedTransactionalStore(participantIds = participants) {
     const counts = new Map();
     const events = new Set();
     let tail = Promise.resolve();
@@ -41,6 +45,10 @@ function fakeSerializedTransactionalStore() {
                 const stagedEvents = new Set(events);
                 const result = await callback({
                     hasProcessed: async id => stagedEvents.has(id),
+                    getParticipants: async () => {
+                        if (!Array.isArray(participantIds) || participantIds.length === 0) throw new Error('trusted participants are required');
+                        return participantIds;
+                    },
                     getCount: async (uid, chatId) => stagedCounts.get(`${uid}/${chatId}`) ?? 0,
                     setCount: (uid, chatId, count) => stagedCounts.set(`${uid}/${chatId}`, count),
                     markProcessed: id => stagedEvents.add(id)
@@ -152,5 +160,17 @@ test('failed transaction does not write event receipt or partial counters', asyn
 test('rejects missing event identities or members', async () => {
     const store = fakeTransactionalStore();
     await assert.rejects(projectUnreadEvent(store, { eventId: '', chatId: 'room', participants }), /stable eventId/);
-    await assert.rejects(projectUnreadEvent(store, { eventId: 'x', chatId: 'room' }), /participants/);
+    await assert.rejects(projectUnreadEvent(fakeTransactionalStore([]), { eventId: 'x', chatId: 'room' }), /trusted participants/);
+});
+
+test('projector rejects invalid trusted membership instead of using caller-supplied participants', async () => {
+    const store = fakeTransactionalStore(['alice', 'bob']);
+    const result = await projectUnreadEvent(store, {
+        eventId: 'trusted-members-only',
+        chatId: 'room',
+        after: data,
+        participants: ['alice', 'mallory']
+    });
+    assert.deepEqual(result.deltas, { bob: 1 });
+    assert.equal(store.counts.has('mallory/room'), false);
 });

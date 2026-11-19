@@ -1,6 +1,14 @@
 const safeDocumentId = value =>
     typeof value === 'string' && value.length > 0 && !value.includes('/') && value !== '.' && value !== '..';
 
+function validateParticipants(value, chatId) {
+    if (!Array.isArray(value) || value.length < 1 || value.length > 100 ||
+        value.some(uid => !safeDocumentId(uid)) || new Set(value).size !== value.length) {
+        throw new Error(`Chat ${chatId} has invalid trusted participants`);
+    }
+    return value;
+}
+
 export function createFirestoreUnreadStore({ db, serverTimestamp }) {
     if (!db || typeof db.doc !== 'function' || typeof db.runTransaction !== 'function') {
         throw new TypeError('A Firestore Admin database instance is required');
@@ -24,6 +32,12 @@ export function createFirestoreUnreadStore({ db, serverTimestamp }) {
                         const snapshot = await transaction.get(ref);
                         return snapshot.exists;
                     },
+                    async getParticipants(chatId) {
+                        if (!safeDocumentId(chatId)) throw new Error('Invalid unread chat ID');
+                        const snapshot = await transaction.get(db.doc(`chats/${chatId}`));
+                        if (!snapshot.exists) throw new Error(`Unread event references missing chat: ${chatId}`);
+                        return validateParticipants(snapshot.data()?.participants, chatId);
+                    },
                     async getCount(userId, chatId) {
                         if (!safeDocumentId(userId) || !safeDocumentId(chatId)) {
                             throw new Error('Invalid unread counter identity');
@@ -33,8 +47,7 @@ export function createFirestoreUnreadStore({ db, serverTimestamp }) {
                         counterRefs.set(key, ref);
                         const snapshot = await transaction.get(ref);
                         if (!snapshot.exists) return 0;
-                        const count = snapshot.data()?.count;
-                        return count;
+                        return snapshot.data()?.count;
                     },
                     setCount(userId, chatId, count) {
                         if (!Number.isSafeInteger(count)) throw new Error('Unread counter must be a safe integer');
