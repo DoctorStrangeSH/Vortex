@@ -488,6 +488,33 @@ test('clients cannot change group administrator roles directly', { skip: !availa
 });
 
 
+test('membership history is readable by current members and immutable to clients', { skip: !available }, async () => {
+    const alice = environment.authenticatedContext('alice').firestore();
+    const bob = environment.authenticatedContext('bob').firestore();
+    const eve = environment.authenticatedContext('eve').firestore();
+    const groupId = 'group-history-access';
+    await seedDocument(`chats/${groupId}`, {
+        type: { stringValue: 'group' },
+        createdBy: { stringValue: 'alice' },
+        participants: { arrayValue: { values: [{ stringValue: 'alice' }, { stringValue: 'bob' }] } },
+        admins: { arrayValue: { values: [{ stringValue: 'alice' }] } }
+    });
+    await seedDocument(`chats/${groupId}/membershipHistory/event-1`, {
+        uid: { stringValue: 'bob' },
+        action: { stringValue: 'join' },
+        actorUid: { stringValue: 'alice' },
+        effectiveAt: { timestampValue: '2026-11-19T12:00:00Z' },
+        schemaVersion: { integerValue: '1' }
+    });
+    const eventForBob = doc(bob, 'chats', groupId, 'membershipHistory', 'event-1');
+    const eventForEve = doc(eve, 'chats', groupId, 'membershipHistory', 'event-1');
+    await assertSucceeds(getDoc(eventForBob));
+    await assertFails(getDoc(eventForEve));
+    await assertFails(setDoc(doc(alice, 'chats', groupId, 'membershipHistory', 'forged'), {
+        uid: 'eve', action: 'join', actorUid: 'alice', effectiveAt: serverTimestamp(), schemaVersion: 1
+    }));
+});
+ 
 test('chat preview and pinned metadata reject invalid types and oversized values', { skip: !available }, async () => {
     const alice = environment.authenticatedContext('alice').firestore();
     const chat = doc(alice, 'chats/chat-a');
