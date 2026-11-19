@@ -468,8 +468,18 @@ button:disabled { cursor: not-allowed !important; }
 .vortex-auth-screen {
     position: relative;
     isolation: isolate;
+    width: 100%;
+    height: 100%;
+    min-height: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    align-items: stretch;
+    justify-content: center;
+    overflow-x: hidden;
     overflow-y: auto;
-    padding: 24px 16px;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+    padding: max(24px, env(safe-area-inset-top, 0px)) 16px max(24px, env(safe-area-inset-bottom, 0px));
     background: radial-gradient(ellipse at 18% 15%, rgba(128,99,239,.18), transparent 40%),
                 radial-gradient(ellipse at 85% 85%, rgba(68,107,199,.13), transparent 45%), var(--bg-primary) !important;
 }
@@ -487,6 +497,7 @@ button:disabled { cursor: not-allowed !important; }
 .vortex-auth-card { position: relative; background: var(--surface-glass) !important; backdrop-filter: blur(28px); }
 .vortex-auth-screen { gap: clamp(24px, 6vw, 100px); }
 .vortex-auth-story { width: min(470px, 42vw); flex: 0 1 470px; color: var(--text-primary); }
+.vortex-auth-story, .vortex-auth-card { margin-block: auto; }
 .vortex-auth-story-inner { position: relative; padding: 42px 10px; }
 .vortex-auth-story-kicker { display: flex; align-items: center; gap: 12px; color: var(--vortex-primary-light); font-size: .69rem; font-weight: 750; letter-spacing: .19em; }
 .vortex-auth-story-spark { width: 7px; height: 7px; flex-shrink: 0; border-radius: 50%; background: var(--vortex-secondary); box-shadow: 0 0 0 6px rgba(111,226,202,.09), 0 0 20px rgba(111,226,202,.5); }
@@ -497,7 +508,7 @@ button:disabled { cursor: not-allowed !important; }
 .vortex-auth-story-foot { display: flex; align-items: center; gap: 10px; margin-top: 56px; color: var(--text-tertiary); font-size: .64rem; font-weight: 700; letter-spacing: .13em; white-space: nowrap; }
 .vortex-auth-story-foot > span:first-child { color: var(--vortex-primary-light); font-size: 1rem; }
 .vortex-auth-story-divider { width: 1px; height: 15px; background: var(--border-default); }
-.vortex-auth-card { width: min(440px, 100%) !important; max-width: 100% !important; flex: 0 0 auto; }
+.vortex-auth-card { width: min(440px, 100%) !important; max-width: 100% !important; min-width: 0; flex: 0 0 auto; }
 .vortex-auth-card input { min-width: 0; }
 .vortex-auth-password-wrap { position: relative; }
 .vortex-auth-password-wrap input { padding-right: 6.2rem !important; }
@@ -557,7 +568,7 @@ button:disabled { cursor: not-allowed !important; }
     .vortex-auth-screen { gap: 0; }
 }
 @media (max-width: 480px) {
-    .vortex-auth-card { padding: 1.7rem !important; border-radius: 20px !important; }
+    .vortex-auth-card { padding: 1.25rem !important; border-radius: 20px !important; }
     .vortex-auth-screen { padding: 16px 12px; }
 }
 
