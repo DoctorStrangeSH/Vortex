@@ -27,6 +27,30 @@ if (available) {
 }
 after(async () => { await environment?.cleanup(); });
 
+test('unread projections are readable only by their owner and never client-writable', { skip: !available }, async () => {
+    const response = await fetch(`http://${process.env.FIRESTORE_EMULATOR_HOST}/v1/projects/demo-vortex/databases/(default)/documents/users/alice/unreadChats/chat-a`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer owner' },
+        body: JSON.stringify({ fields: {
+            count: { integerValue: '3' },
+            updatedAt: { timestampValue: '2026-11-19T12:00:00Z' },
+            schemaVersion: { integerValue: '1' }
+        } })
+    });
+    assert.equal(response.ok, true);
+
+    const alice = environment.authenticatedContext('alice').firestore();
+    const bob = environment.authenticatedContext('bob').firestore();
+    const ownProjection = doc(alice, 'users/alice/unreadChats/chat-a');
+    const foreignProjection = doc(bob, 'users/alice/unreadChats/chat-a');
+
+    assert.equal((await assertSucceeds(getDoc(ownProjection))).data().count, 3);
+    await assertFails(getDoc(foreignProjection));
+    await assertFails(setDoc(ownProjection, { count: 0, schemaVersion: 1 }));
+    await assertFails(updateDoc(ownProjection, { count: 4 }));
+    await assertFails(deleteDoc(ownProjection));
+});
+
 test('nonmember cannot read a private chat or its messages', { skip: !available }, async () => {
     const alice = environment.authenticatedContext('alice').firestore();
     const eve = environment.authenticatedContext('eve').firestore();
