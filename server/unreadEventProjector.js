@@ -1,22 +1,18 @@
 import { getUnreadCounterDeltas } from './unreadCounterModel.js';
 
-// Storage adapter contract:
-// store.runTransaction(async tx => {
-//   await tx.hasProcessed(eventId);
-//   await tx.getCount(userId, chatId);
-//   tx.setCount(userId, chatId, count);
-//   tx.markProcessed(eventId);
-// });
-// The adapter must atomically commit all counter writes and the event receipt.
-export async function projectUnreadEvent(store, { eventId, chatId, before = null, after = null, participants }) {
+// Participant membership is loaded by the storage adapter inside the same
+// transaction as the counters. Never accept it from a client event payload.
+export async function projectUnreadEvent(store, { eventId, chatId, before = null, after = null }) {
     if (typeof eventId !== 'string' || !eventId || typeof chatId !== 'string' || !chatId) {
         throw new Error('Unread event requires stable eventId and chatId');
     }
-    if (!Array.isArray(participants)) throw new Error('Unread event requires chat participants');
 
-    const deltas = getUnreadCounterDeltas(before, after, participants);
     return store.runTransaction(async tx => {
         if (await tx.hasProcessed(eventId)) return { applied: false, deltas: {} };
+
+        const participants = await tx.getParticipants(chatId);
+        const deltas = getUnreadCounterDeltas(before, after, participants);
+
         // Read every counter before any writes (required by Firestore transactions).
         const existing = {};
         for (const uid of Object.keys(deltas)) {
