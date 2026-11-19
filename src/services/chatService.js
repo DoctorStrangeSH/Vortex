@@ -19,7 +19,7 @@ import {
 } from 'firebase/firestore';
 
 class ChatService {
-    subscribeToChats(userId, callback) {
+    subscribeToChats(userId, callback, onError = () => {}) {
         const q = query(
             collection(db, 'chats'),
             where('participants', 'array-contains', userId)
@@ -36,7 +36,7 @@ class ChatService {
                 return timeB - timeA;
             });
             callback(chats);
-        });
+        }, onError);
     }
 
     async createChat(currentUser, otherUser) {
