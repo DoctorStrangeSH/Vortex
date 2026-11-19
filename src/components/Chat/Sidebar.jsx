@@ -191,7 +191,7 @@ export function Sidebar({ user, activeChat, onSelectChat }) {
                 )}
             </div>
 
-            <div style={st.chatList}>
+            <div class="vortex-chat-list" style={st.chatList} aria-label="Список переписок">
                 {visibleChats.length === 0 ? (
                     <div style={st.empty}><div style={{fontSize:'3rem'}}>💬</div><p>{globalSearch.trim() ? 'Переписки не найдены' : 'Нет чатов'}</p><p style={{fontSize:'0.75rem'}}>{globalSearch.trim() ? 'Попробуйте другое название чата' : '+ создать чат'}</p></div>
                 ) : visibleChats.map(chat => {
@@ -200,15 +200,15 @@ export function Sidebar({ user, activeChat, onSelectChat }) {
                     const active = activeChat?.id === chat.id;
                     return (
                         <div key={chat.id} role="button" tabIndex={0} aria-label={`Открыть чат ${name}`} aria-current={active ? "true" : undefined} onKeyDown={e => { if (e.target !== e.currentTarget) return; if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openChat(chat); } }} onClick={() => openChat(chat)}
-                            class="vortex-chat-item" style={{...st.chatItem, background: active ? 'var(--bg-active)' : 'transparent', border: active ? '1px solid rgba(124,58,237,0.2)' : '1px solid transparent'}}>
+                            class="vortex-chat-item" style={st.chatItem}>
                             <div style={{...st.chatAvatar, background: color}}>{name.charAt(0).toUpperCase()}</div>
                             <div style={st.chatInfo}>
-                                <div style={st.chatName}>{pinnedChats.includes(chat.id) ? '📌 ' : ''}{chat.isChannel ? '📢 ' : chat.type === 'group' ? '👥 ' : ''}{name}</div>
+                                <div class="vortex-chat-name" style={st.chatName}>{pinnedChats.includes(chat.id) ? '📌 ' : ''}{chat.isChannel ? '📢 ' : chat.type === 'group' ? '👥 ' : ''}{name}</div>
                                 <div style={st.chatLast} title={chat.lastMessage || 'Нет сообщений'}>{chat.lastMessage || 'Нет сообщений'}</div>
                             </div>
-                            <div style={st.chatTime}>{formatChatTime(chat.lastMessageTime)}</div>
+                            <div class="vortex-chat-time" style={st.chatTime}>{formatChatTime(chat.lastMessageTime)}</div>
                             <div style={st.optionsWrapper} ref={chatOptionsId === chat.id ? optionsMenuRef : null}>
-                                <button type="button" style={st.optionsButton} aria-label={`Настройки чата ${name}`} aria-haspopup="menu" aria-expanded={chatOptionsId === chat.id} onClick={e => { e.stopPropagation(); setChatOptionsId(prev => prev === chat.id ? null : chat.id); }}>⋮</button>
+                                <button type="button" class="vortex-chat-more" style={st.optionsButton} aria-label={`Настройки чата ${name}`} aria-haspopup="menu" aria-expanded={chatOptionsId === chat.id} onClick={e => { e.stopPropagation(); setChatOptionsId(prev => prev === chat.id ? null : chat.id); }}>⋮</button>
                                 {chatOptionsId === chat.id && <div style={st.optionsMenu} role="menu" aria-label={`Действия с чатом ${name}`}>
                                     <button type="button" role="menuitem" style={st.optionItem} onClick={e => { e.stopPropagation(); togglePinned(chat.id); }}>{pinnedChats.includes(chat.id) ? 'Открепить' : '📌 Закрепить'}</button>
                                     <button type="button" role="menuitem" style={st.optionItem} onClick={e => { e.stopPropagation(); toggleHidden(chat.id); }}>Скрыть из списка</button>
