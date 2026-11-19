@@ -34,6 +34,9 @@ class LazyLoadService {
 
     // Предзагрузка критических ресурсов
     preloadCritical() {
+        // Vite bundles CSS and JS into hashed assets in production. Source paths
+        // only exist on the dev server; preloading them on GitHub Pages creates 404s.
+        if (import.meta.env?.DEV !== true) return;
         const links = [
             { rel: 'preload', href: '/src/styles/global.css', as: 'style' },
             { rel: 'preload', href: '/src/main.jsx', as: 'script' }
