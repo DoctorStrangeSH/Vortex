@@ -70,3 +70,16 @@ test('group administrator limit is enforced', () => {
     const chat = { type: 'group', createdBy: 'alice', participants, admins };
     assert.throws(() => buildGroupMembershipChange(chat, { actorUid: 'alice', memberUid: 'bob', action: 'promote' }), /не более 10/);
 });
+
+
+test('membership history distinguishes an administrator removal from a voluntary leave', () => {
+    const chat = { type: 'group', createdBy: 'alice', participants: ['alice', 'bob', 'eve'], admins: ['alice'] };
+    const removed = buildGroupMembershipChange(chat, { actorUid: 'alice', memberUid: 'bob', action: 'remove' });
+    assert.deepEqual(removed.participants, ['alice', 'eve']);
+    assert.deepEqual(removed.admins, ['alice']);
+    assert.deepEqual(removed.event, { uid: 'bob', action: 'remove', actorUid: 'alice' });
+
+    const left = buildGroupMembershipChange(chat, { actorUid: 'eve', memberUid: 'eve', action: 'leave' });
+    assert.deepEqual(left.participants, ['alice', 'bob']);
+    assert.deepEqual(left.event, { uid: 'eve', action: 'leave', actorUid: 'eve' });
+});
