@@ -35,3 +35,20 @@ test('prevents removing creator, removing absent members and leaving without an 
 test('rejects non-group chat documents and malformed group state', () => {
     assert.throws(() => buildGroupMembershipChange({ type: 'private', participants: ['alice', 'bob'], admins: [] }, { actorUid: 'alice', memberUid: 'eve', action: 'add' }), /Группа не найдена/);
 });
+
+test('rejects a caller who is not a current group participant', () => {
+    const chat = { type: 'group', createdBy: 'alice', participants: ['alice', 'bob'], admins: ['alice'] };
+    assert.throws(() => buildGroupMembershipChange(chat, {
+        actorUid: 'mallory', memberUid: 'eve', action: 'add'
+    }), /только участник группы/);
+});
+
+test('rejects corrupted participant and administrator state before applying a change', () => {
+    const command = { actorUid: 'alice', memberUid: 'eve', action: 'add' };
+    assert.throws(() => buildGroupMembershipChange({
+        type: 'group', createdBy: 'alice', participants: ['alice', 'alice'], admins: ['alice']
+    }, command), /повреждён/);
+    assert.throws(() => buildGroupMembershipChange({
+        type: 'group', createdBy: 'alice', participants: ['alice', 'bob'], admins: ['mallory']
+    }, command), /повреждён/);
+});
