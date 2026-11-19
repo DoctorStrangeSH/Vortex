@@ -7,14 +7,7 @@ import './styles/themes.css';
 // Предзагрузка критических ресурсов
 lazyLoadService.preloadCritical();
 
-// Регистрируем Service Worker
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js').then(
-            (reg) => console.log('✅ SW:', reg.scope),
-            (err) => console.log('❌ SW:', err)
-        );
-    });
-}
+// Service Worker пока не поставляется с приложением. Не регистрируем
+// отсутствующий /sw.js: на GitHub Pages он возвращает 404.
 
 render(<App />, document.getElementById('app'));
