@@ -114,6 +114,17 @@ test('two users can create a new private dialog and exchange the first message p
     assert.equal((await assertSucceeds(getDoc(bobChat))).data().type, 'private');
     await assertFails(getDoc(eveChat));
 
+    await assertFails(setDoc(doc(alice, 'chats', 'rogue-private-chat'), {
+        type: 'private', createdBy: 'alice', participants: ['alice', 'bob'],
+        participantNames: ['Alice', 'Bob'], createdAt: serverTimestamp(),
+        lastMessage: 'Чат создан', lastMessageTime: serverTimestamp(), pinnedMessages: []
+    }));
+    await assertFails(setDoc(doc(alice, 'chats', chatId), {
+        type: 'private', createdBy: 'alice', participants: ['bob', 'alice'],
+        participantNames: ['Bob', 'Alice'], createdAt: serverTimestamp(),
+        lastMessage: 'Чат создан', lastMessageTime: serverTimestamp(), pinnedMessages: []
+    }));
+
     const messageId = 'first-message';
     const batch = writeBatch(alice);
     batch.set(doc(alice, 'chats', chatId, 'messages', messageId), {
