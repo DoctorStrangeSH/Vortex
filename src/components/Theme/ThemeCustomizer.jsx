@@ -3,19 +3,24 @@ import { themeService } from '../../services/themeService';
 
 export function ThemeCustomizer({ onClose }) {
     const [activeTab, setActiveTab] = useState('presets');
-    const [primaryColor, setPrimaryColor] = useState('#7C3AED');
-    const [secondaryColor, setSecondaryColor] = useState('#06D6A0');
+    const [primaryColor, setPrimaryColor] = useState('#8968FF');
+    const [secondaryColor, setSecondaryColor] = useState('#6FE2CA');
     const presets = themeService.getPresetThemes();
 
     useEffect(() => {
         const root = document.documentElement;
         const primary = getComputedStyle(root).getPropertyValue('--vortex-primary').trim();
         const secondary = getComputedStyle(root).getPropertyValue('--vortex-secondary').trim();
-        setPrimaryColor(primary || '#7C3AED');
-        setSecondaryColor(secondary || '#06D6A0');
+        setPrimaryColor(primary || '#8968FF');
+        setSecondaryColor(secondary || '#6FE2CA');
     }, []);
 
     const handleColorChange = (type, value) => {
+        if (!/^#[0-9a-fA-F]{6}$/.test(value)) {
+            if (type === 'primary') setPrimaryColor(value);
+            else setSecondaryColor(value);
+            return;
+        }
         if (type === 'primary') {
             setPrimaryColor(value);
             themeService.setCustomColor('--vortex-primary', value);
@@ -32,6 +37,13 @@ export function ThemeCustomizer({ onClose }) {
         const preset = presets[name];
         setPrimaryColor(preset.primary);
         setSecondaryColor(preset.secondary);
+    };
+
+    const resetColors = () => {
+        themeService.resetCustomColors();
+        const styles = getComputedStyle(document.documentElement);
+        setPrimaryColor(styles.getPropertyValue('--vortex-primary').trim());
+        setSecondaryColor(styles.getPropertyValue('--vortex-secondary').trim());
     };
 
     return (
@@ -75,7 +87,7 @@ export function ThemeCustomizer({ onClose }) {
                                     <input type="text" value={secondaryColor} onInput={e => handleColorChange('secondary', e.target.value)} style={s.textInput} />
                                 </div>
                             </div>
-                            <button onClick={() => themeService.resetCustomColors()} style={s.resetBtn}>🔄 Сбросить</button>
+                            <button type="button" onClick={resetColors} style={s.resetBtn}>Сбросить цвета</button>
                         </div>
                     )}
                 </div>
