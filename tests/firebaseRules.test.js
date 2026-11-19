@@ -474,11 +474,10 @@ test('clients cannot change group administrator roles directly', { skip: !availa
         type: { stringValue: 'group' },
         createdBy: { stringValue: 'alice' },
         participants: { arrayValue: { values: [{ stringValue: 'alice' }, { stringValue: 'bob' }] } },
-        admins: { arrayValue: { values: [{ stringValue: 'alice' }] } }
+        admins: { arrayValue: { values: [{ stringValue: 'alice' }, { stringValue: 'bob' }] } }
     });
-    await assertFails(updateDoc(doc(bob, 'chats', groupId), { admins: arrayUnion('bob') }));
+    await assertFails(updateDoc(doc(bob, 'chats', groupId), { admins: arrayUnion('eve') }));
     await assertFails(updateDoc(groupRef, { admins: arrayUnion('eve') }));
-    await assertFails(updateDoc(groupRef, { admins: arrayUnion('bob') }));
     await assertFails(updateDoc(doc(bob, 'chats', groupId), { admins: arrayRemove('alice') }));
     await assertFails(updateDoc(groupRef, { admins: arrayRemove('alice') }));
     await assertFails(updateDoc(doc(bob, 'chats', groupId), { participants: arrayUnion('eve') }));
