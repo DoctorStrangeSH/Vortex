@@ -30,7 +30,17 @@ export function GroupMembersPanel({ chat, user, onClose, onLeave }) {
         setBusy(true);
         setError('');
         try { await action(); }
-        catch (cause) { setError(cause?.code === 'permission-denied' ? 'Недостаточно прав для этого действия' : (cause?.message || 'Не удалось выполнить действие')); }
+        catch (cause) {
+            const code = cause?.code || '';
+            const messages = {
+                'functions/permission-denied': 'Недостаточно прав для этого действия',
+                'functions/unauthenticated': 'Сессия завершилась. Войдите в аккаунт снова.',
+                'functions/not-found': 'Группа больше не существует',
+                'functions/failed-precondition': 'Действие сейчас невозможно: проверьте состав группы и права',
+                'functions/invalid-argument': 'Проверьте введённые данные'
+            };
+            setError(messages[code] || cause?.message || 'Не удалось выполнить действие');
+        }
         finally { setBusy(false); }
     };
 
