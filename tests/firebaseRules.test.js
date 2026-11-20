@@ -342,7 +342,7 @@ test('storage members can read attachments; only the owner can delete after the 
     const chatId = 'storage-cleanup-chat';
     const messageId = 'storage-cleanup-message';
     const path = `chats/${chatId}/media/alice/${messageId}`;
-    const payload = 'attachment-content';
+    const payload = 'hello';
 
     await seedDocument(`chats/${chatId}`, {
         type: { stringValue: 'group' },
@@ -351,10 +351,10 @@ test('storage members can read attachments; only the owner can delete after the 
         admins: { arrayValue: { values: [{ stringValue: 'bob' }] } }
     });
     await assertSucceeds(setDoc(doc(aliceDb, `chats/${chatId}/messages/${messageId}`), {
-        senderId: 'alice', text: '', type: 'image', fileData: '', fileSize: payload.length,
-        fileName: 'photo.png', storagePath: path
+        senderId: 'alice', text: '', type: 'file', fileData: '', fileSize: payload.length,
+        fileName: 'note.txt', storagePath: path
     }));
-    await assertSucceeds(uploadString(ref(aliceStorage, path), payload, 'raw', { contentType: 'image/png' }));
+    await assertSucceeds(uploadString(ref(aliceStorage, path), payload, 'raw', { contentType: 'text/plain' }));
 
     const received = await assertSucceeds(getBytes(ref(bobStorage, path)));
     assert.deepEqual(Array.from(received), Array.from(Buffer.from(payload)));
