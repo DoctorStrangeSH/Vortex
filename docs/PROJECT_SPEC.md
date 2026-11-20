@@ -816,9 +816,9 @@ PR #32 остаётся открытым, конфликтующим с теку
 - Блокировка MIME — защита от известных типов активного web-контента, а не антивирус и не гарантия безопасности содержимого всех документов.
 
 **Оставшиеся проверки Storage:**
-- В текущем `messageService.deleteMessage` удаляется Firestore message document, но не связанный Storage object. После включения Storage это может оставлять orphaned files.
-- Storage Emulator tests пока не подтверждают полный положительный сценарий: участник загружает файл, другой участник читает, неучастник получает отказ, владелец безопасно удаляет только orphan object.
-- До реализации безопасной очистки и полного Storage acceptance не включать Storage uploads в production.
+- PR #73 закрыл автоматическую очистку orphaned objects и прошёл полный Quality CI #597, включая Storage Emulator lifecycle.
+- Нужна отдельная ручная проверка в изолированном staging-проекте с реальными тестовыми аккаунтами и файлами.
+- До staging acceptance не включать Storage uploads в production и не публиковать Storage Rules.
 
 - [x] Закрыть MIME validation gap в legacy Firestore fallback.
 - [x] Добавить независимую Firestore Rules защиту от активного web-контента.
@@ -856,6 +856,7 @@ PR #32 остаётся открытым, конфликтующим с теку
 - [x] Повторять cleanup при старте чата и восстановлении сети.
 - [x] Ограничить Storage delete только orphan objects и исходным владельцем.
 - [x] Добавить unit и Storage Emulator regression tests.
-- [ ] Пройти полный Quality CI на точном HEAD PR #73.
-- [ ] После успешного CI объединить PR и проверить main/Pages.
+- [x] Пройти полный Quality CI #597 на точном HEAD PR #73: unit, browser smoke, Firestore/Storage Rules Emulator, Auth Emulator и production build.
+- [x] Объединить PR #73 squash-коммитом `85c4b95`.
+- [ ] Дождаться и проверить main Quality CI #598 и GitHub Pages #68 после merge.
 - [ ] Выполнить ручную проверку lifecycle в отдельном staging-проекте перед включением Storage uploads.
