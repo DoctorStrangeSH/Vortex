@@ -16,6 +16,9 @@ test('message deletion and preview reconciliation share one transaction', () => 
     assert.match(implementation, /chatData\.lastMessageId === messageId/);
     assert.match(implementation, /updates\.lastMessageId = replacementSnapshot\.id/);
     assert.match(implementation, /updates\.lastMessageId = null/);
+    assert.match(implementation, /storagePath: messageData\.storagePath \|\| null/);
+    assert.match(implementation, /attachmentCleanupQueue\.enqueue\(outcome\.storagePath\)/);
+    assert.match(implementation, /await attachmentCleanupQueue\.process\(\)/);
     assert.doesNotMatch(implementation, /await setDoc\(/);
     assert.doesNotMatch(implementation, /await deleteDoc\(/);
 });
