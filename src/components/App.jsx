@@ -22,6 +22,7 @@ export function App() {
             setProfileError(false);
 
             if (firebaseUser) {
+                presenceService.stopTracking();
                 setUser(undefined);
                 try {
                     const profile = await userService.getUserProfile(firebaseUser.uid);
@@ -54,6 +55,7 @@ export function App() {
                     console.error('Presence initialization failed:', e);
                 }
             } else {
+                presenceService.stopTracking();
                 setPendingUser(null);
                 setUser(null);
                 localStorage.removeItem('vortex-user');
@@ -71,6 +73,7 @@ export function App() {
             mounted = false;
             requestVersion++;
             unsubscribe?.();
+            presenceService.stopTracking();
             window.removeEventListener('beforeunload', handleBeforeUnload);
             window.removeEventListener('pagehide', handleBeforeUnload);
         };
