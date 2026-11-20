@@ -73,7 +73,7 @@ test('group creators cannot delete a group document directly, while private chat
     });
     await assertFails(deleteDoc(groupRef));
 
-    const privateRef = doc(alice, 'chats', 'private-delete-allowed');
+    const privateRef = doc(alice, 'chats', 'dm_5_alice_3_bob');
     await assertSucceeds(setDoc(privateRef, {
         type: 'private',
         createdBy: 'alice',
