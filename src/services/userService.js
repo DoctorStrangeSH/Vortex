@@ -58,16 +58,17 @@ class UserService {
             let claimRef = null;
             let claim = null;
             if (data.username) {
+                let normalized;
                 try {
-                    const normalized = normalizeUsername(data.username);
-                    if (normalized !== data.username) {
-                        return { status: 'skipped', reason: 'non_canonical_legacy_username' };
-                    }
-                    claimRef = doc(db, 'usernames', normalized);
-                    claim = await transaction.get(claimRef);
+                    normalized = normalizeUsername(data.username);
                 } catch {
                     return { status: 'skipped', reason: 'invalid_legacy_username' };
                 }
+                if (normalized !== data.username) {
+                    return { status: 'skipped', reason: 'non_canonical_legacy_username' };
+                }
+                claimRef = doc(db, 'usernames', normalized);
+                claim = await transaction.get(claimRef);
             }
             const plan = planPublicProfileRepair(
                 { ...data, uid },
