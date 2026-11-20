@@ -32,7 +32,10 @@ export function App() {
                         setUser(null);
                         return;
                     }
-                    await userService.ensurePublicProfile(firebaseUser.uid);
+                    const profileRepair = await userService.ensurePublicProfile(firebaseUser.uid);
+                    if (profileRepair?.status === 'skipped') {
+                        console.warn('Legacy public profile repair skipped:', profileRepair.reason);
+                    }
                     if (!mounted || version !== requestVersion) return;
                 } catch (error) {
                     if (!mounted || version !== requestVersion) return;
