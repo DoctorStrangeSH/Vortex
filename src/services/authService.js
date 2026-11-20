@@ -1,6 +1,7 @@
 import { auth } from './firebase';
 import {
     signInWithEmailAndPassword,
+    sendPasswordResetEmail,
     createUserWithEmailAndPassword,
     signOut as firebaseSignOut,
     updateProfile,
@@ -41,6 +42,12 @@ class AuthService {
 
     async login(email, password) {
         await signInWithEmailAndPassword(auth, email, password);
+    }
+
+    async resetPassword(email) {
+        const normalizedEmail = String(email || '').trim();
+        if (!normalizedEmail) throw new Error('Укажите электронную почту');
+        await sendPasswordResetEmail(auth, normalizedEmail);
     }
 
     async register(email, password, name, username = '') {
