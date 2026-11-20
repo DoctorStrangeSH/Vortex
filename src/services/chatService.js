@@ -114,7 +114,17 @@ class ChatService {
     }
 
     async leaveGroup(groupId, userUid) {
-        await this.removeGroupMember(groupId, userUid);
+        const chatRef = doc(db, 'chats', groupId);
+        await runTransaction(db, async transaction => {
+            const snapshot = await transaction.get(chatRef);
+            if (!snapshot.exists()) throw new Error('Группа не найдена');
+            const data = snapshot.data();
+            const updates = { participants: arrayRemove(userUid) };
+            if (Array.isArray(data.admins) && data.admins.includes(userUid)) {
+                updates.admins = arrayRemove(userUid);
+            }
+            transaction.update(chatRef, updates);
+        });
     }
 
     async setGroupAdmin(groupId, memberUid, enabled) {
