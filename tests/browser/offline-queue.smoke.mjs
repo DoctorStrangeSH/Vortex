@@ -86,6 +86,54 @@ try {
         senderUid: afterRetry.remoteMessages[0].uid,
         messageId: afterRetry.remoteMessages[0].id
     });
+
+    // Repeat with Web Locks deliberately unavailable. Two tabs share one UID;
+    // the stable Firestore message ID remains the final duplicate guard.
+    const noLocksContext = await browser.newContext();
+    const firstTab = await noLocksContext.newPage();
+    const secondTab = await noLocksContext.newPage();
+    firstTab.on('pageerror', error => errors.push(`no-locks first tab: ${error.message}`));
+    secondTab.on('pageerror', error => errors.push(`no-locks second tab: ${error.message}`));
+    await Promise.all([
+        firstTab.goto(`${origin}/tests/browser/offline-queue.html?no-locks=1`),
+        secondTab.goto(`${origin}/tests/browser/offline-queue.html?no-locks=1`)
+    ]);
+    await Promise.all([
+        firstTab.waitForFunction(() => Boolean(window.offlineQueueQA)),
+        secondTab.waitForFunction(() => Boolean(window.offlineQueueQA))
+    ]);
+    await Promise.all([
+        firstTab.evaluate(() => window.offlineQueueQA.setActiveUser('shared-user')),
+        secondTab.evaluate(() => window.offlineQueueQA.setActiveUser('shared-user'))
+    ]);
+    assert.equal(await firstTab.evaluate(() => window.offlineQueueQA.snapshot().hasWebLocks), false);
+    assert.equal(await secondTab.evaluate(() => window.offlineQueueQA.snapshot().hasWebLocks), false);
+
+    await noLocksContext.setOffline(true);
+    await Promise.all([
+        firstTab.waitForFunction(() => window.offlineQueueQA.snapshot().isOnline === false),
+        secondTab.waitForFunction(() => window.offlineQueueQA.snapshot().isOnline === false)
+    ]);
+    await firstTab.evaluate(() => window.offlineQueueQA.enqueue('shared-user', 'Без Web Locks'));
+    await secondTab.waitForFunction(() => window.offlineQueueQA.snapshot().queue.length === 1);
+    await noLocksContext.setOffline(false);
+    await firstTab.waitForFunction(() => {
+        const state = window.offlineQueueQA.snapshot();
+        return state.queue.length === 0 && state.remoteMessages.length === 1;
+    });
+    await secondTab.waitForFunction(() => window.offlineQueueQA.snapshot().queue.length === 0);
+    const noLocksState = await firstTab.evaluate(() => window.offlineQueueQA.snapshot());
+    assert.equal(noLocksState.remoteMessages.length, 1, 'stable server message ID must prevent duplicate records without Web Locks');
+    assert.equal(noLocksState.remoteMessages[0].uid, 'shared-user');
+    assert.equal(noLocksState.remoteMessages[0].text, 'Без Web Locks');
+    assert.ok(noLocksState.deliveryAttempts >= 1, 'at least one delivery attempt should reach the idempotent sink');
+
+    await noLocksContext.close();
+    console.log('Offline queue without Web Locks passed:', {
+        persistedMessages: noLocksState.remoteMessages.length,
+        deliveryAttempts: noLocksState.deliveryAttempts,
+        messageId: noLocksState.remoteMessages[0].id
+    });
 } finally {
     await browser?.close();
     server.kill('SIGTERM');
