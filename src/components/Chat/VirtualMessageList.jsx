@@ -55,6 +55,9 @@ export function VirtualMessageList({ messages, renderMessage, loading, onScrollT
         previousAnchorRef.current = { id: messages[index]?.id ?? null, top: offsets[index] ?? 0 };
         if (!adjustment) return;
         container.scrollTop += adjustment;
+        wasAtBottomRef.current = isNearVirtualBottom(
+            offsets[offsets.length - 1], container.scrollTop, container.clientHeight
+        );
         setViewport({ top: container.scrollTop, height: container.clientHeight });
     }, [messages, offsets]);
 
@@ -77,6 +80,12 @@ export function VirtualMessageList({ messages, renderMessage, loading, onScrollT
         }
         missingNavigationRef.current = null;
         container.scrollTop = top;
+        // Programmatic navigation does not reliably emit a scroll event.
+        // Keep the bottom-stick state in sync so a later ResizeObserver event
+        // cannot pull a reader in history back to the newest message.
+        wasAtBottomRef.current = isNearVirtualBottom(
+            offsets[offsets.length - 1], top, container.clientHeight
+        );
         setViewport({ top, height: container.clientHeight });
         handledNavigationRef.current = requestKey;
     }, [messages, offsets, viewport.height, navigationTarget?.id, navigationTarget?.requestId, navigationTarget?.align, navigationTarget?.offset, onMissingTarget]);
