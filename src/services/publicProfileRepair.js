@@ -27,6 +27,9 @@ export function planPublicProfileRepair(profile, claim, publicProfileExists) {
     if (username && claim?.exists && claim.data?.uid !== uid) {
         return { status: 'skipped', reason: 'username_claim_conflict' };
     }
+    if (username && claim?.exists && claim.data?.username !== username) {
+        return { status: 'skipped', reason: 'username_claim_mismatch' };
+    }
 
     return {
         status: 'ready',
