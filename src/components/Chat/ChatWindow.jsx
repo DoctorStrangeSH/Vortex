@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'preact/hooks';
 import { chatService } from '../../services/chatService';
 import { messageService } from '../../services/messageService';
+import { retryPendingAttachmentCleanup } from '../../services/attachmentCleanup.js';
 import { MAX_LEGACY_ATTACHMENT_BYTES } from '../../services/messageValidation';
 import { dataUrlByteLength } from '../../services/dataUrlBytes.js';
 import { sendStoredAttachment, STORAGE_UPLOADS_ENABLED } from '../../services/mediaService.js';
@@ -116,6 +117,17 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
         readingPositionsRef.current = loadReadingPositions(user.uid, storage);
     }
     const positionSaveTimerRef = useRef(null);
+
+    useEffect(() => {
+        const retryCleanup = () => {
+            void retryPendingAttachmentCleanup().catch(error => {
+                console.warn('Не удалось повторить очистку удалённых вложений', error);
+            });
+        };
+        retryCleanup();
+        window.addEventListener('online', retryCleanup);
+        return () => window.removeEventListener('online', retryCleanup);
+    }, []);
 
     useEffect(() => {
         const flushPositions = () => {
