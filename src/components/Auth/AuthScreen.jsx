@@ -48,7 +48,7 @@ export function AuthScreen({ pendingUser = null }) {
         setUsernameChecking(true);
         const timer = setTimeout(async () => {
             try {
-                const available = await userService.isUsernameAvailable(username);
+                const available = await userService.isUsernameAvailable(username, mode === 'complete' ? pendingUser?.uid : null);
                 if (active) setUsernameStatus(available ? '✅ Свободен' : '❌ Занят');
             } catch {
                 if (active) setUsernameStatus('Не удалось проверить доступность логина');
