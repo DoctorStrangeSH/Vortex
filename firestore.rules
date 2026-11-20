@@ -20,6 +20,12 @@ service cloud.firestore {
         (!('lastSeen' in data) || data.lastSeen is timestamp) &&
         (!('statusUpdatedAt' in data) || data.statusUpdatedAt == null || data.statusUpdatedAt is timestamp);
     }
+    function validPrivateChatId(chatId, data) {
+      let first = data.participants[0];
+      let second = data.participants[1];
+      return first is string && second is string && first < second &&
+        chatId == 'dm_' + string(first.size()) + '_' + first + '_' + string(second.size()) + '_' + second;
+    }
     function validChat(data) {
       return data.keys().hasAll(['type','participants']) && data.type in ['private','group','channel','secret'] &&
         (!('createdBy' in data) || (data.createdBy is string && data.createdBy.size() > 0)) &&
@@ -185,7 +191,8 @@ service cloud.firestore {
       allow list: if member(resource.data);
       allow create: if signedIn() && validChat(request.resource.data) && member(request.resource.data) &&
         request.resource.data.createdBy == request.auth.uid &&
-        (request.resource.data.type != 'group' || request.resource.data.admins == [request.auth.uid]);
+        (request.resource.data.type != 'group' || request.resource.data.admins == [request.auth.uid]) &&
+        (request.resource.data.type != 'private' || validPrivateChatId(chatId, request.resource.data));
       allow update: if validChat(request.resource.data) && (
         (member(resource.data) && (resource.data.type != 'channel' || request.auth.uid in resource.data.admins) &&
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastMessage','lastMessageTime','pinnedMessages'])) ||

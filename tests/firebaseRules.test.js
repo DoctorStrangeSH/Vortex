@@ -73,7 +73,7 @@ test('group creators cannot delete a group document directly, while private chat
     });
     await assertFails(deleteDoc(groupRef));
 
-    const privateRef = doc(alice, 'chats', 'private-delete-allowed');
+    const privateRef = doc(alice, 'chats', 'dm_5_alice_3_bob');
     await assertSucceeds(setDoc(privateRef, {
         type: 'private',
         createdBy: 'alice',
@@ -113,6 +113,18 @@ test('two users can create a new private dialog and exchange the first message p
     }));
     assert.equal((await assertSucceeds(getDoc(bobChat))).data().type, 'private');
     await assertFails(getDoc(eveChat));
+
+    // A client cannot bypass the canonical pair ID or reverse its participant ordering.
+    await assertFails(setDoc(doc(alice, 'chats', 'rogue-private-chat'), {
+        type: 'private', createdBy: 'alice', participants: ['alice', 'bob'],
+        participantNames: ['Alice', 'Bob'], createdAt: serverTimestamp(),
+        lastMessage: 'Чат создан', lastMessageTime: serverTimestamp(), pinnedMessages: []
+    }));
+    await assertFails(setDoc(doc(alice, 'chats', chatId), {
+        type: 'private', createdBy: 'alice', participants: ['bob', 'alice'],
+        participantNames: ['Bob', 'Alice'], createdAt: serverTimestamp(),
+        lastMessage: 'Чат создан', lastMessageTime: serverTimestamp(), pinnedMessages: []
+    }));
 
     const messageId = 'first-message';
     const batch = writeBatch(alice);
@@ -511,8 +523,9 @@ test('chat preview and pinned metadata reject invalid types and oversized values
 test('private and secret chats require exactly two distinct participants', { skip: !available }, async () => {
     const alice = environment.authenticatedContext('alice').firestore();
     const chats = collection(alice, 'chats');
-    const base = { type: 'private', createdBy: 'alice', participants: ['alice', 'bob'] };
-    await assertSucceeds(setDoc(doc(chats), base));
+    // Use a distinct canonical pair: the earlier two-account test creates the alice/bob ID.
+    const base = { type: 'private', createdBy: 'alice', participants: ['alice', 'charlie'] };
+    await assertSucceeds(setDoc(doc(alice, 'chats', 'dm_5_alice_7_charlie'), base));
     await assertFails(setDoc(doc(chats), { ...base, participants: ['alice'] }));
     await assertFails(setDoc(doc(chats), { ...base, participants: ['alice', 'alice'] }));
     await assertFails(setDoc(doc(chats), { ...base, participants: ['alice', 'bob', 'eve'] }));
