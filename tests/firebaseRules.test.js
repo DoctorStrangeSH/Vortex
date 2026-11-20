@@ -142,6 +142,67 @@ test('two users can create a new private dialog and exchange the first message p
     await assertFails(getDoc(doc(eve, 'chats', chatId, 'messages', messageId)));
 });
 
+test('simultaneous private-chat creation from both accounts converges on one canonical document', { skip: !available }, async () => {
+    const alice = environment.authenticatedContext('alice').firestore();
+    const bob = environment.authenticatedContext('bob').firestore();
+    const chatId = 'dm_5_alice_3_bob';
+    const createFrom = (firestore, uid, names) => runTransaction(firestore, async transaction => {
+        const chatRef = doc(firestore, 'chats', chatId);
+        const existing = await transaction.get(chatRef);
+        if (!existing.exists()) {
+            transaction.set(chatRef, {
+                type: 'private',
+                createdBy: uid,
+                participants: ['alice', 'bob'],
+                participantNames: names,
+                createdAt: serverTimestamp(),
+                lastMessage: 'Чат создан',
+                lastMessageTime: serverTimestamp(),
+                pinnedMessages: []
+            });
+        }
+        return chatId;
+    });
+
+    const [aliceResult, bobResult] = await Promise.all([
+        createFrom(alice, 'alice', ['Alice', 'Bob']),
+        createFrom(bob, 'bob', ['Alice', 'Bob'])
+    ]);
+    assert.equal(aliceResult, chatId);
+    assert.equal(bobResult, chatId);
+
+    const aliceChats = await assertSucceeds(getDocs(query(
+        collection(alice, 'chats'), where('participants', 'array-contains', 'alice')
+    )));
+    const matching = aliceChats.docs.filter(item =>
+        item.id === chatId && item.data().participants.length === 2
+    );
+    assert.equal(matching.length, 1);
+    assert.deepEqual(matching[0].data().participants, ['alice', 'bob']);
+});
+
+test('members can still find legacy private chats with non-deterministic IDs', { skip: !available }, async () => {
+    const alice = environment.authenticatedContext('alice').firestore();
+    const bob = environment.authenticatedContext('bob').firestore();
+    const eve = environment.authenticatedContext('eve').firestore();
+    await seedDocument('chats/legacy-private-2024', {
+        type: { stringValue: 'private' },
+        participants: { arrayValue: { values: [{ stringValue: 'alice' }, { stringValue: 'bob' }] } },
+        participantNames: { arrayValue: { values: [{ stringValue: 'Alice' }, { stringValue: 'Bob' }] } },
+        createdBy: { stringValue: 'alice' }
+    });
+
+    const aliceLegacy = await assertSucceeds(getDocs(query(
+        collection(alice, 'chats'), where('participants', 'array-contains', 'alice')
+    )));
+    const bobLegacy = await assertSucceeds(getDoc(doc(bob, 'chats', 'legacy-private-2024')));
+    const eveLegacy = await assertFails(getDoc(doc(eve, 'chats', 'legacy-private-2024')));
+
+    assert.equal(aliceLegacy.docs.some(item => item.id === 'legacy-private-2024'), true);
+    assert.equal(bobLegacy.data().participants.length, 2);
+    assert.equal(eveLegacy, undefined);
+});
+
 test('only authenticated participants can create messages in a chat', { skip: !available }, async () => {
     const alice = environment.authenticatedContext('alice').firestore();
     const eve = environment.authenticatedContext('eve').firestore();
