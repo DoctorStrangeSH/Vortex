@@ -4,7 +4,6 @@ import { ChatScreen } from './Chat/ChatScreen';
 import { LoadingScreen } from './UI/LoadingScreen';
 import { authService } from '../services/authService';
 import { presenceService } from '../services/presenceService';
-import { encryptionService } from '../services/encryptionService';
 import { typingService } from '../services/typingService';
 import { userService } from '../services/userService';
 
@@ -47,15 +46,12 @@ export function App() {
                 localStorage.setItem('vortex-user', 'true');
                 typingService.setUser(firebaseUser.uid);
 
+                // E2EE is intentionally unavailable in Vortex 1.0.
+                // Presence must initialize independently of deferred security features.
                 try {
-                    const hasKeys = await encryptionService.loadKeys();
-                    if (!hasKeys) {
-                        await encryptionService.generateKeys();
-                        await encryptionService.saveKeys();
-                    }
                     presenceService.startTracking();
                 } catch (e) {
-                    console.error('Init error:', e);
+                    console.error('Presence initialization failed:', e);
                 }
             } else {
                 setPendingUser(null);
