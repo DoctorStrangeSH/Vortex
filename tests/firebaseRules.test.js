@@ -196,11 +196,10 @@ test('members can still find legacy private chats with non-deterministic IDs', {
         collection(alice, 'chats'), where('participants', 'array-contains', 'alice')
     )));
     const bobLegacy = await assertSucceeds(getDoc(doc(bob, 'chats', 'legacy-private-2024')));
-    const eveLegacy = await assertFails(getDoc(doc(eve, 'chats', 'legacy-private-2024')));
+    await assertFails(getDoc(doc(eve, 'chats', 'legacy-private-2024')));
 
     assert.equal(aliceLegacy.docs.some(item => item.id === 'legacy-private-2024'), true);
     assert.equal(bobLegacy.data().participants.length, 2);
-    assert.equal(eveLegacy, undefined);
 });
 
 test('only authenticated participants can create messages in a chat', { skip: !available }, async () => {
