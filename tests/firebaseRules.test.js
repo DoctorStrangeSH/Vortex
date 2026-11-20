@@ -752,3 +752,23 @@ test('read receipts, edits and deletion propagate live to the other account', { 
         () => assertSucceeds(deleteDoc(aliceMessage)));
     assert.equal(deleted.exists(), false);
 });
+
+test('read receipts are idempotent across sessions of the same participant', { skip: !available }, async () => {
+    const alice = environment.authenticatedContext('alice').firestore();
+    const bobDeviceOne = environment.authenticatedContext('bob', { device: 'one' }).firestore();
+    const bobDeviceTwo = environment.authenticatedContext('bob', { device: 'two' }).firestore();
+    const aliceMessage = doc(alice, 'chats/chat-a/messages/multi-device-read');
+    const bobMessageOne = doc(bobDeviceOne, 'chats/chat-a/messages/multi-device-read');
+    const bobMessageTwo = doc(bobDeviceTwo, 'chats/chat-a/messages/multi-device-read');
+
+    await assertSucceeds(setDoc(aliceMessage, { senderId: 'alice', text: 'Прочитай на двух устройствах', readBy: [] }));
+    await assertSucceeds(updateDoc(bobMessageOne, { readBy: arrayUnion('bob') }));
+    await assertSucceeds(updateDoc(bobMessageTwo, { readBy: arrayUnion('bob') }));
+
+    const finalMessage = await assertSucceeds(getDoc(aliceMessage));
+    assert.deepEqual(finalMessage.data().readBy, ['bob']);
+
+    // Idempotence must not permit a second UID or any unrelated field mutation.
+    await assertFails(updateDoc(bobMessageTwo, { readBy: arrayUnion('eve') }));
+    await assertFails(updateDoc(bobMessageTwo, { readBy: arrayUnion('bob'), text: 'Подмена' }));
+});
