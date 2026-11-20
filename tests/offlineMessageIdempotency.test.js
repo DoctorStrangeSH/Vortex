@@ -11,7 +11,7 @@ test('offline retries reuse the queued ID and send the message and preview atomi
     const implementation = messageService.slice(start, end);
 
     assert.match(implementation, /messageId\s*\?\s*doc\(db,\s*'chats',\s*chatId,\s*'messages',\s*messageId\)/);
-    assert.match(implementation, /if\s*\(messageId\s*&&\s*\(await getDoc\(messageRef\)\)\.exists\(\)\)\s*return/);
+    assert.match(implementation, /if\s*\(messageId\s*&&\s*\(await getDocFromServer\(messageRef\)\)\.exists\(\)\)\s*return/);
     assert.match(implementation, /batch\.set\(messageRef,\s*messageData\)/);
     assert.match(implementation, /lastMessageId:\s*messageRef\.id/);
     assert.match(implementation, /await batch\.commit\(\)/);
