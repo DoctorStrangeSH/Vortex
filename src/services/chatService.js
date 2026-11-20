@@ -1,4 +1,5 @@
-import { db } from './firebase';
+import { auth, db } from './firebase';
+import { buildGroupLeaveUpdate, buildGroupAdminUpdate } from './groupMembershipPolicy.js';
 import { messageService } from './messageService';
 import { privateChatId } from './privateChatId.js';
 import { findLegacyPrivateChat } from './findLegacyPrivateChat.js';
@@ -111,23 +112,33 @@ class ChatService {
     }
 
     async leaveGroup(groupId, userUid) {
+        const actorUid = auth.currentUser?.uid;
+        if (!actorUid || actorUid !== userUid) {
+            throw new Error('Нельзя выйти из группы от имени другого пользователя');
+        }
         const chatRef = doc(db, 'chats', groupId);
-        await runTransaction(db, async transaction => {
+        return runTransaction(db, async transaction => {
             const snapshot = await transaction.get(chatRef);
             if (!snapshot.exists()) throw new Error('Группа не найдена');
-            const data = snapshot.data();
-            const updates = { participants: arrayRemove(userUid) };
-            if (Array.isArray(data.admins) && data.admins.includes(userUid)) {
-                updates.admins = arrayRemove(userUid);
-            }
+            const updates = buildGroupLeaveUpdate(snapshot.data(), actorUid);
             transaction.update(chatRef, updates);
+            return true;
         });
     }
 
     async setGroupAdmin(groupId, memberUid, enabled) {
+        const actorUid = auth.currentUser?.uid;
+        if (!actorUid) throw new Error('Необходимо войти в аккаунт');
         if (!memberUid || typeof memberUid !== 'string') throw new Error('Выберите участника');
-        await updateDoc(doc(db, 'chats', groupId), {
-            admins: enabled ? arrayUnion(memberUid) : arrayRemove(memberUid)
+        if (typeof enabled !== 'boolean') throw new Error('Некорректная роль администратора');
+        const chatRef = doc(db, 'chats', groupId);
+        return runTransaction(db, async transaction => {
+            const snapshot = await transaction.get(chatRef);
+            if (!snapshot.exists()) throw new Error('Группа не найдена');
+            const updates = buildGroupAdminUpdate(snapshot.data(), actorUid, memberUid, enabled);
+            if (!updates) return false;
+            transaction.update(chatRef, updates);
+            return true;
         });
     }
 
