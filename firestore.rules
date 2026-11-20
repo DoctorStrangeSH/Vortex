@@ -95,9 +95,13 @@ service cloud.firestore {
     function validReadReceiptChange() {
       let before = resource.data.get('readBy', []);
       let after = request.resource.data.get('readBy', []);
-      return before is list && after is list && resource.data.senderId != request.auth.uid &&
-        after.size() == before.size() + 1 && after.hasAll(before) &&
-        request.auth.uid in after && !(request.auth.uid in before);
+      return before is list && after is list && resource.data.senderId != request.auth.uid && (
+        // A second device may acknowledge a message already read by this UID.
+        // The no-op is safe only when readBy remains byte-for-byte unchanged.
+        (after == before && request.auth.uid in before) ||
+        (after.size() == before.size() + 1 && after.hasAll(before) &&
+         request.auth.uid in after && !(request.auth.uid in before))
+      );
     }
     function validReactionForKey(before, after, key) {
       let oldList = before.get(key, []);
