@@ -1,6 +1,7 @@
 import { db } from './firebase';
 import { normalizeUsername } from './usernamePolicy.js';
 import { planPublicProfileRepair } from './publicProfileRepair.js';
+import { isUsernameClaimAvailable } from './usernameClaimAvailability.js';
 import {
     doc,
     getDoc,
@@ -86,10 +87,14 @@ class UserService {
     }
 
     // Проверить, свободен ли username
-    async isUsernameAvailable(username) {
+    async isUsernameAvailable(username, ownerUid = null) {
         const normalized = normalizeUsername(username);
         const snapshot = await getDoc(doc(db, 'usernames', normalized));
-        return !snapshot.exists();
+        return isUsernameClaimAvailable(
+            { exists: snapshot.exists(), data: snapshot.exists() ? snapshot.data() : null },
+            ownerUid,
+            normalized
+        );
     }
 
     // Найти пользователя по email или @username
