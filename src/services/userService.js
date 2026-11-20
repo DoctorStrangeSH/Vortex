@@ -92,7 +92,8 @@ class UserService {
         const snapshot = await getDoc(doc(db, 'usernames', normalized));
         return isUsernameClaimAvailable(
             { exists: snapshot.exists(), data: snapshot.exists() ? snapshot.data() : null },
-            ownerUid
+            ownerUid,
+            normalized
         );
     }
 
