@@ -68,11 +68,19 @@ service cloud.firestore {
       let admin = uid in before.admins;
       let addition = after.participants.size() == before.participants.size() + 1 &&
         after.participants.hasAll(before.participants) && admin;
-      let removal = before.participants.size() == after.participants.size() + 1 &&
+      let removal = after.participants.size() == before.participants.size() - 1 &&
         before.participants.hasAll(after.participants) && after.participants.hasAll(before.admins) &&
         (admin || (uid in before.participants && !(uid in after.participants)));
+      let adminSelfLeave = admin && uid in before.participants && !(uid in after.participants) &&
+        !(uid in after.admins) && after.participants.size() == before.participants.size() - 1 &&
+        before.participants.hasAll(after.participants) &&
+        before.admins.size() == after.admins.size() + 1 && before.admins.hasAll(after.admins) &&
+        after.admins.size() >= 1 && after.admins[0] == before.createdBy &&
+        after.participants.hasAll(after.admins);
+      let changed = after.diff(before).affectedKeys();
       return signedIn() && before.type == 'group' &&
-        after.diff(before).affectedKeys().hasOnly(['participants']) && (addition || removal);
+        ((changed.hasOnly(['participants']) && (addition || removal)) ||
+         (changed.hasOnly(['participants','admins']) && adminSelfLeave));
     }
     function validGroupAdminChange() {
       let before = resource.data;
