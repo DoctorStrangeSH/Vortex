@@ -51,6 +51,6 @@ test('admin role changes are idempotent', () => {
 test('cannot promote non-members or remove final owner-admin', () => {
     assert.throws(() => buildGroupAdminUpdate(group, 'alice', 'mallory', true), /только участник/);
     assert.throws(() => buildGroupAdminUpdate({
-        ...group, admins: ['alice', 'bob']
+        ...group, admins: ['bob']
     }, 'alice', 'bob', false), /должен остаться/);
 });
