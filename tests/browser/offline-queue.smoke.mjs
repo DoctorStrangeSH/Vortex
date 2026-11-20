@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { chromium } from 'playwright-core';
 
@@ -8,6 +11,8 @@ const port = 4188;
 const origin = `http://127.0.0.1:${port}`;
 const server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { stdio: 'pipe' });
 let browser;
+let persistentProfileDir;
+let persistentContext;
 
 try {
     let ready = false;
@@ -180,13 +185,71 @@ try {
     assert.equal((await afterReopen.evaluate(() => window.offlineQueueQA.snapshot())).remoteMessages.length, 1,
         'reopened tab retry must not duplicate a confirmed delivery');
     await restartContext.close();
-    assert.deepEqual(errors, [], 'all offline queue browser scenarios should have no uncaught page errors');
 
+    // Verify persistence across an actual Chromium process restart by reusing
+    // a persistent user-data directory in a newly launched browser process.
+    persistentProfileDir = await mkdtemp(join(tmpdir(), 'vortex-offline-profile-'));
+    persistentContext = await chromium.launchPersistentContext(persistentProfileDir, {
+        ...browserBinary,
+        headless: true,
+        args: ['--no-sandbox']
+    });
+    const beforeBrowserRestart = await persistentContext.newPage();
+    beforeBrowserRestart.on('pageerror', error => errors.push(`process restart before: ${error.message}`));
+    await beforeBrowserRestart.goto(`${origin}/tests/browser/offline-queue.html`);
+    await beforeBrowserRestart.waitForFunction(() => Boolean(window.offlineQueueQA));
+    await beforeBrowserRestart.evaluate(() => window.offlineQueueQA.setActiveUser('browser-restart-user'));
+    await persistentContext.setOffline(true);
+    await beforeBrowserRestart.waitForFunction(() => window.offlineQueueQA.snapshot().isOnline === false);
+    await beforeBrowserRestart.evaluate(() => window.offlineQueueQA.enqueue('browser-restart-user', 'Очередь после перезапуска браузера'));
+    const queuedBeforeBrowserRestart = await beforeBrowserRestart.evaluate(() => window.offlineQueueQA.snapshot());
+    assert.equal(queuedBeforeBrowserRestart.queue.length, 1);
+    const browserRestartMessageId = queuedBeforeBrowserRestart.queue[0].id;
+    await persistentContext.close();
+    persistentContext = null;
+
+    persistentContext = await chromium.launchPersistentContext(persistentProfileDir, {
+        ...browserBinary,
+        headless: true,
+        args: ['--no-sandbox']
+    });
+    const afterBrowserRestart = await persistentContext.newPage();
+    afterBrowserRestart.on('pageerror', error => errors.push(`process restart after: ${error.message}`));
+    await afterBrowserRestart.goto(`${origin}/tests/browser/offline-queue.html`);
+    await afterBrowserRestart.waitForFunction(() => Boolean(window.offlineQueueQA));
+    const restoredAfterBrowserRestart = await afterBrowserRestart.evaluate(() => window.offlineQueueQA.snapshot());
+    assert.equal(restoredAfterBrowserRestart.queue.length, 1, 'persistent browser profile must restore the queued message');
+    assert.equal(restoredAfterBrowserRestart.queue[0].id, browserRestartMessageId, 'full browser restart must preserve the original message ID');
+    assert.equal(restoredAfterBrowserRestart.queue[0].user.uid, 'browser-restart-user', 'full browser restart must preserve message ownership');
+
+    await afterBrowserRestart.evaluate(() => window.offlineQueueQA.setActiveUser('browser-restart-user'));
+    await afterBrowserRestart.waitForFunction(() => {
+        const state = window.offlineQueueQA.snapshot();
+        return state.queue.length === 0 && state.remoteMessages.length === 1;
+    });
+    const afterBrowserRestartDelivery = await afterBrowserRestart.evaluate(() => window.offlineQueueQA.snapshot());
+    assert.equal(afterBrowserRestartDelivery.remoteMessages[0].id, browserRestartMessageId);
+    assert.equal(afterBrowserRestartDelivery.remoteMessages[0].uid, 'browser-restart-user');
+    assert.equal(afterBrowserRestartDelivery.remoteMessages[0].text, 'Очередь после перезапуска браузера');
+    await afterBrowserRestart.evaluate(() => window.dispatchEvent(new Event('focus')));
+    await delay(120);
+    assert.equal((await afterBrowserRestart.evaluate(() => window.offlineQueueQA.snapshot())).remoteMessages.length, 1,
+        'retry after full browser restart must not duplicate the message');
+    await persistentContext.close();
+    persistentContext = null;
+
+    assert.deepEqual(errors, [], 'all offline queue browser scenarios should have no uncaught page errors');
+    console.log('Offline queue full browser process restart recovery passed:', {
+        restoredMessageId: browserRestartMessageId,
+        deliveredCount: afterBrowserRestartDelivery.remoteMessages.length
+    });
     console.log('Offline queue tab close/reopen recovery passed:', {
         restoredMessageId: durableMessageId,
         deliveredCount: afterRestartDelivery.remoteMessages.length
     });
 } finally {
+    await persistentContext?.close();
     await browser?.close();
+    if (persistentProfileDir) await rm(persistentProfileDir, { recursive: true, force: true });
     server.kill('SIGTERM');
 }
