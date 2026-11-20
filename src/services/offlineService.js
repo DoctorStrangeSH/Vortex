@@ -13,11 +13,11 @@ export class OfflineService {
         this.listeners = [];
         this.queueListeners = [];
         this.queue = [];
+        this.storageRecoveryBlocked = false;
         this.refreshQueue();
         this.processingPromise = null;
         this.processRequested = false;
         this.initialized = false;
-        this.storageRecoveryBlocked = false;
     }
 
     init() {
