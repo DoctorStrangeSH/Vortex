@@ -11,10 +11,12 @@ test('offline retries reuse the queued ID and atomically create the message and 
     const implementation = messageService.slice(start, end);
 
     assert.match(implementation, /messageId\s*\?\s*doc\(db,\s*'chats',\s*chatId,\s*'messages',\s*messageId\)/);
-    assert.match(implementation, /if\s*\(messageId\s*&&\s*\(await getDocFromServer\(messageRef\)\)\.exists\(\)\)\s*return/);
-    assert.match(implementation, /batch\.set\(messageRef,\s*messageData\)/);
+    assert.match(implementation, /return runTransaction\(db,\s*async transaction =>/);
+    assert.match(implementation, /const existingMessage = await transaction\.get\(messageRef\)/);
+    assert.match(implementation, /if\s*\(existingMessage\.exists\(\)\) return false/);
+    assert.match(implementation, /transaction\.set\(messageRef,\s*messageData\)/);
     assert.match(implementation, /lastMessageId:\s*messageRef\.id/);
-    assert.match(implementation, /await batch\.commit\(\)/);
+    assert.match(implementation, /transaction\.update\(chatRef,/);
     assert.doesNotMatch(implementation, /addDoc\(/);
 });
 
