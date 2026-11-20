@@ -8,16 +8,25 @@ import {
     serverTimestamp,
     doc,
     updateDoc,
-    deleteDoc,
-    setDoc,
     getDocs,
     getDoc,
     getDocFromServer,
     arrayUnion,
     writeBatch,
-    startAfter
+    startAfter,
+    runTransaction
 } from 'firebase/firestore';
 import { validateOutgoingMessage, MESSAGE_PAGE_SIZE, resolveMessageSenderName } from './messageValidation.js';
+
+
+function messagePreview(message) {
+    if (message.type === 'image') return '📷 Фото';
+    if (message.type === 'video') return '🎬 Видео';
+    if (message.type === 'voice') return '🎙️ Голосовое';
+    if (message.type === 'audio') return '🎵 Аудио';
+    if (message.type === 'file') return '📎 Файл';
+    return message.text || '';
+}
 
 class MessageService {
     subscribeToMessages(chatId, callback, onError) {
@@ -88,7 +97,8 @@ class MessageService {
         batch.set(messageRef, messageData);
         batch.update(doc(db, 'chats', chatId), {
             lastMessage: lastMsg,
-            lastMessageTime: serverTimestamp()
+            lastMessageTime: serverTimestamp(),
+            lastMessageId: messageRef.id
         });
         await batch.commit();
     }
@@ -107,46 +117,69 @@ class MessageService {
     }
 
     async deleteMessage(chatId, messageId) {
-        // Открепляем если удаляем закреплённое
         const chatRef = doc(db, 'chats', chatId);
-        const chatDoc = await getDoc(chatRef);
-        const chatData = chatDoc.data() || {};
-        const pinnedMessages = (chatData.pinnedMessages || []).filter(m => m.id !== messageId);
-        
-        // Delete the message and remove its pin in one commit. If either write
-        // is rejected, neither change is applied and the UI can safely retry.
-        const batch = writeBatch(db);
-        batch.delete(doc(db, 'chats', chatId, 'messages', messageId));
-        if (pinnedMessages.length !== (chatData.pinnedMessages || []).length) {
-            batch.set(chatRef, { pinnedMessages }, { merge: true });
-        }
-        await batch.commit();
+        const messageRef = doc(db, 'chats', chatId, 'messages', messageId);
+        const messagesRef = collection(db, 'chats', chatId, 'messages');
 
-        const messagesQuery = query(
-            collection(db, 'chats', chatId, 'messages'),
-            orderBy('createdAt', 'desc'),
-            limit(1)
-        );
-        const snapshot = await getDocs(messagesQuery);
+        // Find a possible replacement preview before the transaction. The
+        // transaction verifies it still exists and that the deleted message
+        // is still the current preview before applying any preview change.
+        for (let attempt = 0; attempt < 3; attempt += 1) {
+            const latest = await getDocs(query(
+                messagesRef,
+                orderBy('createdAt', 'desc'),
+                limit(2)
+            ));
+            const replacement = latest.docs
+                .map(item => ({ id: item.id, ...item.data() }))
+                .find(item => item.id !== messageId) || null;
+            const replacementRef = replacement
+                ? doc(db, 'chats', chatId, 'messages', replacement.id)
+                : null;
 
-        if (snapshot.empty) {
-            await setDoc(doc(db, 'chats', chatId), {
-                lastMessage: 'Нет сообщений',
-                lastMessageTime: serverTimestamp()
-            }, { merge: true });
-        } else {
-            const lastMsg = snapshot.docs[0].data();
-            const msgText = lastMsg.type === 'image' ? '📷 Фото' :
-                            lastMsg.type === 'video' ? '🎬 Видео' :
-                            lastMsg.type === 'voice' ? '🎙️ Голосовое' :
-                            lastMsg.type === 'audio' ? '🎵 Аудио' :
-                            lastMsg.type === 'file' ? '📎 Файл' :
-                            lastMsg.text || '';
-            await setDoc(doc(db, 'chats', chatId), {
-                lastMessage: msgText,
-                lastMessageTime: lastMsg.createdAt
-            }, { merge: true });
+            const outcome = await runTransaction(db, async transaction => {
+                const chatSnapshot = await transaction.get(chatRef);
+                const messageSnapshot = await transaction.get(messageRef);
+                if (!messageSnapshot.exists()) return 'deleted';
+
+                const chatData = chatSnapshot.data() || {};
+                const messageData = messageSnapshot.data();
+                const pinnedMessages = (chatData.pinnedMessages || [])
+                    .filter(item => item.id !== messageId);
+                const wasPinned = pinnedMessages.length !== (chatData.pinnedMessages || []).length;
+                const legacyPreviewMatches = !chatData.lastMessageId &&
+                    chatData.lastMessageTime?.isEqual?.(messageData.createdAt);
+                const isCurrentPreview = chatData.lastMessageId === messageId || legacyPreviewMatches;
+
+                let replacementSnapshot = null;
+                if (isCurrentPreview && replacementRef) {
+                    replacementSnapshot = await transaction.get(replacementRef);
+                    if (!replacementSnapshot.exists()) return 'retry';
+                }
+
+                transaction.delete(messageRef);
+                const updates = {};
+                if (wasPinned) updates.pinnedMessages = pinnedMessages;
+                if (isCurrentPreview) {
+                    if (replacementSnapshot?.exists()) {
+                        const nextMessage = replacementSnapshot.data();
+                        updates.lastMessage = messagePreview(nextMessage);
+                        updates.lastMessageTime = nextMessage.createdAt;
+                        updates.lastMessageId = replacementSnapshot.id;
+                    } else {
+                        updates.lastMessage = 'Нет сообщений';
+                        updates.lastMessageTime = serverTimestamp();
+                        updates.lastMessageId = null;
+                    }
+                }
+                if (Object.keys(updates).length > 0) transaction.update(chatRef, updates);
+                return 'deleted';
+            });
+
+            if (outcome === 'deleted') return;
         }
+
+        throw new Error('История чата изменилась одновременно. Повторите удаление.');
     }
 
     async markAsRead(chatId, userId, messageId) {
