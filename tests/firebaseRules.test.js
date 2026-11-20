@@ -501,8 +501,9 @@ test('non-owner group administrators can leave when another administrator remain
     const group = doc(alice, 'chats', groupId);
     await assertSucceeds(setDoc(group, {
         type: 'group', createdBy: 'alice',
-        participants: ['alice', 'bob', 'charlie'], admins: ['alice', 'bob']
+        participants: ['alice', 'bob', 'charlie'], admins: ['alice']
     }));
+    await assertSucceeds(updateDoc(group, { admins: arrayUnion('bob') }));
 
     // An administrator may leave, but both membership and role are removed atomically.
     await assertSucceeds(updateDoc(doc(bob, 'chats', groupId), {
