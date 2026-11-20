@@ -2,6 +2,8 @@ import { useEffect, useState } from 'preact/hooks';
 import { BrandMark } from '../UI/BrandMark';
 import { authService } from '../../services/authService';
 import { userService } from '../../services/userService';
+import { normalizeDisplayName } from '../../services/profilePolicy.js';
+import { normalizeUsername } from '../../services/usernamePolicy.js';
 
 export function AuthScreen({ pendingUser = null }) {
     const [registrationDraft] = useState(() => authService.getRegistrationDraft(pendingUser));
@@ -68,18 +70,14 @@ export function AuthScreen({ pendingUser = null }) {
                 await authService.resetPassword(email);
                 setNotice('Если аккаунт с такой почтой существует, письмо для восстановления отправлено. Проверьте входящие и папку «Спам».');
             } else if (mode === 'complete') {
-                if (name.trim().length < 2) throw new Error('Имя должно быть минимум 2 символа');
-                if (username.length < 3 || username.length > 24) throw new Error('Логин должен содержать от 3 до 24 символов');
+                normalizeDisplayName(name);
+                normalizeUsername(username);
                 await authService.completeRegistration(pendingUser, name.trim(), username);
             } else if (mode === 'login') {
                 await authService.login(email, password);
             } else {
-                if (name.length < 2) {
-                    throw new Error('Имя должно быть минимум 2 символа');
-                }
-                if (username.length < 3 || username.length > 24) {
-                    throw new Error('Логин должен содержать от 3 до 24 символов');
-                }
+                normalizeDisplayName(name);
+                normalizeUsername(username);
                 if (password.length < 6) {
                     throw new Error('Пароль минимум 6 символов');
                 }
@@ -155,6 +153,7 @@ export function AuthScreen({ pendingUser = null }) {
                                     id="vortex-auth-name"
                                     type="text"
                                     autocomplete="name"
+                                    maxLength={80}
                                     value={name}
                                     onInput={(e) => setName(e.target.value)}
                                     placeholder="Ваше имя"
