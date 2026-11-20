@@ -150,6 +150,9 @@ try {
     assert.equal(queuedBeforeClose.queue.length, 1);
     const durableMessageId = queuedBeforeClose.queue[0].id;
     await beforeClose.close();
+    // Restore connectivity while no tab is open. Chromium's offline emulation
+    // also blocks localhost navigation, so reopen the fixture only after this.
+    await restartContext.setOffline(false);
 
     const afterReopen = await restartContext.newPage();
     afterReopen.on('pageerror', error => errors.push(`restart after reopen: ${error.message}`));
@@ -164,7 +167,6 @@ try {
     assert.equal(restored.queue[0].user.uid, 'restart-user', 'reopened tab must preserve original account ownership');
 
     await afterReopen.evaluate(() => window.offlineQueueQA.setActiveUser('restart-user'));
-    await restartContext.setOffline(false);
     await afterReopen.waitForFunction(() => {
         const state = window.offlineQueueQA.snapshot();
         return state.queue.length === 0 && state.remoteMessages.length === 1;
