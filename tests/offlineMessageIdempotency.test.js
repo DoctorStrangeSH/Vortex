@@ -13,7 +13,9 @@ test('offline retries reuse the queued ID and atomically create the message and 
     assert.match(implementation, /messageId\s*\?\s*doc\(db,\s*'chats',\s*chatId,\s*'messages',\s*messageId\)/);
     assert.match(implementation, /return runTransaction\(db,\s*async transaction =>/);
     assert.match(implementation, /const existingMessage = await transaction\.get\(messageRef\)/);
-    assert.match(implementation, /if\s*\(existingMessage\.exists\(\)\) return false/);
+    assert.match(implementation, /if\s*\(existingMessage\.exists\(\)\)\s*\{/);
+    assert.match(implementation, /existingMessage\.data\(\)\.senderId !== user\.uid/);
+    assert.match(implementation, /return false;/);
     assert.match(implementation, /transaction\.set\(messageRef,\s*messageData\)/);
     assert.match(implementation, /lastMessageId:\s*messageRef\.id/);
     assert.match(implementation, /transaction\.update\(chatRef,/);
