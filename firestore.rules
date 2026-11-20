@@ -151,13 +151,17 @@ service cloud.firestore {
     }
     // Enforce the new attachment format only at creation time so older
     // messages with token URLs can still receive read receipts and reactions.
+    function safeLegacyAttachmentData(data) {
+      return !('fileData' in data) || 'storagePath' in data ||
+        (data.fileData.matches('^data:.*') &&
+         !data.fileData.matches('(?i)^data:(text/html|image/svg[+]xml|application/javascript|text/javascript|application/x-javascript|application/xhtml[+]xml|application/xml|text/xml);.*'));
+    }
     function validNewAttachment(data) {
       return (!('storagePath' in data) || (
           'fileData' in data && data.fileData == '' &&
           'fileSize' in data && 'type' in data &&
           data.type in ['image','video','voice','audio','file'])) &&
-        (!('fileData' in data) || 'storagePath' in data ||
-          data.fileData.matches('^data:.*'));
+        safeLegacyAttachmentData(data);
     }
     function validTyping(data, userId) {
       return data.keys().hasAll(['userId','timestamp']) &&
