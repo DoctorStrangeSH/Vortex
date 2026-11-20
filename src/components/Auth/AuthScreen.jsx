@@ -13,6 +13,7 @@ export function AuthScreen({ pendingUser = null }) {
     const [usernameStatus, setUsernameStatus] = useState('');
     const [usernameChecking, setUsernameChecking] = useState(false);
     const [error, setError] = useState('');
+    const [notice, setNotice] = useState('');
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
 
@@ -59,10 +60,14 @@ export function AuthScreen({ pendingUser = null }) {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
+        setNotice('');
         setLoading(true);
 
         try {
-            if (mode === 'complete') {
+            if (mode === 'reset') {
+                await authService.resetPassword(email);
+                setNotice('Если аккаунт с такой почтой существует, письмо для восстановления отправлено. Проверьте входящие и папку «Спам».');
+            } else if (mode === 'complete') {
                 if (name.trim().length < 2) throw new Error('Имя должно быть минимум 2 символа');
                 if (username.length < 3 || username.length > 24) throw new Error('Логин должен содержать от 3 до 24 символов');
                 await authService.completeRegistration(pendingUser, name.trim(), username);
@@ -200,7 +205,7 @@ export function AuthScreen({ pendingUser = null }) {
                         />
                     </div>
 
-                    <div style={styles.fieldGroup}>
+                    {mode !== 'reset' && <div style={styles.fieldGroup}>
                         <label for="vortex-auth-password" style={styles.label}>Пароль</label>
                         <div class="vortex-auth-password-wrap">
                             <input
@@ -216,13 +221,14 @@ export function AuthScreen({ pendingUser = null }) {
                             />
                             <button type="button" class="vortex-auth-password-toggle" aria-label={showPassword ? 'Скрыть пароль' : 'Показать пароль'} aria-pressed={showPassword} onClick={() => setShowPassword(!showPassword)}>{showPassword ? 'Скрыть' : 'Показать'}</button>
                         </div>
-                    </div></>}
+                    </div>}</>}
 
                     {error && (
                         <div role="alert" style={styles.error}>
                             ⚠️ {error}
                         </div>
                     )}
+                    {notice && <div role="status" aria-live="polite" style={{ ...styles.statusText, color: 'var(--vortex-secondary)', marginBottom: '0.75rem' }}>{notice}</div>}
 
                     <button
                         type="submit"
@@ -232,7 +238,7 @@ export function AuthScreen({ pendingUser = null }) {
                             opacity: loading ? 0.7 : 1
                         }}
                     >
-                        {loading ? 'Загрузка...' : mode === 'login' ? 'Войти' : mode === 'complete' ? 'Завершить регистрацию' : 'Зарегистрироваться'}
+                        {loading ? 'Загрузка...' : mode === 'login' ? 'Войти' : mode === 'reset' ? 'Отправить письмо' : mode === 'complete' ? 'Завершить регистрацию' : 'Зарегистрироваться'}
                     </button>
                 </form>
 
@@ -242,15 +248,20 @@ export function AuthScreen({ pendingUser = null }) {
                 </div> : <div style={styles.switchText}>
                     {mode === 'login' ? (
                         <>
-                            Нет аккаунта?{' '}
-                            <button type="button" onClick={() => setMode('register')} style={styles.switchLink}>
-                                Зарегистрироваться
+                            <button type="button" onClick={() => { setMode('reset'); setError(''); setNotice(''); }} style={styles.switchLink}>
+                                Забыли пароль?
                             </button>
+                            <div style={{ marginTop: '0.75rem' }}>
+                                Нет аккаунта?{' '}
+                                <button type="button" onClick={() => { setMode('register'); setError(''); setNotice(''); }} style={styles.switchLink}>
+                                    Зарегистрироваться
+                                </button>
+                            </div>
                         </>
                     ) : (
                         <>
-                            Уже есть аккаунт?{' '}
-                            <button type="button" onClick={() => setMode('login')} style={styles.switchLink}>
+                            {mode === 'reset' ? 'Вспомнили пароль?' : 'Уже есть аккаунт?'}{' '}
+                            <button type="button" onClick={() => { setMode('login'); setError(''); setNotice(''); }} style={styles.switchLink}>
                                 Войти
                             </button>
                         </>
