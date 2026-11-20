@@ -37,6 +37,7 @@ service cloud.firestore {
         (!('description' in data) || (data.description is string && data.description.size() <= 500)) &&
         (!('lastMessage' in data) || (data.lastMessage is string && data.lastMessage.size() <= 4096)) &&
         (!('lastMessageTime' in data) || data.lastMessageTime is timestamp) &&
+        (!('lastMessageId' in data) || data.lastMessageId == null || (data.lastMessageId is string && data.lastMessageId.size() > 0 && data.lastMessageId.size() <= 150)) &&
         (!('pinnedMessages' in data) || (data.pinnedMessages is list && data.pinnedMessages.size() <= 30)) &&
         (data.type != 'group' || (data.admins is list && data.admins.size() >= 1 &&
           data.admins.size() <= 10 && data.admins.toSet().size() == data.admins.size() &&
@@ -209,7 +210,7 @@ service cloud.firestore {
         (request.resource.data.type != 'private' || validPrivateChatId(chatId, request.resource.data));
       allow update: if validChat(request.resource.data) && (
         (member(resource.data) && (resource.data.type != 'channel' || request.auth.uid in resource.data.admins) &&
-          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastMessage','lastMessageTime','pinnedMessages'])) ||
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastMessage','lastMessageTime','lastMessageId','pinnedMessages'])) ||
         validChannelMembershipChange() || validGroupMemberChange() || validGroupAdminChange());
       allow delete: if signedIn() && resource.data.createdBy == request.auth.uid && resource.data.type != 'group';
       match /messages/{messageId} {

@@ -70,6 +70,7 @@ class ChatService {
             createdAt: serverTimestamp(),
             lastMessage: 'Чат создан',
             lastMessageTime: serverTimestamp(),
+            lastMessageId: null,
             pinnedMessages: []
         };
 

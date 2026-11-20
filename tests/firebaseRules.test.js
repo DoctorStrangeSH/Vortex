@@ -614,6 +614,9 @@ test('chat preview and pinned metadata reject invalid types and oversized values
     await assertFails(updateDoc(chat, { lastMessage: { text: 'forged' } }));
     await assertFails(updateDoc(chat, { lastMessage: 'x'.repeat(4097) }));
     await assertFails(updateDoc(chat, { lastMessageTime: 'not-a-timestamp' }));
+    await assertFails(updateDoc(chat, { lastMessageId: 123 }));
+    await assertSucceeds(updateDoc(chat, { lastMessageId: 'message-preview-1' }));
+    await assertSucceeds(updateDoc(chat, { lastMessageId: null }));
     await assertFails(updateDoc(chat, { pinnedMessages: 'invalid' }));
     await assertFails(updateDoc(chat, { pinnedMessages: Array.from({ length: 31 }, (_, i) => ({ id: String(i) })) }));
     await assertSucceeds(updateDoc(chat, { lastMessage: 'Привет', pinnedMessages: [{ id: 'm1', text: 'Привет' }] }));
