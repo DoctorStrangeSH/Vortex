@@ -20,7 +20,7 @@ export function AuthScreen({ pendingUser = null }) {
     // Проверяем уже введённое имя, в том числе восстановленное из черновика.
     // Отклоняем устаревшие ответы, если пользователь продолжил печатать.
     useEffect(() => {
-        if (mode === 'login') {
+        if (mode !== 'register' && mode !== 'complete') {
             setUsernameChecking(false);
             return;
         }
@@ -87,9 +87,13 @@ export function AuthScreen({ pendingUser = null }) {
                 await authService.register(email, password, name, username);
             }
         } catch (err) {
-            setError(err.code === 'permission-denied'
-                ? 'База данных отклонила сохранение профиля. Имя и @username сохранены в этой вкладке — попробуйте позже.'
-                : err.message || 'Ошибка');
+            if (mode === 'reset' && err.code === 'auth/user-not-found') {
+                setNotice('Если аккаунт с такой почтой существует, письмо для восстановления отправлено. Проверьте входящие и папку «Спам».');
+            } else {
+                setError(err.code === 'permission-denied'
+                    ? 'База данных отклонила сохранение профиля. Имя и @username сохранены в этой вкладке — попробуйте позже.'
+                    : err.message || 'Ошибка');
+            }
         } finally {
             setLoading(false);
         }
@@ -118,7 +122,7 @@ export function AuthScreen({ pendingUser = null }) {
                 {mode === 'complete' && <p style={{ marginBottom: '1rem', color: 'var(--text-secondary)' }}>
                     Аккаунт создан, но профиль ещё не сохранён. Проверьте имя и @username и завершите регистрацию.
                 </p>}
-                {mode !== 'complete' && <div class="vortex-auth-tabs" role="tablist" aria-label="Режим авторизации" style={styles.tabs}>
+                {mode !== 'complete' && mode !== 'reset' && <div class="vortex-auth-tabs" role="tablist" aria-label="Режим авторизации" style={styles.tabs}>
                     <button
                         type="button" role="tab" aria-selected={mode === "login"} onClick={() => { setMode('login'); setError(''); }}
                         style={{
@@ -232,7 +236,7 @@ export function AuthScreen({ pendingUser = null }) {
 
                     <button
                         type="submit"
-                        disabled={loading || usernameChecking || (mode !== 'login' && usernameStatus.includes('❌'))}
+                        disabled={loading || ((mode === 'register' || mode === 'complete') && (usernameChecking || usernameStatus.includes('❌')))}
                         class="vortex-primary-button" style={{
                             ...styles.submitBtn,
                             opacity: loading ? 0.7 : 1
