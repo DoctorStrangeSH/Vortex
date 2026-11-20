@@ -8,13 +8,11 @@ import { attachmentRetryNotice, mayRetryAttachment } from '../../services/attach
 import { MAX_STORAGE_FILE_BYTES } from '../../services/mediaPolicy.js';
 import { presenceService } from '../../services/presenceService';
 import { voiceService } from '../../services/voiceService';
-import { aiService } from '../../services/aiService';
 import { typingService } from '../../services/typingService';
 import { reactionService } from '../../services/reactionService';
 import { soundService } from '../../services/soundService';
 import { offlineService } from '../../services/offlineService';
 import { queuedMessagePresentation } from '../../services/queuedMessagePresentation.js';
-import { selfDestructService } from '../../services/selfDestructService';
 import { exportService } from '../../services/exportService';
 import { wallpaperService } from '../../services/wallpaperService';
 import { ChatHeader } from './ChatHeader';
@@ -72,8 +70,6 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
     const [recordSeconds, setRecordSeconds] = useState(0);
     const voiceAttemptRef = useRef(0);
     const voiceStartingRef = useRef(false);
-    const [showAI, setShowAI] = useState(false);
-    const aiRequestRef = useRef(0);
     const [micDenied, setMicDenied] = useState(false);
     const [isTyping, setIsTyping] = useState(false);
     const [isDragOver, setIsDragOver] = useState(false);
@@ -223,8 +219,6 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
         setNewIncomingCount(0);
         if (!retryingSubscriptionRef.current) setText('');
         retryingSubscriptionRef.current = false;
-        aiRequestRef.current += 1;
-        setShowAI(false);
         setEditingMessage(null);
         sendingRef.current = false;
         setSending(false);
@@ -304,7 +298,6 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
             voiceAttemptRef.current += 1;
             voiceService.cancelRecording();
             voiceStartingRef.current = false;
-            aiRequestRef.current += 1;
             activeSubscriptionRef.current = null;
             activeChatIdRef.current = null;
             markVisibleAsReadRef.current = null;
@@ -617,11 +610,6 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
         if (msg) setText(`@${msg.senderName || 'пользователь'} `);
         setContextMenu(null);
     };
-    const handleSelfDestruct = (messageId) => {
-        const seconds = prompt('Через сколько секунд удалить? (5, 30, 60, 3600)');
-        if (seconds) selfDestructService.setTimer(chat.id, messageId, parseInt(seconds));
-        setContextMenu(null);
-    };
     const cancelEdit = () => { setEditingMessage(null); setText(''); };
 
     // Реакции
@@ -677,40 +665,6 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
             console.error(e);
             if (activeSubscriptionRef.current === subscription) setSendNotice(e.message || 'Не удалось отправить голосовое сообщение');
         }
-    };
-
-    // AI
-    const handleSmartReply = async () => {
-        const request = ++aiRequestRef.current;
-        const subscription = activeSubscriptionRef.current;
-        const originalDraft = text;
-        setShowAI(false);
-        try {
-            const replies = await aiService.getSmartReplies(messages);
-            if (replies.length && activeSubscriptionRef.current === subscription && aiRequestRef.current === request) {
-                setText(current => current === originalDraft ? replies[0] : current);
-            }
-        } catch (error) { console.error('Не удалось получить умный ответ', error); }
-    };
-    const handleTranslate = async () => {
-        const message = messages[messages.length - 1];
-        if (!message) return;
-        const request = ++aiRequestRef.current;
-        const subscription = activeSubscriptionRef.current;
-        setShowAI(false);
-        try {
-            const translation = await aiService.translate(message.text);
-            if (activeSubscriptionRef.current === subscription && aiRequestRef.current === request) alert(translation);
-        } catch (error) { console.error('Не удалось перевести сообщение', error); }
-    };
-    const handleSummarize = async () => {
-        const request = ++aiRequestRef.current;
-        const subscription = activeSubscriptionRef.current;
-        setShowAI(false);
-        try {
-            const summary = await aiService.summarize(messages);
-            if (activeSubscriptionRef.current === subscription && aiRequestRef.current === request) alert(summary);
-        } catch (error) { console.error('Не удалось составить краткое содержание', error); }
     };
 
     // Опрос
@@ -1034,9 +988,8 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
                 </div>
             )}
 
-            {contextMenu && <ContextMenu x={contextMenu.x} y={contextMenu.y} messageId={contextMenu.messageId} text={contextMenu.text} isOwn={contextMenu.isOwn} isPinned={pinnedMessageIds.has(contextMenu.messageId)} onCopy={handleCopy} onEdit={contextMenu.isOwn ? handleEdit : null} onPin={handlePin} onDelete={contextMenu.isOwn ? handleDelete : null} onReply={handleReply} onSelfDestruct={handleSelfDestruct} />}
+            {contextMenu && <ContextMenu x={contextMenu.x} y={contextMenu.y} messageId={contextMenu.messageId} text={contextMenu.text} isOwn={contextMenu.isOwn} isPinned={pinnedMessageIds.has(contextMenu.messageId)} onCopy={handleCopy} onEdit={contextMenu.isOwn ? handleEdit : null} onPin={handlePin} onDelete={contextMenu.isOwn ? handleDelete : null} onReply={handleReply} />}
             {showReactions && <ReactionPicker x={Math.min(showReactions.x, window.innerWidth - 200)} y={showReactions.y} onReaction={(emoji) => handleReaction(showReactions.messageId, emoji)} />}
-            {showAI && <div style={s.aiMenu}><button onClick={handleSmartReply} style={s.aiItem}>💡 Умный ответ</button><button onClick={handleTranslate} style={s.aiItem}>🌍 Перевести</button><button onClick={handleSummarize} style={s.aiItem}>📊 Саммари</button></div>}
             {micDenied && <div style={s.micOverlay} onClick={() => setMicDenied(false)}><div style={s.micPrompt}><div>🎙️</div><h3>Микрофон запрещён</h3><p>📱 iPhone: Настройки → Safari → Микрофон<br/>📱 Android: Настройки → Приложения → Браузер → Разрешения</p><button onClick={retryMicAccess} style={s.micAllowBtn}>🔄 Попробовать снова</button></div></div>}
             {showGallery && <MediaGallery messages={messages} onClose={() => setShowGallery(false)} />}
             {showAllPinned && <PinnedMessagesDialog messages={pinnedMessages} onClose={() => setShowAllPinned(false)} onSelect={id => { handleScrollToPinned(id); setShowAllPinned(false); }} />}
@@ -1058,7 +1011,7 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
                 {failedAttachment && <button type="button" style={s.retryBtn} onClick={retryFailedAttachments} disabled={!isOnline || uploadingAttachments}>Повторить файлы ({failedAttachment.files.length})</button>}
                 <button type="button" style={s.noticeDismiss} aria-label="Скрыть уведомление" onClick={() => { setSendNotice(''); setFailedAttachment(null); }}>×</button>
             </div>}
-            <MessageInput text={text} onTextChange={setText} onSend={handleSend} sending={sending} onTyping={handleTyping} isRecording={isRecording} voiceStarting={voiceStarting} recordSeconds={recordSeconds} onStartVoice={startVoiceRecording} onStopVoice={stopVoiceRecording} onCancelVoice={cancelVoiceRecording} onShowAI={() => setShowAI(!showAI)} onFileSend={handleFileSend} uploadingAttachments={uploadingAttachments} editingMessage={editingMessage} onCancelEdit={cancelEdit} onShowPoll={() => setShowPollCreator(true)} />
+            <MessageInput text={text} onTextChange={setText} onSend={handleSend} sending={sending} onTyping={handleTyping} isRecording={isRecording} voiceStarting={voiceStarting} recordSeconds={recordSeconds} onStartVoice={startVoiceRecording} onStopVoice={stopVoiceRecording} onCancelVoice={cancelVoiceRecording} onFileSend={handleFileSend} uploadingAttachments={uploadingAttachments} editingMessage={editingMessage} onCancelEdit={cancelEdit} onShowPoll={() => setShowPollCreator(true)} />
         </div>
     );
 }
