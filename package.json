@@ -10,7 +10,8 @@
     "test:browser": "node tests/browser/virtual-feed.smoke.mjs",
     "test:rules": "firebase emulators:exec --project demo-vortex --only firestore,storage \"node --test tests/firebaseRules.test.js\"",
     "preview": "vite preview",
-    "deploy": "vite build && gh-pages -d dist"
+    "deploy": "vite build && gh-pages -d dist",
+    "test:auth": "firebase emulators:exec --project demo-vortex --only auth \"node --test tests/authEmulator.test.js\""
   },
   "dependencies": {
     "firebase": "^10.7.0",
