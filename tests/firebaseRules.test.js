@@ -560,7 +560,7 @@ test('chat preview and pinned metadata reject invalid types and oversized values
 });
 
 
-test('private and secret chats require exactly two distinct participants', { skip: !available }, async () => {
+test('private chats require two distinct participants and secret chat creation is disabled in 1.0', { skip: !available }, async () => {
     const alice = environment.authenticatedContext('alice').firestore();
     const chats = collection(alice, 'chats');
     // Use a distinct canonical pair: the earlier two-account test creates the alice/bob ID.
@@ -570,7 +570,7 @@ test('private and secret chats require exactly two distinct participants', { ski
     await assertFails(setDoc(doc(chats), { ...base, participants: ['alice', 'alice'] }));
     await assertFails(setDoc(doc(chats), { ...base, participants: ['alice', 'bob', 'eve'] }));
     await assertFails(setDoc(doc(chats), { ...base, type: 'secret', participants: ['alice', 'bob', 'eve'] }));
-    await assertSucceeds(setDoc(doc(chats), { ...base, type: 'secret' }));
+    await assertFails(setDoc(doc(chats), { ...base, type: 'secret' }));
 });
 
 
