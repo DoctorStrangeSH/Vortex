@@ -1,5 +1,6 @@
 import { db } from './firebase';
 import { normalizeUsername } from './usernamePolicy.js';
+import { planPublicProfileRepair } from './publicProfileRepair.js';
 import {
     doc,
     getDoc,
@@ -49,24 +50,38 @@ class UserService {
     async ensurePublicProfile(uid) {
         const privateRef = doc(db, 'users', uid);
         const publicRef = doc(db, 'publicProfiles', uid);
-        await runTransaction(db, async transaction => {
+        return runTransaction(db, async transaction => {
             const profile = await transaction.get(privateRef);
             if (!profile.exists()) return;
             const publicProfile = await transaction.get(publicRef);
             const data = profile.data();
-            const claimRef = data.username ? doc(db, 'usernames', data.username) : null;
-            const claim = claimRef ? await transaction.get(claimRef) : null;
-            if (!publicProfile.exists()) {
-                transaction.set(publicRef, {
-                    uid,
-                    username: data.username || '',
-                    displayName: data.displayName || '',
-                    bio: data.bio || ''
-                });
+            let claimRef = null;
+            let claim = null;
+            if (data.username) {
+                let normalized;
+                try {
+                    normalized = normalizeUsername(data.username);
+                } catch {
+                    return { status: 'skipped', reason: 'invalid_legacy_username' };
+                }
+                if (normalized !== data.username) {
+                    return { status: 'skipped', reason: 'non_canonical_legacy_username' };
+                }
+                claimRef = doc(db, 'usernames', normalized);
+                claim = await transaction.get(claimRef);
             }
-            if (claim?.exists() && claim.data().uid === uid && Object.hasOwn(claim.data(), 'email')) {
+            const plan = planPublicProfileRepair(
+                { ...data, uid },
+                claim ? { exists: claim.exists(), data: claim.exists() ? claim.data() : null } : null,
+                publicProfile.exists()
+            );
+            if (plan.status !== 'ready') return plan;
+            if (plan.createPublicProfile) transaction.set(publicRef, plan.publicProfile);
+            if (plan.createUsernameClaim) transaction.set(claimRef, plan.usernameClaim);
+            if (plan.removeLegacyClaimEmail) {
                 transaction.update(claimRef, { email: deleteField() });
             }
+            return { status: 'ready' };
         });
     }
 
