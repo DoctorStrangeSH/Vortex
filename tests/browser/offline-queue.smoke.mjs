@@ -12,6 +12,7 @@ const origin = `http://127.0.0.1:${port}`;
 const server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { stdio: 'pipe' });
 let browser;
 let persistentProfileDir;
+let persistentContext;
 
 try {
     let ready = false;
@@ -188,7 +189,7 @@ try {
     // Verify persistence across an actual Chromium process restart by reusing
     // a persistent user-data directory in a newly launched browser process.
     persistentProfileDir = await mkdtemp(join(tmpdir(), 'vortex-offline-profile-'));
-    let persistentContext = await chromium.launchPersistentContext(persistentProfileDir, {
+    persistentContext = await chromium.launchPersistentContext(persistentProfileDir, {
         ...browserBinary,
         headless: true,
         args: ['--no-sandbox']
@@ -247,6 +248,7 @@ try {
         deliveredCount: afterRestartDelivery.remoteMessages.length
     });
 } finally {
+    await persistentContext?.close();
     await browser?.close();
     if (persistentProfileDir) await rm(persistentProfileDir, { recursive: true, force: true });
     server.kill('SIGTERM');
