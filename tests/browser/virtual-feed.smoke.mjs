@@ -78,6 +78,21 @@ try {
     await page.waitForSelector('[data-qa-id="message-1100"]');
     assert.ok(await page.locator('[data-qa-id="message-1100"]').count(), 'a second navigation should replace an older request');
 
+    // Wait for ResizeObserver measurements from the navigation render to settle.
+    // The row can be visible before its measured height has been applied to offsets.
+    await page.evaluate(async () => {
+        let previous = window.virtualFeedQA.metrics().scrollTop;
+        let stableFrames = 0;
+        for (let frame = 0; frame < 60 && stableFrames < 3; frame++) {
+            await new Promise(resolve => requestAnimationFrame(resolve));
+            const current = window.virtualFeedQA.metrics().scrollTop;
+            if (Math.abs(current - previous) < 0.5) stableFrames++;
+            else stableFrames = 0;
+            previous = current;
+        }
+        if (stableFrames < 3) throw new Error('Virtual feed scroll position did not settle after navigation');
+    });
+
     // New incoming messages must not drag the user away from old history.
     const beforeAppend = await page.evaluate(() => window.virtualFeedQA.metrics().scrollTop);
     await page.evaluate(() => window.virtualFeedQA.append());
