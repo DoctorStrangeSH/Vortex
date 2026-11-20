@@ -76,7 +76,7 @@ class UserService {
             );
             if (plan.status !== 'ready') return plan;
             if (plan.createPublicProfile) transaction.set(publicRef, plan.publicProfile);
-            if (plan.createUsernameClaim) transaction.create(claimRef, plan.usernameClaim);
+            if (plan.createUsernameClaim) transaction.set(claimRef, plan.usernameClaim);
             if (plan.removeLegacyClaimEmail) {
                 transaction.update(claimRef, { email: deleteField() });
             }
