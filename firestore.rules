@@ -30,6 +30,7 @@ service cloud.firestore {
       return data.keys().hasAll(['type','participants']) && data.type in ['private','group','channel','secret'] &&
         (!('createdBy' in data) || (data.createdBy is string && data.createdBy.size() > 0)) &&
         data.participants is list && data.participants.size() >= 1 && data.participants.size() <= 100 &&
+        data.participants.toSet().size() == data.participants.size() &&
         (!(data.type in ['private','secret']) || (data.participants.size() == 2 &&
           data.participants[0] != data.participants[1])) &&
         (!('name' in data) || (data.name is string && data.name.size() >= 1 && data.name.size() <= 100)) &&
@@ -38,8 +39,8 @@ service cloud.firestore {
         (!('lastMessageTime' in data) || data.lastMessageTime is timestamp) &&
         (!('pinnedMessages' in data) || (data.pinnedMessages is list && data.pinnedMessages.size() <= 30)) &&
         (data.type != 'group' || (data.admins is list && data.admins.size() >= 1 &&
-          data.admins.size() <= 10 && data.admins[0] == data.createdBy &&
-          data.participants.hasAll(data.admins))) &&
+          data.admins.size() <= 10 && data.admins.toSet().size() == data.admins.size() &&
+          data.admins[0] == data.createdBy && data.participants.hasAll(data.admins))) &&
         (data.type != 'channel' || (data.keys().hasAll(['ownerId','admins','subscribers','subscriberCount']) &&
           data.ownerId == data.createdBy && data.admins is list && data.admins.size() == 1 &&
           data.admins[0] == data.ownerId && data.subscribers is list && data.subscribers == data.participants &&
