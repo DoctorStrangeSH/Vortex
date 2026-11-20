@@ -17,7 +17,7 @@ import {
     writeBatch,
     startAfter
 } from 'firebase/firestore';
-import { validateOutgoingMessage, MESSAGE_PAGE_SIZE } from './messageValidation.js';
+import { validateOutgoingMessage, MESSAGE_PAGE_SIZE, resolveMessageSenderName } from './messageValidation.js';
 
 class MessageService {
     subscribeToMessages(chatId, callback, onError) {
@@ -60,7 +60,7 @@ class MessageService {
         if (messageId && (await getDoc(messageRef)).exists()) return;
         const messageData = {
             senderId: user.uid,
-            senderName: user.displayName || user.email,
+            senderName: resolveMessageSenderName(user),
             createdAt: serverTimestamp(),
             type: attachment ? attachment.type : 'text',
             text: text || '',

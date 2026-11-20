@@ -31,3 +31,13 @@ export function validateOutgoingMessage({ chatId, user, text, attachment }) {
         }
     }
 }
+
+/**
+ * Resolve a chat-visible sender label without exposing private account email.
+ * Public display name takes precedence, then the public username.
+ */
+export function resolveMessageSenderName(user) {
+    const displayName = typeof user?.displayName === 'string' ? user.displayName.trim() : '';
+    const username = typeof user?.username === 'string' ? user.username.trim() : '';
+    return displayName || username || 'Пользователь';
+}
