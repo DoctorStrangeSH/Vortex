@@ -8,6 +8,8 @@ import {
     onAuthStateChanged
 } from 'firebase/auth';
 import { userService } from './userService';
+import { normalizeUsername } from './usernamePolicy.js';
+import { normalizeDisplayName } from './profilePolicy.js';
 
 const draftKey = (uid) => `vortex-registration-draft:${uid}`;
 
@@ -51,20 +53,24 @@ class AuthService {
     }
 
     async register(email, password, name, username = '') {
-        // Username reads require authentication under production Firestore rules.
-        // The profile transaction below is the authoritative uniqueness check.
+        // Validate every profile field before creating an irreversible Auth account.
+        const displayName = normalizeDisplayName(name);
+        const normalizedUsername = normalizeUsername(username);
+        // Username uniqueness is still enforced authoritatively by the Firestore transaction.
         const result = await createUserWithEmailAndPassword(auth, email, password);
-        saveRegistrationDraft(result.user.uid, name.trim(), username);
-        await updateProfile(result.user, { displayName: name });
-        await userService.createUser({ uid: result.user.uid, email, displayName: name, username });
+        saveRegistrationDraft(result.user.uid, displayName, normalizedUsername);
+        await updateProfile(result.user, { displayName });
+        await userService.createUser({ uid: result.user.uid, email, displayName, username: normalizedUsername });
         clearRegistrationDraft(result.user.uid);
         this.notifyAuthChange();
     }
 
     async completeRegistration(user, name, username) {
         if (!user || auth.currentUser?.uid !== user.uid) throw new Error('Сессия регистрации недействительна');
-        await updateProfile(user, { displayName: name });
-        await userService.createUser({ uid: user.uid, email: user.email, displayName: name, username });
+        const displayName = normalizeDisplayName(name);
+        const normalizedUsername = normalizeUsername(username);
+        await updateProfile(user, { displayName });
+        await userService.createUser({ uid: user.uid, email: user.email, displayName, username: normalizedUsername });
         clearRegistrationDraft(user.uid);
         this.notifyAuthChange();
     }
