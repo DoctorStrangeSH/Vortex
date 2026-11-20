@@ -24,7 +24,7 @@ service cloud.firestore {
       let first = data.participants[0];
       let second = data.participants[1];
       return first is string && second is string && first < second &&
-        chatId == 'dm_' + first.size() + '_' + first + '_' + second.size() + '_' + second;
+        chatId == 'dm_' + string(first.size()) + '_' + first + '_' + string(second.size()) + '_' + second;
     }
     function validChat(data) {
       return data.keys().hasAll(['type','participants']) && data.type in ['private','group','channel','secret'] &&
