@@ -545,6 +545,6 @@ test('a corrupt queue is not overwritten when its backup cannot be persisted', a
             /повреждённую офлайн-очередь/
         );
         assert.equal(storage.getItem('offlineQueue'), '{important-corrupt-payload');
-        assert.equal(storage.getItem('offlineQueue.corruptBackup'), undefined);
+        assert.equal(storage.getItem('offlineQueue.corruptBackup'), null);
     } finally { console.warn = originalWarn; }
 });
