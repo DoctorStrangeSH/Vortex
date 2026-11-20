@@ -916,6 +916,10 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
                         })}
                         {queuedForChat.length > 3 && <span style={{ color: 'var(--text-tertiary)' }}>И ещё {queuedForChat.length - 3} сообщений…</span>}
                     </div>
+                    <div role="note" style={s.queueStorageWarning}>
+                        <span aria-hidden="true">ⓘ</span>
+                        <span>Очередь хранится в этом браузере. Не очищайте данные сайта, пока сообщения не отправлены: иначе они могут быть потеряны.</span>
+                    </div>
                 </div>
             )}
 
@@ -1043,6 +1047,7 @@ const s = {
     jumpToUnread: { position:'absolute', left:'18px', bottom:'88px', zIndex:12, border:'1px solid rgba(124,58,237,0.35)', background:'var(--bg-secondary)', color:'var(--vortex-primary-light)', borderRadius:'24px', padding:'9px 14px', cursor:'pointer', boxShadow:'0 3px 14px rgba(0,0,0,0.25)', fontSize:'0.82rem' },
     unreadDivider: { margin:'14px 0', padding:'7px 12px', borderRadius:'12px', color:'var(--vortex-primary-light)', textAlign:'center', fontSize:'0.77rem', fontWeight:600, background:'rgba(124,58,237,0.12)', border:'1px solid rgba(124,58,237,0.22)' },
     queueBar: { display:'flex', justifyContent:'space-between', alignItems:'center', gap:'12px', background:'var(--bg-secondary)', color:'var(--text-primary)', padding:'7px 12px', fontSize:'0.78rem' },
+    queueStorageWarning: { display:'flex', alignItems:'flex-start', gap:'7px', padding:'7px 9px', borderRadius:'9px', background:'var(--bg-tertiary)', color:'var(--text-secondary)', fontSize:'0.72rem', lineHeight:1.45 },
     retryBtn: { border:'1px solid var(--border-default)', background:'var(--bg-tertiary)', borderRadius:'8px', padding:'5px 10px', color:'var(--text-primary)', cursor:'pointer' },
     sendNotice: { display:'flex', alignItems:'center', justifyContent:'flex-end', flexWrap:'wrap', gap:'8px', color:'var(--text-secondary)', fontSize:'0.78rem', padding:'8px 14px', background:'var(--bg-secondary)', borderTop:'1px solid var(--border-subtle)' },
     noticeDismiss: { background:'transparent', border:'none', color:'var(--text-tertiary)', fontSize:'1.1rem', cursor:'pointer' },
