@@ -17,6 +17,7 @@ export class OfflineService {
         this.processingPromise = null;
         this.processRequested = false;
         this.initialized = false;
+        this.storageRecoveryBlocked = false;
     }
 
     init() {
@@ -76,6 +77,9 @@ export class OfflineService {
     }
 
     async addToQueue(action) {
+        if (this.storageRecoveryBlocked) {
+            throw new Error('Не удалось сохранить повреждённую офлайн-очередь. Освободите место в браузере и повторите попытку.');
+        }
         await this.withQueueLock(async () => {
             this.refreshQueue();
             const previousQueue = this.queue;
@@ -109,6 +113,21 @@ export class OfflineService {
             }
         } catch (error) {
             console.warn('Не удалось прочитать очередь сообщений', error);
+            // Preserve the exact corrupt payload before starting a fresh queue.
+            // Never silently overwrite the only remaining copy of queued data.
+            try {
+                const raw = this.storage?.getItem('offlineQueue');
+                if (raw !== null && raw !== undefined) {
+                    const backupKey = 'offlineQueue.corruptBackup';
+                    if (!this.storage.getItem(backupKey)) this.storage.setItem(backupKey, raw);
+                    this.storage.setItem('offlineQueue', '[]');
+                    this.queue = [];
+                    this.storageRecoveryBlocked = false;
+                }
+            } catch (backupError) {
+                this.storageRecoveryBlocked = true;
+                console.warn('Не удалось сохранить резервную копию повреждённой очереди', backupError);
+            }
         }
     }
 
