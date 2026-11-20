@@ -5,8 +5,8 @@ const unavailable = () => {
 };
 
 class SecretChatService {
-    createSecretChat() { return unavailable(); }
-    destroySecretChat() { return unavailable(); }
+    async createSecretChat() { return unavailable(); }
+    async destroySecretChat() { return unavailable(); }
 }
 
 export const secretChatService = new SecretChatService();
