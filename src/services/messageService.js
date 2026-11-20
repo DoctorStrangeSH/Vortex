@@ -113,11 +113,14 @@ class MessageService {
         const chatData = chatDoc.data() || {};
         const pinnedMessages = (chatData.pinnedMessages || []).filter(m => m.id !== messageId);
         
+        // Delete the message and remove its pin in one commit. If either write
+        // is rejected, neither change is applied and the UI can safely retry.
+        const batch = writeBatch(db);
+        batch.delete(doc(db, 'chats', chatId, 'messages', messageId));
         if (pinnedMessages.length !== (chatData.pinnedMessages || []).length) {
-            await setDoc(chatRef, { pinnedMessages }, { merge: true });
+            batch.set(chatRef, { pinnedMessages }, { merge: true });
         }
-
-        await deleteDoc(doc(db, 'chats', chatId, 'messages', messageId));
+        await batch.commit();
 
         const messagesQuery = query(
             collection(db, 'chats', chatId, 'messages'),
