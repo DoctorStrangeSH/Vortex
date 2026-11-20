@@ -493,6 +493,34 @@ test('message authors cannot smuggle privileged fields while editing text', { sk
 });
 
 
+test('self-destruct metadata is rejected for new messages while legacy records remain editable', { skip: !available }, async () => {
+    const alice = environment.authenticatedContext('alice').firestore();
+    const bob = environment.authenticatedContext('bob').firestore();
+    const messages = collection(alice, 'chats/chat-a/messages');
+
+    await assertFails(setDoc(doc(messages, 'new-self-destruct'), {
+        senderId: 'alice', text: 'not supported in 1.0', selfDestruct: 60
+    }));
+    await assertFails(setDoc(doc(messages, 'new-destruct-at'), {
+        senderId: 'alice', text: 'not supported in 1.0', destructAt: new Date()
+    }));
+
+    // Simulate a historical record created before the 1.0 scope was frozen.
+    await seedDocument('chats/chat-a/messages/legacy-self-destruct', {
+        senderId: { stringValue: 'alice' },
+        text: { stringValue: 'Историческое сообщение' },
+        selfDestruct: { integerValue: '60' },
+        destructAt: { timestampValue: '2026-11-19T12:00:00Z' }
+    });
+    const legacyForBob = doc(bob, 'chats/chat-a/messages/legacy-self-destruct');
+    await assertSucceeds(updateDoc(legacyForBob, { readBy: ['bob'] }));
+
+    const legacyForAlice = doc(alice, 'chats/chat-a/messages/legacy-self-destruct');
+    await assertSucceeds(updateDoc(legacyForAlice, { text: 'Исправленный текст', isEdited: true }));
+    await assertFails(updateDoc(legacyForAlice, { selfDestruct: 120 }));
+    await assertFails(updateDoc(legacyForAlice, { destructAt: new Date() }));
+});
+
 test('new messages cannot start with forged receipts or reactions', { skip: !available }, async () => {
     const alice = environment.authenticatedContext('alice').firestore();
     await assertFails(setDoc(doc(collection(alice, 'chats/chat-a/messages')), {
