@@ -5,7 +5,7 @@ const service = new OfflineService({
     network: navigator,
     eventTarget: window,
     visibilityTarget: document,
-    locks: new URLSearchParams(location.search).has('no-locks') ? undefined : navigator.locks
+    locks: new URLSearchParams(location.search).has('no-locks') ? null : navigator.locks
 });
 
 service.executeAction = async action => {
