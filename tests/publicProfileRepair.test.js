@@ -44,6 +44,15 @@ test('does not publish a legacy profile when another UID owns its username claim
     assert.deepEqual(plan, { status: 'skipped', reason: 'username_claim_conflict' });
 });
 
+test('does not repair a legacy profile when the owned claim points at a different username', () => {
+    const plan = planPublicProfileRepair(
+        legacyProfile,
+        { exists: true, data: { uid: 'alice', username: 'different_name' } },
+        false
+    );
+    assert.deepEqual(plan, { status: 'skipped', reason: 'username_claim_mismatch' });
+});
+
 test('does not rewrite non-canonical legacy usernames under the current immutable profile rules', () => {
     const plan = planPublicProfileRepair(
         { ...legacyProfile, username: 'Alice_Legacy' },
