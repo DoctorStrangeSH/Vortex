@@ -794,3 +794,36 @@ PR #32 остаётся открытым, конфликтующим с теку
 - [ ] Вручную проверить закрытие/перезапуск вкладки и восстановление очереди.
 - [ ] Проверить поведение без Web Locks на целевых браузерах.
 - [ ] Проверить UX предупреждения о локальном хранении очереди и риске очистки данных сайта.
+
+
+### 13.17. Защита legacy-вложений от активного web-контента — 20.11.2026
+
+Аудит выявил разницу между двумя путями отправки файлов: Firebase Storage upload уже применял blocklist MIME-типов, но fallback через Data URL в Firestore обходил эту проверку. Это позволяло отправителю вложить HTML/SVG/JavaScript/XML как обычный файл, несмотря на клиентскую и Storage-политику.
+
+**Исправлено в PR #72:**
+- Legacy Firestore fallback теперь вызывает отдельную проверку MIME-типа до чтения файла в Data URL.
+- Сохраняется лимит legacy-вложения 350 КБ.
+- Обычные PDF и файлы с неизвестным/octet-stream MIME остаются допустимыми.
+- Firestore Rules независимо отклоняют Data URL с HTML, SVG, JavaScript и XML MIME-типами, включая регистр символов и MIME-параметры.
+- Storage upload продолжает использовать прежнюю более строгую проверку `validateMediaFile` и собственные Storage Rules.
+- Добавлены unit tests для legacy validator и Firestore Emulator cases для разрешённых/запрещённых Data URL.
+- Quality checks #592 завершились успешно: unit, browser smoke, Firestore/Storage Rules Emulator, Auth Emulator и production build.
+
+**Границы изменения:**
+- Не включать Firebase Storage в production: `VITE_USE_FIREBASE_STORAGE` остаётся opt-in.
+- Не публиковать Firestore/Storage Rules из этой ветки; проверка выполнена в Emulator.
+- Не менять тариф Firebase, данные пользователей или схему сообщений.
+- Блокировка MIME — защита от известных типов активного web-контента, а не антивирус и не гарантия безопасности содержимого всех документов.
+
+**Оставшиеся проверки Storage:**
+- В текущем `messageService.deleteMessage` удаляется Firestore message document, но не связанный Storage object. После включения Storage это может оставлять orphaned files.
+- Storage Emulator tests пока не подтверждают полный положительный сценарий: участник загружает файл, другой участник читает, неучастник получает отказ, владелец безопасно удаляет только orphan object.
+- До реализации безопасной очистки и полного Storage acceptance не включать Storage uploads в production.
+
+- [x] Закрыть MIME validation gap в legacy Firestore fallback.
+- [x] Добавить независимую Firestore Rules защиту от активного web-контента.
+- [x] Добавить unit и Emulator regression tests.
+- [x] Пройти полный Quality CI #592 на PR #72.
+- [ ] Спроектировать безопасную очистку orphaned Storage objects без Cloud Functions/Blaze.
+- [ ] Добавить положительные Storage Emulator tests для read/upload/delete lifecycle.
+- [ ] Провести ручную проверку реальных вложений после отдельного разрешения на включение Storage.

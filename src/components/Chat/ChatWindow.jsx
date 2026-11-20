@@ -5,7 +5,7 @@ import { MAX_LEGACY_ATTACHMENT_BYTES } from '../../services/messageValidation';
 import { dataUrlByteLength } from '../../services/dataUrlBytes.js';
 import { sendStoredAttachment, STORAGE_UPLOADS_ENABLED } from '../../services/mediaService.js';
 import { attachmentRetryNotice, mayRetryAttachment } from '../../services/attachmentRetryPolicy.js';
-import { MAX_STORAGE_FILE_BYTES } from '../../services/mediaPolicy.js';
+import { MAX_STORAGE_FILE_BYTES, validateLegacyMediaFile } from '../../services/mediaPolicy.js';
 import { presenceService } from '../../services/presenceService';
 import { voiceService } from '../../services/voiceService';
 import { typingService } from '../../services/typingService';
@@ -526,6 +526,9 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
         if (STORAGE_UPLOADS_ENABLED) {
             return sendStoredAttachment(targetChatId, user, file, type, () => activeSubscriptionRef.current === expectedSubscription);
         }
+        // The Firestore fallback must apply the same active-content blocklist
+        // as Storage uploads; otherwise HTML/SVG can bypass Storage Rules.
+        validateLegacyMediaFile(file);
         const dataUrl = await new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.onload = () => resolve(reader.result);
