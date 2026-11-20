@@ -95,7 +95,12 @@ class MessageService {
         // two tabs retry the same queued ID at nearly the same time.
         return runTransaction(db, async transaction => {
             const existingMessage = await transaction.get(messageRef);
-            if (existingMessage.exists()) return false;
+            if (existingMessage.exists()) {
+                if (existingMessage.data().senderId !== user.uid) {
+                    throw new Error('Идентификатор сообщения уже занят другим отправителем');
+                }
+                return false;
+            }
 
             const chatRef = doc(db, 'chats', chatId);
             const chatSnapshot = await transaction.get(chatRef);
