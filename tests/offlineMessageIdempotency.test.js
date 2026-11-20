@@ -5,7 +5,7 @@ import { readFile } from 'node:fs/promises';
 const messageService = await readFile(new URL('../src/services/messageService.js', import.meta.url), 'utf8');
 const offlineService = await readFile(new URL('../src/services/offlineService.js', import.meta.url), 'utf8');
 
-test('offline retries reuse the queued ID and send the message and preview atomically', () => {
+test('offline retries reuse the queued ID and atomically create the message and preview once', () => {
     const start = messageService.indexOf('async sendMessage(');
     const end = messageService.indexOf('async messageExists(', start);
     const implementation = messageService.slice(start, end);
