@@ -50,7 +50,7 @@ class UserService {
     async ensurePublicProfile(uid) {
         const privateRef = doc(db, 'users', uid);
         const publicRef = doc(db, 'publicProfiles', uid);
-        await runTransaction(db, async transaction => {
+        return runTransaction(db, async transaction => {
             const profile = await transaction.get(privateRef);
             if (!profile.exists()) return;
             const publicProfile = await transaction.get(publicRef);
