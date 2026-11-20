@@ -11,7 +11,6 @@ export default defineConfig({
                 manualChunks: {
                     'firebase': ['firebase/app', 'firebase/auth', 'firebase/firestore'],
                     'vendor': ['preact', 'preact/hooks'],
-                    'ai': ['./src/services/aiService.js'],
                     'crypto': ['./src/services/encryptionService.js']
                 }
             }
