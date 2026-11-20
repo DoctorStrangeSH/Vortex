@@ -598,3 +598,12 @@ PR #32 остаётся открытым, конфликтующим с теку
 Проверки до merge: обязательный CI для отдельной ветки, включая unit, browser smoke, Firestore/Storage Rules Emulator, Auth Emulator и production build. Не затронуты правила Firebase, данные пользователей, auth, отправка сообщений и `main`.
 
 **Статус:** изменения внесены в отдельную ветку; считать уборку завершённой только после успешного CI и review PR.
+
+
+### 13.11. Исправление production build после удаления AI-прототипа — 20.11.2026
+
+Первый CI PR #64 прошёл unit, browser smoke, Firestore/Storage Rules Emulator и Auth Emulator, но production build завершился ошибкой: Vite `manualChunks` в `vite.config.js` продолжал ссылаться на удалённый `src/services/aiService.js`. Удалена устаревшая запись AI chunk. Код `package.json` и lockfile не менялся; Firebase, авторизация и crypto chunk не затрагивались.
+
+- [x] Установлена точная причина build failure по Actions log.
+- [x] Удалена ссылка на отсутствующий AI entry из Vite manualChunks.
+- [ ] Повторить полный CI; PR #64 остаётся draft до зелёного результата.
