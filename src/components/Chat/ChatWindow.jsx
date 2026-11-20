@@ -1036,8 +1036,6 @@ const s = {
     emptyChat: { textAlign:'center', padding:'3rem', color:'var(--text-tertiary)' },
     dateDivider: { textAlign:'center', padding:'0.8rem 0' },
     dateText: { background:'rgba(255,255,255,0.06)', color:'var(--text-tertiary)', padding:'3px 14px', borderRadius:'10px', fontSize:'0.7rem', fontWeight:500 },
-    aiMenu: { position:'absolute', bottom:'70px', right:'16px', background:'var(--bg-secondary)', border:'1px solid var(--border-default)', borderRadius:'14px', padding:'8px', zIndex:50, minWidth:'180px' },
-    aiItem: { display:'block', width:'100%', padding:'10px 14px', background:'transparent', border:'none', borderRadius:'10px', color:'var(--text-primary)', cursor:'pointer', textAlign:'left', fontSize:'0.85rem' },
     micOverlay: { position:'fixed', inset:0, background:'rgba(0,0,0,0.7)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:9999 },
     micPrompt: { background:'var(--bg-secondary)', borderRadius:'20px', padding:'2rem', maxWidth:'380px', textAlign:'center' },
     micAllowBtn: { width:'100%', padding:'0.85rem', background:'var(--gradient-brand)', border:'none', borderRadius:'12px', color:'#fff', fontWeight:600, cursor:'pointer' },
