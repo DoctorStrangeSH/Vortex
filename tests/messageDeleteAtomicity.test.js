@@ -20,12 +20,15 @@ test('message deletion and preview reconciliation share one transaction', () => 
     assert.doesNotMatch(implementation, /await deleteDoc\(/);
 });
 
-test('sending a message writes its stable ID alongside the chat preview', () => {
+test('sending a message atomically creates its stable ID and updates the chat preview', () => {
     const start = source.indexOf('async sendMessage(');
     const end = source.indexOf('async messageExists(', start);
     const implementation = source.slice(start, end);
+    assert.match(implementation, /return runTransaction\(db, async transaction =>/);
+    assert.match(implementation, /const existingMessage = await transaction\.get\(messageRef\)/);
+    assert.match(implementation, /if \(existingMessage\.exists\(\)\)/);
+    assert.match(implementation, /existingMessage\.data\(\)\.senderId !== user\.uid/);
+    assert.match(implementation, /transaction\.set\(messageRef, messageData\)/);
     assert.match(implementation, /lastMessageId: messageRef\.id/);
-    assert.match(implementation, /batch\.set\(messageRef, messageData\)/);
-    assert.match(implementation, /batch\.update\(doc\(db, 'chats', chatId\)/);
-    assert.match(implementation, /await batch\.commit\(\)/);
+    assert.match(implementation, /transaction\.update\(chatRef,/);
 });

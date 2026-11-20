@@ -5,16 +5,20 @@ import { readFile } from 'node:fs/promises';
 const messageService = await readFile(new URL('../src/services/messageService.js', import.meta.url), 'utf8');
 const offlineService = await readFile(new URL('../src/services/offlineService.js', import.meta.url), 'utf8');
 
-test('offline retries reuse the queued ID and send the message and preview atomically', () => {
+test('offline retries reuse the queued ID and atomically create the message and preview once', () => {
     const start = messageService.indexOf('async sendMessage(');
     const end = messageService.indexOf('async messageExists(', start);
     const implementation = messageService.slice(start, end);
 
     assert.match(implementation, /messageId\s*\?\s*doc\(db,\s*'chats',\s*chatId,\s*'messages',\s*messageId\)/);
-    assert.match(implementation, /if\s*\(messageId\s*&&\s*\(await getDocFromServer\(messageRef\)\)\.exists\(\)\)\s*return/);
-    assert.match(implementation, /batch\.set\(messageRef,\s*messageData\)/);
+    assert.match(implementation, /return runTransaction\(db,\s*async transaction =>/);
+    assert.match(implementation, /const existingMessage = await transaction\.get\(messageRef\)/);
+    assert.match(implementation, /if\s*\(existingMessage\.exists\(\)\)\s*\{/);
+    assert.match(implementation, /existingMessage\.data\(\)\.senderId !== user\.uid/);
+    assert.match(implementation, /return false;/);
+    assert.match(implementation, /transaction\.set\(messageRef,\s*messageData\)/);
     assert.match(implementation, /lastMessageId:\s*messageRef\.id/);
-    assert.match(implementation, /await batch\.commit\(\)/);
+    assert.match(implementation, /transaction\.update\(chatRef,/);
     assert.doesNotMatch(implementation, /addDoc\(/);
 });
 
