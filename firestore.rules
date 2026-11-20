@@ -222,10 +222,12 @@ service cloud.firestore {
           request.resource.data.senderId == request.auth.uid &&
           request.resource.data.text is string && request.resource.data.text.size() <= 4096 &&
           (!('readBy' in request.resource.data) || request.resource.data.readBy == []) &&
-          !('reactions' in request.resource.data);
+          !('reactions' in request.resource.data) &&
+          !('selfDestruct' in request.resource.data) &&
+          !('destructAt' in request.resource.data);
         allow update: if chatMember(chatId) && validMessage(request.resource.data, chatId) && (
           (resource.data.senderId == request.auth.uid &&
-           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text','isEdited','editedAt','selfDestruct','destructAt'])) ||
+           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text','isEdited','editedAt'])) ||
           (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readBy']) && validReadReceiptChange()) ||
           (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions']) && validReactionChange()));
         allow delete: if chatMember(chatId) && resource.data.senderId == request.auth.uid;

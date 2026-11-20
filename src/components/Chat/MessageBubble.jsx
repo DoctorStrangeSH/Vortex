@@ -137,7 +137,6 @@ export function MessageBubble({ msg, own, other, avatarColor, isMobile, isPinned
                     )}
                     {(!msg.type || msg.type === 'text') && (
                         <div class="vortex-message-text" style={s.text}>
-                            {msg.selfDestruct && <span style={s.destruct}>⏱️ {msg.selfDestruct}</span>}
                             {msg.text}
                         </div>
                     )}
@@ -217,6 +216,5 @@ const s = {
     fileLink: { color: 'inherit', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' },
     edited: { fontSize: '0.7rem', opacity: 0.7, fontStyle: 'italic' },
     editedSmall: { fontSize: '0.6rem', opacity: 0.5, fontStyle: 'italic', marginRight: '4px' },
-    destruct: { fontSize: '0.7rem', opacity: 0.7, marginRight: '4px' },
     meta: { display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '4px', marginTop: '6px', fontSize: '0.66rem', opacity: 0.75 }
 };
