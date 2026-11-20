@@ -134,6 +134,56 @@ try {
         deliveryAttempts: noLocksState.deliveryAttempts,
         messageId: noLocksState.remoteMessages[0].id
     });
+
+    // Close the tab while a message is still queued, then reopen the same
+    // origin in the same browser profile. The constructor must restore it.
+    const restartContext = await browser.newContext();
+    const beforeClose = await restartContext.newPage();
+    beforeClose.on('pageerror', error => errors.push(`restart before close: ${error.message}`));
+    await beforeClose.goto(`${origin}/tests/browser/offline-queue.html`);
+    await beforeClose.waitForFunction(() => Boolean(window.offlineQueueQA));
+    await restartContext.setOffline(true);
+    await beforeClose.waitForFunction(() => window.offlineQueueQA.snapshot().isOnline === false);
+    await beforeClose.evaluate(() => window.offlineQueueQA.setActiveUser('restart-user'));
+    await beforeClose.evaluate(() => window.offlineQueueQA.enqueue('restart-user', 'Восстановлено после повторного открытия вкладки'));
+    const queuedBeforeClose = await beforeClose.evaluate(() => window.offlineQueueQA.snapshot());
+    assert.equal(queuedBeforeClose.queue.length, 1);
+    const durableMessageId = queuedBeforeClose.queue[0].id;
+    await beforeClose.close();
+
+    const afterReopen = await restartContext.newPage();
+    afterReopen.on('pageerror', error => errors.push(`restart after reopen: ${error.message}`));
+    await afterReopen.goto(`${origin}/tests/browser/offline-queue.html`);
+    await afterReopen.waitForFunction(() => Boolean(window.offlineQueueQA));
+    await afterReopen.waitForFunction(() => {
+        const state = window.offlineQueueQA.snapshot();
+        return state.queue.length === 1 && state.queue[0].id;
+    });
+    const restored = await afterReopen.evaluate(() => window.offlineQueueQA.snapshot());
+    assert.equal(restored.queue[0].id, durableMessageId, 'reopened tab must restore the original durable queue ID');
+    assert.equal(restored.queue[0].user.uid, 'restart-user', 'reopened tab must preserve original account ownership');
+
+    await afterReopen.evaluate(() => window.offlineQueueQA.setActiveUser('restart-user'));
+    await restartContext.setOffline(false);
+    await afterReopen.waitForFunction(() => {
+        const state = window.offlineQueueQA.snapshot();
+        return state.queue.length === 0 && state.remoteMessages.length === 1;
+    });
+    const afterRestartDelivery = await afterReopen.evaluate(() => window.offlineQueueQA.snapshot());
+    assert.equal(afterRestartDelivery.remoteMessages[0].id, durableMessageId);
+    assert.equal(afterRestartDelivery.remoteMessages[0].uid, 'restart-user');
+    assert.equal(afterRestartDelivery.remoteMessages[0].text, 'Восстановлено после повторного открытия вкладки');
+    await afterReopen.evaluate(() => window.dispatchEvent(new Event('focus')));
+    await delay(120);
+    assert.equal((await afterReopen.evaluate(() => window.offlineQueueQA.snapshot())).remoteMessages.length, 1,
+        'reopened tab retry must not duplicate a confirmed delivery');
+    await restartContext.close();
+    assert.deepEqual(errors, [], 'all offline queue browser scenarios should have no uncaught page errors');
+
+    console.log('Offline queue tab close/reopen recovery passed:', {
+        restoredMessageId: durableMessageId,
+        deliveredCount: afterRestartDelivery.remoteMessages.length
+    });
 } finally {
     await browser?.close();
     server.kill('SIGTERM');
