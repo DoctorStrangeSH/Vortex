@@ -493,6 +493,42 @@ test('group membership is managed by admins, while ordinary members can only lea
     await assertFails(updateDoc(doc(alice, 'chats', groupId), { participants: ['alice', 'charlie', 'eve', 'mallory'] }));
 });
 
+test('non-owner group administrators can leave when another administrator remains', { skip: !available }, async () => {
+    const alice = environment.authenticatedContext('alice').firestore();
+    const bob = environment.authenticatedContext('bob').firestore();
+    const charlie = environment.authenticatedContext('charlie').firestore();
+    const groupId = 'group-admin-self-leave';
+    const group = doc(alice, 'chats', groupId);
+    await assertSucceeds(setDoc(group, {
+        type: 'group', createdBy: 'alice',
+        participants: ['alice', 'bob', 'charlie'], admins: ['alice']
+    }));
+    await assertSucceeds(updateDoc(group, { admins: arrayUnion('bob') }));
+
+    // An administrator may leave, but both membership and role are removed atomically.
+    await assertSucceeds(updateDoc(doc(bob, 'chats', groupId), {
+        participants: arrayRemove('bob'),
+        admins: arrayRemove('bob')
+    }));
+    const afterAdminLeave = (await assertSucceeds(getDoc(group))).data();
+    assert.deepEqual(afterAdminLeave.participants, ['alice', 'charlie']);
+    assert.deepEqual(afterAdminLeave.admins, ['alice']);
+
+    // An ordinary participant can still leave without changing the admin list.
+    await assertSucceeds(updateDoc(doc(charlie, 'chats', groupId), {
+        participants: arrayRemove('charlie')
+    }));
+    const afterMemberLeave = (await assertSucceeds(getDoc(group))).data();
+    assert.deepEqual(afterMemberLeave.participants, ['alice']);
+    assert.deepEqual(afterMemberLeave.admins, ['alice']);
+
+    // The creator cannot leave and strand the group without its owner.
+    await assertFails(updateDoc(group, {
+        participants: arrayRemove('alice'),
+        admins: arrayRemove('alice')
+    }));
+});
+
 test('only group creator can manage admins and owner is never removed', { skip: !available }, async () => {
     const alice = environment.authenticatedContext('alice').firestore();
     const bob = environment.authenticatedContext('bob').firestore();
