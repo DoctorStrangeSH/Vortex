@@ -140,8 +140,11 @@ test('a corrupted stored queue cannot prevent the messenger from starting', asyn
     try {
         const recovered = new OfflineService({ storage, network: { onLine: false } });
         assert.deepEqual(recovered.getQueue(), []);
+        assert.equal(storage.getItem('offlineQueue.corruptBackup'), '{broken-json');
+        assert.equal(storage.getItem('offlineQueue'), '[]');
         await recovered.addToQueue({ type: 'sendMessage', text: 'Новое сообщение' });
         assert.equal(JSON.parse(storage.getItem('offlineQueue')).length, 1);
+        assert.equal(storage.getItem('offlineQueue.corruptBackup'), '{broken-json');
     } finally { console.warn = originalWarn; }
 });
 
@@ -521,4 +524,27 @@ test('returning to the app recovers a missed online event without duplicating th
     windowListeners.get('focus')();
     await service.processingPromise;
     assert.deepEqual(delivered, ['stable-offline-id']);
+});
+
+test('a corrupt queue is not overwritten when its backup cannot be persisted', async () => {
+    const values = new Map([['offlineQueue', '{important-corrupt-payload']]);
+    const storage = {
+        getItem: key => values.get(key) ?? null,
+        setItem: (key, value) => {
+            if (key === 'offlineQueue.corruptBackup') throw new Error('QuotaExceededError');
+            values.set(key, value);
+        }
+    };
+    const originalWarn = console.warn;
+    console.warn = () => {};
+    try {
+        const service = new OfflineService({ storage, network: { onLine: false } });
+        assert.equal(storage.getItem('offlineQueue'), '{important-corrupt-payload');
+        await assert.rejects(
+            service.addToQueue({ type: 'sendMessage', text: 'Не теряй очередь' }),
+            /повреждённую офлайн-очередь/
+        );
+        assert.equal(storage.getItem('offlineQueue'), '{important-corrupt-payload');
+        assert.equal(storage.getItem('offlineQueue.corruptBackup'), null);
+    } finally { console.warn = originalWarn; }
 });
