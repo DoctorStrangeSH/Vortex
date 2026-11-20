@@ -17,6 +17,7 @@ const app = initializeApp({
     appId: 'demo-vortex-auth-tests'
 }, 'auth-emulator-integration');
 const auth = getAuth(app);
+const available = !!process.env.FIREBASE_AUTH_EMULATOR_HOST;
 connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
 
 after(async () => {
@@ -24,7 +25,7 @@ after(async () => {
     await deleteApp(app);
 });
 
-test('two independent users can register, sign in, and sign out through Auth Emulator', async () => {
+test('two independent users can register, sign in, and sign out through Auth Emulator', { skip: !available }, async () => {
     const suffix = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
     const aliceEmail = `alice-${suffix}@example.test`;
     const bobEmail = `bob-${suffix}@example.test`;
@@ -48,7 +49,7 @@ test('two independent users can register, sign in, and sign out through Auth Emu
     await signOut(auth);
 });
 
-test('password recovery request is accepted by Auth Emulator', async () => {
+test('password recovery request is accepted by Auth Emulator', { skip: !available }, async () => {
     const email = `reset-${Date.now()}@example.test`;
     const credential = await createUserWithEmailAndPassword(auth, email, 'Vortex-test-password-123!');
     await signOut(auth);
