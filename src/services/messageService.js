@@ -1,4 +1,5 @@
 import { db } from './firebase';
+import { attachmentCleanupQueue } from './attachmentCleanup.js';
 import {
     collection,
     query,
@@ -153,7 +154,7 @@ class MessageService {
             const outcome = await runTransaction(db, async transaction => {
                 const chatSnapshot = await transaction.get(chatRef);
                 const messageSnapshot = await transaction.get(messageRef);
-                if (!messageSnapshot.exists()) return 'deleted';
+                if (!messageSnapshot.exists()) return { status: 'deleted', storagePath: null };
 
                 const chatData = chatSnapshot.data() || {};
                 const messageData = messageSnapshot.data();
@@ -186,10 +187,22 @@ class MessageService {
                     }
                 }
                 if (Object.keys(updates).length > 0) transaction.update(chatRef, updates);
-                return 'deleted';
+                return { status: 'deleted', storagePath: messageData.storagePath || null };
             });
 
-            if (outcome === 'deleted') return;
+            if (outcome.status === 'deleted') {
+                if (outcome.storagePath) {
+                    try {
+                        // Firestore deletion is authoritative. Persist the path first,
+                        // then attempt Storage cleanup; failed deletes remain retryable.
+                        attachmentCleanupQueue.enqueue(outcome.storagePath);
+                        await attachmentCleanupQueue.process();
+                    } catch (cleanupError) {
+                        console.warn('Вложение удалено из сообщения, очистка файла ожидает повтора', cleanupError);
+                    }
+                }
+                return;
+            }
         }
 
         throw new Error('История чата изменилась одновременно. Повторите удаление.');
