@@ -455,6 +455,8 @@ test('new group cannot grant extra admin privileges or spoof the creator', { ski
     await assertFails(setDoc(doc(groups), { ...valid, createdBy: 'eve', admins: ['eve'] }));
     await assertFails(setDoc(doc(groups), { ...valid, name: 'A'.repeat(101) }));
     await assertFails(setDoc(doc(groups), { ...valid, participants: ['bob'] }));
+    await assertFails(setDoc(doc(groups), { ...valid, participants: ['alice', 'bob', 'bob'] }));
+    await assertFails(setDoc(doc(groups), { ...valid, admins: ['alice', 'alice'] }));
 });
 
 test('message schema rejects unknown fields and oversized attachment metadata', { skip: !available }, async () => {
@@ -479,6 +481,8 @@ test('group membership is managed by admins, while ordinary members can only lea
     await assertSucceeds(setDoc(doc(alice, 'chats', groupId), {
         type: 'group', createdBy: 'alice', participants: ['alice', 'bob'], admins: ['alice']
     }));
+    await assertFails(updateDoc(doc(alice, 'chats', groupId), { participants: ['alice', 'bob', 'bob'] }));
+    await assertFails(updateDoc(doc(alice, 'chats', groupId), { admins: ['alice', 'alice'] }));
     await assertFails(updateDoc(doc(bob, 'chats', groupId), { participants: arrayUnion('eve') }));
     await assertFails(updateDoc(doc(bob, 'chats', groupId), { participants: arrayRemove('alice') }));
     await assertFails(updateDoc(doc(alice, 'chats', groupId), { participants: arrayRemove('alice') }));
