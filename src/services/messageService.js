@@ -9,10 +9,8 @@ import {
     doc,
     updateDoc,
     getDocs,
-    getDoc,
     getDocFromServer,
     arrayUnion,
-    writeBatch,
     startAfter,
     runTransaction
 } from 'firebase/firestore';
