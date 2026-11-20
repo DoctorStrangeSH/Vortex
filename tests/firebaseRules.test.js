@@ -222,6 +222,18 @@ test('new attachments require protected storage references or embedded data, nev
     await assertSucceeds(create('attachment-data-valid', {
         type: 'image', fileData: 'data:image/png;base64,YQ==', fileSize: 1
     }));
+    await assertSucceeds(create('attachment-plain-file-valid', {
+        type: 'file', fileData: 'data:application/pdf;base64,YQ==', fileSize: 1
+    }));
+    await assertFails(create('attachment-html-denied', {
+        type: 'file', fileData: 'data:text/html;base64,PGh0bWw+', fileSize: 8
+    }));
+    await assertFails(create('attachment-svg-denied', {
+        type: 'image', fileData: 'data:image/svg+xml;base64,PHN2Zz4=', fileSize: 8
+    }));
+    await assertFails(create('attachment-uppercase-html-denied', {
+        type: 'file', fileData: 'data:TEXT/HTML;charset=utf-8;base64,PGh0bWw+', fileSize: 8
+    }));
     await assertFails(create('attachment-url-denied', {
         type: 'image', fileData: 'https://firebasestorage.googleapis.com/token', fileSize: 120
     }));
