@@ -583,3 +583,37 @@ PR #32 остаётся открытым, конфликтующим с теку
 - Для PR #62 на SHA `50abd165d7c44d9602fdddc57b999d4d555b67c7` Quality checks завершились успешно: unit tests 237/237, Browser smoke, Firestore/Storage Emulator 42/42, Auth Emulator 2/2 и production build.
 
 Это подтверждает реализацию и тесты в Emulator, но не заменяет ручную проверку с двумя реальными аккаунтами и не подтверждает production Firestore Rules. Остальные release gates раздела 13.5 остаются без изменений.
+
+
+### 13.10. Удаление недоступных прототипов из клиентского UI — 20.11.2026
+
+По требованиям разделов 6 и 12 из первой версии удалены элементы интерфейса, которые обещали функции, прямо исключённые из scope:
+
+- Убрана кнопка AI-помощника и обработчики умного ответа/перевода/саммари из composer/chat window. AI-помощник остаётся в POST-1.0 backlog.
+- Удалены неиспользуемый `AISettings.jsx` (он ссылался на несуществующие `geminiKey`/`setGeminiKey` и `deepseekKey` методы/поля), а также ставший неиспользуемым `aiService.js`.
+- Удалён недоступный сервис `selfDestructService.js` и его мёртвый handler/import в ChatWindow. Самоуничтожающиеся сообщения явно исключены из 1.0; прежний локальный `setTimeout` не обеспечивал серверное удаление и мог создавать ложное ожидание.
+- `ContextMenu` фактически не поддерживал `onSelfDestruct`, поэтому удаление handler не убирает реально доступный пункт меню.
+- Оставлены fail-closed заглушки E2EE/secret chats/push и их тесты: они прямо требуются политикой POST-1.0 в разделе 6.
+
+Проверки до merge: обязательный CI для отдельной ветки, включая unit, browser smoke, Firestore/Storage Rules Emulator, Auth Emulator и production build. Не затронуты правила Firebase, данные пользователей, auth, отправка сообщений и `main`.
+
+**Статус:** изменения внесены в отдельную ветку; считать уборку завершённой только после успешного CI и review PR.
+
+
+### 13.11. Исправление production build после удаления AI-прототипа — 20.11.2026
+
+Первый CI PR #64 прошёл unit, browser smoke, Firestore/Storage Rules Emulator и Auth Emulator, но production build завершился ошибкой: Vite `manualChunks` в `vite.config.js` продолжал ссылаться на удалённый `src/services/aiService.js`. Удалена устаревшая запись AI chunk. Код `package.json` и lockfile не менялся; Firebase, авторизация и crypto chunk не затрагивались.
+
+- [x] Установлена точная причина build failure по Actions log.
+- [x] Удалена ссылка на отсутствующий AI entry из Vite manualChunks.
+- [x] Повторить полный CI; PR #64: Quality checks #574 завершился успешно (unit, browser smoke, Firestore/Storage Rules Emulator, Auth Emulator, production build).
+
+
+### 13.12. Удаление неиспользуемого VideoCircle prototype — 20.11.2026
+
+`VideoCircle.jsx` не импортируется ни в `App`, `ChatScreen`, `ChatWindow` или `Sidebar`; поиск по коду не выявил call-site. Компонент рендерит отдельный круглый video/canvas preview, относится к прототипу видеозвонка и не используется для воспроизведения видео-вложений. Видеозвонки явно исключены из Vortex 1.0 (раздел 4); обычные видео-вложения продолжают воспроизводиться через `MessageBubble` и нативный video player. Поэтому удаляется только мёртвый UI-компонент, не `videoService` и не обработка видео-вложений.
+
+- [x] Проверить отсутствие ссылок из основных экранов/контейнеров.
+- [x] Подтвердить, что обычное воспроизведение видео-вложений реализовано отдельно.
+- [x] Quality checks #574 прошёл до удаления этого компонента; повторный полный CI обязателен после изменения.
+- [ ] Удалить `VideoCircle.jsx` после повторной проверки CI.

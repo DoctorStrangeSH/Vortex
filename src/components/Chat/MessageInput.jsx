@@ -1,7 +1,7 @@
 import { useRef } from 'preact/hooks';
 import { Icon } from '../UI/Icon';
 
-export function MessageInput({ text, onTextChange, onSend, sending = false, onTyping, isRecording, voiceStarting = false, recordSeconds = 0, onStartVoice, onStopVoice, onCancelVoice, onShowAI, onFileSend, uploadingAttachments = false, editingMessage, onCancelEdit }) {
+export function MessageInput({ text, onTextChange, onSend, sending = false, onTyping, isRecording, voiceStarting = false, recordSeconds = 0, onStartVoice, onStopVoice, onCancelVoice, onFileSend, uploadingAttachments = false, editingMessage, onCancelEdit }) {
     const fileInputRef = useRef(null);
 
     const handleInput = (value) => {
@@ -48,7 +48,6 @@ export function MessageInput({ text, onTextChange, onSend, sending = false, onTy
                     class="vortex-composer-input" style={s.input}
                 />
 
-                <button type="button" class="vortex-icon-button" aria-label="Подсказки помощника" title="Подсказки помощника" style={s.btn} onClick={onShowAI}><Icon name="sparkles" /></button>
                 <button type="button" onClick={onSend} disabled={!text.trim() || sending} aria-label={sending ? 'Отправка сообщения' : 'Отправить сообщение'}
                     class="vortex-send-button" style={{ ...s.sendBtn, opacity: text.trim() && !sending ? 1 : 0.4 }}>{sending ? <Icon name="loader" /> : <Icon name="send" />}</button>
             </div>
