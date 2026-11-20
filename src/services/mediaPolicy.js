@@ -25,3 +25,19 @@ export function mediaStoragePath(chatId, userId, mediaId) {
     }
     return `chats/${chatId}/media/${userId}/${mediaId}`;
 }
+
+
+export const MAX_LEGACY_MEDIA_FILE_BYTES = 350_000;
+
+// Legacy Firestore attachments bypass Storage's MIME rules, so reject active
+// web content here as well. Keep unknown/octet-stream documents usable.
+export function validateLegacyMediaFile(file) {
+    if (!file || !Number.isSafeInteger(file.size) || file.size <= 0 || file.size > MAX_LEGACY_MEDIA_FILE_BYTES) {
+        throw new Error('Файл должен быть размером от 1 байта до 350 КБ');
+    }
+    const mimeType = typeof file.type === 'string' ? file.type.toLowerCase().split(';', 1)[0].trim() : '';
+    if (BLOCKED_ACTIVE_CONTENT_MIME.has(mimeType)) {
+        throw new Error('Файлы с активным веб-содержимым нельзя отправлять');
+    }
+    return file;
+}
