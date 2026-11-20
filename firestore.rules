@@ -200,6 +200,7 @@ service cloud.firestore {
       allow list: if member(resource.data);
       allow create: if signedIn() && validChat(request.resource.data) && member(request.resource.data) &&
         request.resource.data.createdBy == request.auth.uid &&
+        request.resource.data.type != 'secret' &&
         (request.resource.data.type != 'group' || request.resource.data.admins == [request.auth.uid]) &&
         (request.resource.data.type != 'private' || validPrivateChatId(chatId, request.resource.data));
       allow update: if validChat(request.resource.data) && (
