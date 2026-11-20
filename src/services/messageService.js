@@ -64,9 +64,11 @@ class MessageService {
         const messageRef = messageId
             ? doc(db, 'chats', chatId, 'messages', messageId)
             : doc(collection(db, 'chats', chatId, 'messages'));
-        // Offline retries reuse the same message ID. If the previous attempt
-        // committed before the connection dropped, it must not send a duplicate.
-        if (messageId && (await getDocFromServer(messageRef)).exists()) return;
+        // A read-before-write check outside the commit can race across tabs:
+        // two retries may both observe a missing ID and overwrite the same message.
+        // The transaction makes the existence check, message creation and preview
+        // update one atomic operation. Firestore retries conflicting transactions;
+        // the losing retry then observes the committed message and becomes a no-op.
         const messageData = {
             senderId: user.uid,
             senderName: resolveMessageSenderName(user),
@@ -91,16 +93,24 @@ class MessageService {
                '📎 Файл')
             : text;
 
-        // Message and preview are committed together, so a failed write cannot
-        // leave the chat preview behind the newest message.
-        const batch = writeBatch(db);
-        batch.set(messageRef, messageData);
-        batch.update(doc(db, 'chats', chatId), {
-            lastMessage: lastMsg,
-            lastMessageTime: serverTimestamp(),
-            lastMessageId: messageRef.id
+        // Message creation and chat preview are atomic and idempotent even when
+        // two tabs retry the same queued ID at nearly the same time.
+        return runTransaction(db, async transaction => {
+            const existingMessage = await transaction.get(messageRef);
+            if (existingMessage.exists()) return false;
+
+            const chatRef = doc(db, 'chats', chatId);
+            const chatSnapshot = await transaction.get(chatRef);
+            if (!chatSnapshot.exists()) throw new Error('Чат не найден');
+
+            transaction.set(messageRef, messageData);
+            transaction.update(chatRef, {
+                lastMessage: lastMsg,
+                lastMessageTime: serverTimestamp(),
+                lastMessageId: messageRef.id
+            });
+            return true;
         });
-        await batch.commit();
     }
 
     async messageExists(chatId, messageId) {
