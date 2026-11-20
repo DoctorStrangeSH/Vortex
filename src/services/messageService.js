@@ -66,7 +66,7 @@ class MessageService {
             : doc(collection(db, 'chats', chatId, 'messages'));
         // Offline retries reuse the same message ID. If the previous attempt
         // committed before the connection dropped, it must not send a duplicate.
-        if (messageId && (await getDoc(messageRef)).exists()) return;
+        if (messageId && (await getDocFromServer(messageRef)).exists()) return;
         const messageData = {
             senderId: user.uid,
             senderName: resolveMessageSenderName(user),
