@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildChannelMembershipUpdate } from '../src/services/channelService.js';
+import { buildChannelMembershipUpdate } from '../src/services/channelMembership.js';
 
 const channel = {
     type: 'channel', ownerId: 'alice',
