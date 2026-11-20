@@ -121,3 +121,7 @@ PR #32 остаётся открытым, конфликтующим с теку
 При следующем входе существующего пользователя миграция теперь проверяет username claim до создания публичной карточки. Если claim отсутствует, владелец может атомарно создать свой claim и public profile; если claim уже принадлежит тому же UID, удаляется только legacy email при совпадающем username. Чужой, несовпадающий, неканонический или повреждённый claim не перезаписывается, а public profile не публикуется. Пропуск этой миграции не блокирует доступ к приватному профилю.
 
 Unit coverage и полный Quality CI #630 прошли на точном HEAD PR #81. Это repository/emulator evidence, не подтверждение состояния реальных legacy-документов. Production Rules и данные не менялись; проверка legacy-конфликтов на отдельном staging-проекте остаётся открытой.
+
+### Registration resume with an existing username claim (PR #83)
+
+The recovery form may reuse an existing username claim only when both its UID and normalized username match the authenticated pending account. Claims owned by another UID, claims whose stored username does not match the requested name, and malformed claims remain unavailable. Ordinary registration without a pending authenticated UID continues to treat every existing claim as taken. Unit coverage and full Quality CI #635 passed on the exact PR head. Real legacy-account recovery remains a staging check; production Rules/data were not changed.
