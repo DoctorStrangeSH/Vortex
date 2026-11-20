@@ -11,7 +11,7 @@ service firebase.storage {
     // cannot be silently turned into broken attachments. This also lets the
     // original owner clean up an orphan after leaving the chat.
     function attachmentMessageMissing(chatId, fileId) {
-      return firestore.get(/databases/(default)/documents/chats/$(chatId)/messages/$(fileId)).data == null;
+      return !firestore.exists(/databases/(default)/documents/chats/$(chatId)/messages/$(fileId));
     }
 
     match /chats/{chatId}/media/{userId}/{fileId} {
