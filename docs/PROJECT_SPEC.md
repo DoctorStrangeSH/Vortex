@@ -859,5 +859,5 @@ PR #32 остаётся открытым, конфликтующим с теку
 - [x] Пройти полный Quality CI #597 на точном HEAD PR #73: unit, browser smoke, Firestore/Storage Rules Emulator, Auth Emulator и production build.
 - [x] Объединить PR #73 squash-коммитом `85c4b95`.
 - [x] Проверить main Quality CI #598 и GitHub Pages #68 после merge; оба workflow завершились успешно.
-- [x] Повторно проверить main Quality CI #599 и GitHub Pages #69 после обновления этого аудита; оба workflow завершились успешно.
+- [x] Повторная проверка main Quality CI #599 и GitHub Pages #69 после предыдущего обновления аудита завершилась успешно.
 - [ ] Выполнить ручную проверку lifecycle в отдельном staging-проекте перед включением Storage uploads.
