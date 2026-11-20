@@ -1,6 +1,7 @@
 import { db } from './firebase';
 import { messageService } from './messageService';
 import { privateChatId } from './privateChatId.js';
+import { findLegacyPrivateChat } from './findLegacyPrivateChat.js';
 import {
     collection,
     addDoc,
@@ -52,12 +53,7 @@ class ChatService {
         );
         const snapshot = await getDocs(existingQuery);
         
-        const existingChat = snapshot.docs.find(doc => {
-            const data = doc.data();
-            return data.participants.includes(otherUser.uid) && 
-                   data.participants.length === 2 &&
-                   (data.type === 'private' || !data.type);
-        });
+        const existingChat = findLegacyPrivateChat(snapshot.docs, currentUser.uid, otherUser.uid);
 
         if (existingChat) return existingChat.id;
 
