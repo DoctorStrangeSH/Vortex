@@ -524,7 +524,7 @@ test('private and secret chats require exactly two distinct participants', { ski
     const alice = environment.authenticatedContext('alice').firestore();
     const chats = collection(alice, 'chats');
     const base = { type: 'private', createdBy: 'alice', participants: ['alice', 'bob'] };
-    await assertSucceeds(setDoc(doc(chats), base));
+    await assertSucceeds(setDoc(doc(alice, 'chats', 'dm_5_alice_3_bob'), base));
     await assertFails(setDoc(doc(chats), { ...base, participants: ['alice'] }));
     await assertFails(setDoc(doc(chats), { ...base, participants: ['alice', 'alice'] }));
     await assertFails(setDoc(doc(chats), { ...base, participants: ['alice', 'bob', 'eve'] }));
