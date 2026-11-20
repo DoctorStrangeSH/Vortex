@@ -775,3 +775,51 @@ test('read receipts are idempotent across sessions of the same participant', { s
     await assertFails(updateDoc(bobMessageTwo, { readBy: arrayUnion('eve') }));
     await assertFails(updateDoc(bobMessageTwo, { readBy: arrayUnion('bob'), text: 'Подмена' }));
 });
+
+
+test('concurrent retries with the same message ID create one message and one matching preview', { skip: !available }, async () => {
+    const aliceTabOne = environment.authenticatedContext('alice', { device: 'one' }).firestore();
+    const aliceTabTwo = environment.authenticatedContext('alice', { device: 'two' }).firestore();
+    const chatId = 'chat-a';
+    const messageId = 'concurrent-idempotent-send';
+    const sendFrom = firestore => runTransaction(firestore, async transaction => {
+        const messageRef = doc(firestore, 'chats', chatId, 'messages', messageId);
+        const existingMessage = await transaction.get(messageRef);
+        if (existingMessage.exists()) return false;
+
+        const chatRef = doc(firestore, 'chats', chatId);
+        const chat = await transaction.get(chatRef);
+        assert.equal(chat.exists(), true);
+
+        transaction.set(messageRef, {
+            senderId: 'alice',
+            senderName: 'Alice',
+            text: 'Одно сообщение без дублей',
+            type: 'text',
+            createdAt: serverTimestamp(),
+            readBy: []
+        });
+        transaction.update(chatRef, {
+            lastMessage: 'Одно сообщение без дублей',
+            lastMessageTime: serverTimestamp(),
+            lastMessageId: messageId
+        });
+        return true;
+    });
+
+    const results = await Promise.all([
+        sendFrom(aliceTabOne),
+        sendFrom(aliceTabTwo)
+    ]);
+    assert.equal(results.filter(Boolean).length, 1);
+
+    const savedMessage = await assertSucceeds(getDoc(doc(aliceTabOne, 'chats', chatId, 'messages', messageId)));
+    const savedChat = await assertSucceeds(getDoc(doc(aliceTabTwo, 'chats', chatId)));
+    assert.equal(savedMessage.exists(), true);
+    assert.equal(savedMessage.data().text, 'Одно сообщение без дублей');
+    assert.equal(savedChat.data().lastMessageId, messageId);
+    assert.equal(savedChat.data().lastMessage, savedMessage.data().text);
+
+    const allMessages = await assertSucceeds(getDocs(collection(aliceTabOne, 'chats', chatId, 'messages')));
+    assert.equal(allMessages.docs.filter(item => item.id === messageId).length, 1);
+});
