@@ -334,6 +334,48 @@ test('storage denies nonmember and wrong-owner uploads (positive path pending cr
     await assertFails(uploadString(ref(eve, 'chats/chat-a/media/eve/photo3'), 'hello', 'raw', { contentType: 'text/plain' }));
 });
 
+test('storage members can read attachments; only the owner can delete after the message is gone', { skip: !available || !process.env.FIREBASE_STORAGE_EMULATOR_HOST }, async () => {
+    const aliceDb = environment.authenticatedContext('alice').firestore();
+    const aliceStorage = environment.authenticatedContext('alice').storage();
+    const bobStorage = environment.authenticatedContext('bob').storage();
+    const eveStorage = environment.authenticatedContext('eve').storage();
+    const chatId = 'storage-cleanup-chat';
+    const messageId = 'storage-cleanup-message';
+    const path = `chats/${chatId}/media/alice/${messageId}`;
+    const payload = 'attachment-content';
+
+    await seedDocument(`chats/${chatId}`, {
+        type: { stringValue: 'group' },
+        createdBy: { stringValue: 'bob' },
+        participants: { arrayValue: { values: [{ stringValue: 'alice' }, { stringValue: 'bob' }] } },
+        admins: { arrayValue: { values: [{ stringValue: 'bob' }] } }
+    });
+    await assertSucceeds(setDoc(doc(aliceDb, `chats/${chatId}/messages/${messageId}`), {
+        senderId: 'alice', text: '', type: 'image', fileData: '', fileSize: payload.length,
+        fileName: 'photo.png', storagePath: path
+    }));
+    await assertSucceeds(uploadString(ref(aliceStorage, path), payload, 'raw', { contentType: 'image/png' }));
+
+    const received = await assertSucceeds(getBytes(ref(bobStorage, path)));
+    assert.deepEqual(Array.from(received), Array.from(Buffer.from(payload)));
+    await assertFails(getBytes(ref(eveStorage, path)));
+
+    // A sender must not break a message by deleting its still-referenced object.
+    await assertFails(deleteObject(ref(aliceStorage, path)));
+
+    await assertSucceeds(deleteDoc(doc(aliceDb, `chats/${chatId}/messages/${messageId}`)));
+    // Simulate the sender leaving before retrying cleanup. Orphan deletion is
+    // owner-scoped and does not require continued chat membership.
+    await seedDocument(`chats/${chatId}`, {
+        type: { stringValue: 'group' },
+        createdBy: { stringValue: 'bob' },
+        participants: { arrayValue: { values: [{ stringValue: 'bob' }] } },
+        admins: { arrayValue: { values: [{ stringValue: 'bob' }] } }
+    });
+    await assertFails(deleteObject(ref(bobStorage, path)));
+    await assertSucceeds(deleteObject(ref(aliceStorage, path)));
+});
+
 test('username and profile are claimed atomically; another user cannot take the name', { skip: !available }, async () => {
     const alice = environment.authenticatedContext('alice').firestore();
     const bob = environment.authenticatedContext('bob').firestore();
