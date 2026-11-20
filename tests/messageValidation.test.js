@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { validateOutgoingMessage, MAX_MESSAGE_LENGTH, MAX_LEGACY_ATTACHMENT_BYTES } from '../src/services/messageValidation.js';
+import { validateOutgoingMessage, MAX_MESSAGE_LENGTH, MAX_LEGACY_ATTACHMENT_BYTES, resolveMessageSenderName } from '../src/services/messageValidation.js';
 
 const valid = { chatId: 'chat-1', user: { uid: 'user-1' }, text: 'Привет!' };
 
@@ -28,4 +28,11 @@ test('accepts a stored file reference and rejects mismatched owner', () => {
     assert.doesNotThrow(() => validateOutgoingMessage({ ...valid, text: '', attachment: stored }));
     assert.throws(() => validateOutgoingMessage({ ...valid, attachment: { ...stored, storagePath: 'chats/chat-1/media/someone-else/media123' } }));
     assert.throws(() => validateOutgoingMessage({ ...valid, attachment: { ...stored, fileData: 'https://example.com/token' } }));
+});
+
+test('message sender label never falls back to private email', () => {
+    assert.equal(resolveMessageSenderName({ displayName: '  Alice  ', username: 'alice', email: 'alice@example.com' }), 'Alice');
+    assert.equal(resolveMessageSenderName({ displayName: '', username: 'alice', email: 'alice@example.com' }), 'alice');
+    assert.equal(resolveMessageSenderName({ displayName: '', email: 'alice@example.com' }), 'Пользователь');
+    assert.equal(resolveMessageSenderName({ email: 'alice@example.com' }).includes('@'), false);
 });
