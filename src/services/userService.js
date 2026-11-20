@@ -70,7 +70,7 @@ class UserService {
                 }
             }
             const plan = planPublicProfileRepair(
-                { uid, ...data },
+                { ...data, uid },
                 claim ? { exists: claim.exists(), data: claim.exists() ? claim.data() : null } : null,
                 publicProfile.exists()
             );
