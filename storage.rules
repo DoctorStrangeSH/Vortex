@@ -6,6 +6,14 @@ service firebase.storage {
         request.auth.uid in firestore.get(/databases/(default)/documents/chats/$(chatId)).data.participants;
     }
 
+    // The Storage object ID is the Firestore message ID. A sender may remove
+    // their object only after its message has been deleted, so live messages
+    // cannot be silently turned into broken attachments. This also lets the
+    // original owner clean up an orphan after leaving the chat.
+    function attachmentMessageMissing(chatId, fileId) {
+      return firestore.get(/databases/(default)/documents/chats/$(chatId)/messages/$(fileId)).data == null;
+    }
+
     match /chats/{chatId}/media/{userId}/{fileId} {
       allow read: if member(chatId);
       allow create: if member(chatId) && request.auth.uid == userId &&
@@ -16,7 +24,7 @@ service firebase.storage {
         !(request.resource.contentType in ['text/html','image/svg+xml','application/javascript','text/javascript','application/x-javascript','application/xhtml+xml','application/xml','text/xml']) &&
         fileId.matches('^[A-Za-z0-9_-]{1,128}$') &&
         userId.matches('^[A-Za-z0-9_-]{1,128}$');
-      allow delete: if member(chatId) && request.auth.uid == userId;
+      allow delete: if request.auth != null && request.auth.uid == userId && attachmentMessageMissing(chatId, fileId);
       allow update: if false;
     }
 
