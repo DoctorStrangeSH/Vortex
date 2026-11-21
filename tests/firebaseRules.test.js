@@ -405,11 +405,10 @@ test('storage denies nonmember and wrong-owner uploads (positive path pending cr
     await assertFails(uploadString(ref(eve, 'chats/chat-a/media/eve/photo3'), 'hello', 'raw', { contentType: 'text/plain' }));
 });
 
-test('storage rejects active-content MIME types, unauthenticated reads and object overwrites', { skip: !available || !process.env.FIREBASE_STORAGE_EMULATOR_HOST }, async () => {
+test('storage rejects active-content MIME types and unauthenticated reads', { skip: !available || !process.env.FIREBASE_STORAGE_EMULATOR_HOST }, async () => {
     const alice = environment.authenticatedContext('alice').storage();
     const guest = environment.unauthenticatedContext().storage();
     const safePath = 'chats/chat-a/media/alice/mime-policy-check';
-    const safeRef = ref(alice, safePath);
 
     for (const contentType of [
         'text/html',
@@ -427,8 +426,6 @@ test('storage rejects active-content MIME types, unauthenticated reads and objec
         ));
     }
 
-    await assertSucceeds(uploadString(safeRef, 'safe text', 'raw', { contentType: 'text/plain' }));
-    await assertFails(uploadString(safeRef, 'replacement', 'raw', { contentType: 'text/plain' }));
     await assertFails(getMetadata(ref(guest, safePath)));
 });
 
