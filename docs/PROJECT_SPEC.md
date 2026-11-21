@@ -363,14 +363,14 @@ Storage выключен до положительного staging-теста up
 
 **Правило статусов:** галочка означает, что требование реализовано и покрыто доступными автоматическими проверками в репозитории. Она не означает production/staging-приёмку. Все ручные и внешние проверки отмечаются отдельными пунктами и остаются открытыми до фактического выполнения.
 
-**Сводка на 21.11.2026 (после PR #89–#94 и Storage policy audit):**
+**Сводка на 21.11.2026 (после PR #89–#97 и Firebase/Storage audits):**
 | Этап | Реализация в репозитории | Внешняя/ручная приёмка |
 | --- | --- | --- |
-| 0. Scope freeze | Зафиксирован; PR #90–#94 объединены; открытых PR нет; новых функций до выпуска 1.0 не добавлять | Инвентаризация исторических refs и безопасная очистка веток не завершены |
+| 0. Scope freeze | Зафиксирован; PR #90–#97 объединены/закрыты; открытых PR нет на момент аудита; новых функций до выпуска 1.0 не добавлять | Инвентаризация исторических refs и безопасная очистка веток не завершены |
 | 1. Безопасность и регистрация | Legacy DM (#91) и sanitization существующих public profile projections (#92) покрыты кодом/Emulator tests; Quality CI #669 зелёный | Production Rules, реальные legacy accounts, staging и rollback не проверены |
 | 2. Личная переписка | Стабильный DM, текст, история, scroll position, offline queue и Chromium restart покрыты кодом/тестами; legacy DM без `type` исправлены PR #91 | Реальная Firebase-доставка двумя staging аккаунтами и ручная матрица не проверены |
 | 3. Группы и каналы | Spark-совместимые membership/admin/channel rules и channel schema Emulator tests в main; UI self-leave исправлен PR #89 | Staging и двухаккаунтная проверка не пройдены; журнал действий отложен |
-| 4. Интерфейс и вложения | Obsidian Iris; Storage Rules и CI покрывают authenticated upload, participant-only reads, wrong-owner/nonmember denial, MIME, anonymous read, overwrite и owner cleanup; PR #94 уточнил документацию и статус тестов | Полная мобильная матрица и реальный Storage staging не пройдены; локальная Node 24/Java 21 emulator discrepancy остаётся отдельной диагностикой |
+| 4. Интерфейс и вложения | Obsidian Iris; Storage Rules и CI покрывают authenticated upload, participant-only reads, wrong-owner/nonmember denial, MIME, anonymous read, overwrite и owner cleanup; PR #94 уточнил документацию, PR #95–#97 закрепили Firebase deploy и release status | Полная мобильная матрица и реальный Storage staging не пройдены; локальная Node 24/Java 21 emulator discrepancy остаётся отдельной диагностикой |
 | 5–6. RC и выпуск | Не начинались | Все release gates открыты |
 
 
@@ -1040,8 +1040,8 @@ Vortex 1.0 завершён, только когда одновременно:
 - PR #90 объединён в main (`bddea465`); Quality CI #657 прошёл полностью: install, unit, browser, Firestore/Storage Rules, auth и production build.
 - Добавлены Emulator-проверки целостности channel documents: owner/admin identity, равенство participants/subscribers, subscriberCount, уникальность и запрет независимой рассинхронизации membership projection.
 - В ходе следующего аудита обнаружено: клиент находит legacy direct chats без `type`, но Firestore update gate требовал `validChat()` с обязательным `type`. Это могло оставить старые чаты доступными только для чтения.
-- PR #91 добавляет узкий compatibility path: только два существующих участника, только preview fields, без изменения participants, participantEmails, ownership и прочих legacy полей. Добавлен Emulator test атомарной отправки сообщения и негативные проверки.
-- PR #91 открыт; Quality CI #660 выполняется. Не объединять до полного зелёного результата.
+- PR #91 добавил узкий compatibility path: только два существующих участника, только preview fields, без изменения participants, participantEmails, ownership и прочих legacy полей. Добавлен Emulator test атомарной отправки сообщения и негативные проверки.
+- PR #91 объединён в main (`0598adad`); Quality CI #663 прошёл полностью на точном PR head. Legacy direct chats без `type` теперь могут безопасно обновлять preview при отправке сообщения.
 - Production Rules/data, Firebase billing, Storage flags и deployments не изменялись.
 ### 13.27. Исправление выхода делегированного администратора и проверка схемы каналов — 21.11.2026
 
@@ -1116,15 +1116,17 @@ Vortex 1.0 завершён, только когда одновременно:
 - [ ] Завершить физическую очистку устаревших branch refs, когда будет доступна безопасная delete-ref операция.
 - [ ] Реальная staging-приёмка и двухаккаунтная матрица остаются обязательными для RC.
 
-### 13.31. Сверка актуального ТЗ после PR #95–#96 — 21.11.2026
+### 13.31. Сверка актуального ТЗ после PR #95–#97 — 21.11.2026
 
 - PR #95 объединён в `main` (`d5d79bf0`): Firebase CLI больше не регистрирует deferred Cloud Functions deployment target и Functions Emulator; исходники `functions/` сохранены как post-1.0 reference. Quality CI #44899570554 полностью прошёл: unit, browser, Firestore/Storage Rules, Auth Emulator и production build.
-- PR #96 объединён в `main` (`fde09ab6`); Quality CI #44900037932 полностью прошёл на точном PR head. Исторические упоминания PR #32 и #90 приведены к виду historical snapshots, актуальная дорожная карта больше не считает их открытыми задачами.
-- Текущий список открытых PR пуст на момент проверки. `main` содержит коммиты PR #95 и #96. GitHub Pages deployment для `fde09ab6` запущен отдельно; проверка его результата ожидается.
-- После PR #95–#96 никаких новых продуктовых функций не добавлено. Firebase Spark, Storage opt-in/disabled, запрет production изменений без staging/backup/rollback и текущий scope 1.0 сохранены.
+- PR #96 объединён в `main` (`fde09ab6`); Quality CI #44900037932 полностью прошёл на точном PR head. Исторические упоминания PR #32 и #90 приведены к виду historical snapshots.
+- PR #97 объединён в `main` (`0d3fd22f`); Quality CI #44900260400 полностью прошёл на точном PR head. В ТЗ записаны результаты PR #95–#96 и оставшиеся внешние release gates.
+- На момент этой записи открытых PR нет. Для `main` commit `fde09ab6` GitHub Pages deployment завершился успешно; deployment для текущего commit `0d3fd22f` и Quality CI #44900403081 ещё выполняются.
+- После PR #95–#97 новых продуктовых функций не добавлено. Firebase Spark, Storage opt-in/disabled, запрет production изменений без staging/backup/rollback и текущий scope 1.0 сохранены.
 
 - [x] Удалить deferred Functions deploy target без изменения Firebase production или billing (PR #95).
 - [x] Сверить исторические PR статусы с текущей main и scope 1.0 (PR #96).
 - [x] Прогнать полный Quality CI на точном PR #96 head.
-- [ ] Подтвердить Pages deployment на текущем main commit.
+- [x] Обновить и объединить запись о release gates (PR #97); полный Quality CI #44900260400 прошёл.
+- [ ] Подтвердить Pages deployment и Quality CI на текущем main commit `0d3fd22f`.
 - [ ] Выполнить внешний Firebase staging и двухаккаунтную ручную матрицу перед RC.
