@@ -363,14 +363,14 @@ Storage выключен до положительного staging-теста up
 
 **Правило статусов:** галочка означает, что требование реализовано и покрыто доступными автоматическими проверками в репозитории. Она не означает production/staging-приёмку. Все ручные и внешние проверки отмечаются отдельными пунктами и остаются открытыми до фактического выполнения.
 
-**Сводка на 21.11.2026 (после PR #89–#97 и Firebase/Storage audits):**
+**Сводка на 21.11.2026 (после PR #99–#103 и Firebase/Storage audits):**
 | Этап | Реализация в репозитории | Внешняя/ручная приёмка |
 | --- | --- | --- |
 | 0. Scope freeze | Зафиксирован; PR #90–#97 объединены/закрыты; открытых PR нет на момент аудита; новых функций до выпуска 1.0 не добавлять | Инвентаризация исторических refs и безопасная очистка веток не завершены |
 | 1. Безопасность и регистрация | Legacy DM (#91) и sanitization существующих public profile projections (#92) покрыты кодом/Emulator tests; Quality CI #669 зелёный | Production Rules, реальные legacy accounts, staging и rollback не проверены |
 | 2. Личная переписка | Стабильный DM, текст, история, scroll position, offline queue и Chromium restart покрыты кодом/тестами; legacy DM без `type` исправлены PR #91 | Реальная Firebase-доставка двумя staging аккаунтами и ручная матрица не проверены |
 | 3. Группы и каналы | Spark-совместимые membership/admin/channel rules и channel schema Emulator tests в main; UI self-leave исправлен PR #89 | Staging и двухаккаунтная проверка не пройдены; журнал действий отложен |
-| 4. Интерфейс и вложения | Obsidian Iris; Storage Rules и CI покрывают authenticated upload, participant-only reads, wrong-owner/nonmember denial, MIME, anonymous read, overwrite и owner cleanup; PR #94 уточнил документацию, PR #95–#97 закрепили Firebase deploy и release status | Полная мобильная матрица и реальный Storage staging не пройдены; локальная Node 24/Java 21 emulator discrepancy остаётся отдельной диагностикой |
+| 4. Интерфейс и вложения | Obsidian Iris; Storage Rules и CI покрывают authenticated upload, participant-only reads, wrong-owner/nonmember denial, MIME, anonymous read, overwrite и owner cleanup; PR #99–#103 добавили keyboard/screen-reader fixes для списка чатов, group dialog, auth tabs, chat menu и message context menu; PR #104 проверяет image viewer focus trap | Полная мобильная матрица, ручная keyboard/screen-reader проверка и реальный Storage staging не пройдены; локальная Node 24/Java 21 emulator discrepancy остаётся отдельной диагностикой |
 | 5–6. RC и выпуск | Не начинались | Все release gates открыты |
 
 
@@ -1129,4 +1129,22 @@ Vortex 1.0 завершён, только когда одновременно:
 - [x] Прогнать полный Quality CI на точном PR #96 head.
 - [x] Обновить и объединить запись о release gates (PR #97); полный Quality CI #44900260400 прошёл.
 - [ ] Подтвердить Pages deployment и Quality CI на текущем main commit `0d3fd22f`.
+- [ ] Выполнить внешний Firebase staging и двухаккаунтную ручную матрицу перед RC.
+
+
+### 13.32. UI accessibility pass и image viewer focus — 21.11.2026
+
+- PR #99 объединён в `main` (`94a2edff`): список чатов использует отдельную нативную кнопку открытия; меню действий больше не вложено в интерактивную строку. Quality CI прошёл полностью.
+- PR #100 объединён в `main` (`c277048`): group members dialog получил focus trap, Escape dismissal, возврат фокуса к opener и тесты общей утилиты.
+- PR #101 объединён в `main` (`b53bc8d`): login/register tabs получили roving tabindex, ArrowLeft/ArrowRight/Home/End и корректную ARIA-связь с tabpanel.
+- PR #102 объединён в `main` (`dbb0b7f`): chat options menu получил начальный фокус, стрелочную навигацию, Home/End, Escape и возврат фокуса к trigger.
+- PR #103 объединён в `main` (`a8fbb731`); Quality CI run #44902405845 полностью прошёл: unit, browser, Firestore/Storage Rules Emulator, Auth Emulator и production build. Message context menu доступно через Context Menu key / Shift+F10, поддерживает Escape и возвращает фокус к сообщению.
+- PR #104 открыт: image viewer использует общий протестированный focus trap и связан с видимым заголовком; полный Quality CI ещё выполняется.
+- Эти изменения улучшают реализацию доступности, но не закрывают UI-05 целиком: ручная проверка screen reader, клавиатуры и мобильной матрицы остаётся обязательной. Не считать её пройденной только по unit/CI.
+- Firebase production, Storage enablement, billing, rules и пользовательские данные не менялись.
+
+- [x] Объединить исправления списка чатов, group dialog, auth tabs, chat menu и message context menu (PR #99–#103).
+- [x] Подтвердить полный Quality CI для PR #99–#103.
+- [ ] Завершить image viewer focus trap после полного CI (PR #104).
+- [ ] Провести ручную keyboard/screen-reader проверку и мобильную матрицу 320–1440 CSS px.
 - [ ] Выполнить внешний Firebase staging и двухаккаунтную ручную матрицу перед RC.
