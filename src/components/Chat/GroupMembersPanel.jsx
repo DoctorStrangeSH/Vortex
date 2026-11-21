@@ -3,6 +3,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 import { chatService } from '../../services/chatService';
 import { userService } from '../../services/userService';
+import { trapDialogTab } from '../../utils/dialogFocus';
 
 export function GroupMembersPanel({ chat, user, onClose, onLeave }) {
     const panelRef = useRef(null);
@@ -29,26 +30,7 @@ export function GroupMembersPanel({ chat, user, onClose, onLeave }) {
                 closeCallbackRef.current?.();
                 return;
             }
-            if (event.key !== 'Tab' || !panelRef.current) return;
-
-            const focusable = [...panelRef.current.querySelectorAll(
-                'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])'
-            )].filter(element => element.getAttribute('aria-hidden') !== 'true');
-            if (!focusable.length) {
-                event.preventDefault();
-                panelRef.current.focus();
-                return;
-            }
-
-            const first = focusable[0];
-            const last = focusable[focusable.length - 1];
-            if (event.shiftKey && (document.activeElement === first || !panelRef.current.contains(document.activeElement))) {
-                event.preventDefault();
-                last.focus();
-            } else if (!event.shiftKey && (document.activeElement === last || !panelRef.current.contains(document.activeElement))) {
-                event.preventDefault();
-                first.focus();
-            }
+            trapDialogTab(event, panelRef.current);
         };
 
         document.addEventListener('keydown', handleDialogKeys);
