@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vortex responsive dialogs fixture</title>
+<link rel="stylesheet" href="/src/styles/global.css">
+<style>
+html,body{margin:0;width:100%;height:100%;background:var(--bg-primary);color:var(--text-primary);font-family:Inter,sans-serif}
+.fixture-overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.55)}
+.fixture-dialog{box-sizing:border-box;width:min(480px,94vw);max-height:min(90dvh,850px);overflow-y:auto;background:var(--bg-secondary);border:1px solid var(--border-default);border-radius:22px;color:var(--text-primary)}
+.fixture-dialog-content{padding:20px;display:grid;gap:12px}
+.fixture-dialog input{width:100%;min-width:0;box-sizing:border-box}
+.fixture-long-content{height:1050px;min-height:1050px;background:linear-gradient(var(--bg-secondary),var(--bg-tertiary))}
+.fixture-group-panel{width:min(520px,100%);max-height:85vh;max-block-size:85dvh;display:flex;flex-direction:column;overflow:hidden;border-radius:20px;background:var(--bg-secondary);border:1px solid var(--border-default)}
+.fixture-group-list{overflow-y:auto;min-height:0;padding:12px}
+.fixture-group-list > div{padding:18px;border-bottom:1px solid var(--border-default)}
+.vortex-info-dialog,.vortex-gallery,.vortex-pinned-dialog{min-width:0}
+.vortex-info-dialog{width:min(460px,100%);max-height:min(740px,90dvh);overflow-y:auto}
+.vortex-gallery{width:min(820px,100%);max-height:min(790px,92dvh);overflow:hidden}
+.vortex-pinned-dialog{width:min(480px,100%);max-height:min(680px,88dvh);overflow:hidden}
+.vortex-pinned-dialog-list{overflow-y:auto;min-height:0}
+@media(max-width:560px){.fixture-overlay{align-items:flex-end;padding:0}.fixture-dialog{width:100%;max-width:100%;max-height:calc(100dvh - 12px);border-radius:22px 22px 0 0}.fixture-group-panel{width:100%;max-height:85dvh}}
+</style>
+</head>
+<body>
+<div class="vortex-info-overlay fixture-overlay" data-dialog="chat-info"><section class="vortex-info-dialog vortex-dialog-surface fixture-dialog"><header class="vortex-info-toolbar"><h2>Информация о переписке</h2><button aria-label="Закрыть информацию">×</button></header><div class="fixture-dialog-content"><p>Очень длинное имя групповой переписки Vortex, которое не должно выталкивать кнопки за край окна.</p><div class="fixture-long-content"></div><input aria-label="Поиск в информации"></div></section></div>
+<div class="vortex-gallery-overlay fixture-overlay" data-dialog="gallery"><section class="vortex-gallery vortex-dialog-surface fixture-dialog"><header class="vortex-gallery-header"><h2>Медиа и файлы переписки</h2><button aria-label="Закрыть галерею">×</button></header><div class="vortex-gallery-tabs">Все · Фото · Видео · Файлы</div><div class="vortex-gallery-grid" style="overflow:auto;min-height:0"><div class="fixture-long-content"></div></div></section></div>
+<div class="vortex-pinned-overlay fixture-overlay" data-dialog="pinned"><section class="vortex-pinned-dialog vortex-dialog-surface fixture-dialog"><header class="vortex-pinned-dialog-header"><h2>Закреплённые сообщения</h2><button aria-label="Закрыть закреплённые">×</button></header><div class="vortex-pinned-dialog-list"><div class="fixture-long-content"></div></div></section></div>
+<div class="vortex-dialog-overlay fixture-overlay" data-dialog="profile"><section class="vortex-profile-modal vortex-dialog-surface fixture-dialog" role="dialog" aria-modal="true"><header class="vortex-profile-header"><h2>Мой профиль</h2><button aria-label="Закрыть профиль">×</button></header><div class="vortex-profile-body fixture-dialog-content"><label>Имя<input aria-label="Имя"></label><label>Описание<input aria-label="Описание"></label><div class="fixture-long-content"></div><button>Сохранить</button></div></section></div>
+<div class="vortex-dialog-overlay fixture-overlay" data-dialog="group"><section class="fixture-group-panel vortex-dialog-surface" role="dialog" aria-modal="true"><header><h2>Участники группы</h2><button aria-label="Закрыть участников">×</button></header><form class="fixture-dialog-content"><input aria-label="Пригласить участника"><button>Пригласить</button></form><div class="fixture-group-list"><div class="fixture-long-content"></div></div></section></div>
+</body></html>
