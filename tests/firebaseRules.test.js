@@ -186,9 +186,9 @@ test('members can still find legacy private chats with non-deterministic IDs', {
     const bob = environment.authenticatedContext('bob').firestore();
     const eve = environment.authenticatedContext('eve').firestore();
     await seedDocument('chats/legacy-private-2024', {
-        type: { stringValue: 'private' },
         participants: { arrayValue: { values: [{ stringValue: 'alice' }, { stringValue: 'bob' }] } },
         participantNames: { arrayValue: { values: [{ stringValue: 'Alice' }, { stringValue: 'Bob' }] } },
+        participantEmails: { arrayValue: { values: [{ stringValue: 'alice@example.test' }, { stringValue: 'bob@example.test' }] } },
         createdBy: { stringValue: 'alice' }
     });
 
@@ -200,6 +200,47 @@ test('members can still find legacy private chats with non-deterministic IDs', {
 
     assert.equal(aliceLegacy.docs.some(item => item.id === 'legacy-private-2024'), true);
     assert.equal(bobLegacy.data().participants.length, 2);
+});
+
+test('legacy private chats remain writable by members without allowing membership or email-field changes', { skip: !available }, async () => {
+    const alice = environment.authenticatedContext('alice').firestore();
+    const bob = environment.authenticatedContext('bob').firestore();
+    const eve = environment.authenticatedContext('eve').firestore();
+    const chat = doc(alice, 'chats', 'legacy-private-send');
+    await seedDocument('chats/legacy-private-send', {
+        participants: { arrayValue: { values: [{ stringValue: 'alice' }, { stringValue: 'bob' }] } },
+        participantEmails: { arrayValue: { values: [{ stringValue: 'alice@example.test' }, { stringValue: 'bob@example.test' }] } },
+        createdBy: { stringValue: 'alice' }
+    });
+
+    const batch = writeBatch(alice);
+    batch.set(doc(alice, 'chats/legacy-private-send/messages/legacy-message-1'), {
+        senderId: 'alice',
+        senderName: 'Alice',
+        text: 'Продолжаем старый диалог',
+        type: 'text',
+        createdAt: serverTimestamp(),
+        readBy: []
+    });
+    batch.update(chat, {
+        lastMessage: 'Продолжаем старый диалог',
+        lastMessageTime: serverTimestamp(),
+        lastMessageId: 'legacy-message-1'
+    });
+    await assertSucceeds(batch.commit());
+
+    await assertSucceeds(getDoc(doc(bob, 'chats/legacy-private-send/messages/legacy-message-1')));
+    await assertFails(getDoc(doc(eve, 'chats/legacy-private-send/messages/legacy-message-1')));
+    await assertFails(updateDoc(chat, {
+        participantEmails: ['alice@example.test', 'eve@example.test']
+    }));
+    await assertFails(updateDoc(chat, {
+        participants: ['alice', 'eve']
+    }));
+    await assertFails(updateDoc(doc(eve, 'chats/legacy-private-send'), {
+        lastMessage: 'Подмена превью',
+        lastMessageTime: serverTimestamp()
+    }));
 });
 
 test('only authenticated participants can create messages in a chat', { skip: !available }, async () => {
