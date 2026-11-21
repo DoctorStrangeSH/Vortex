@@ -1200,3 +1200,19 @@ Vortex 1.0 завершён, только когда одновременно:
 - [x] Подтвердить полный Quality CI для PR #114–#117.
 - [ ] Провести ручную keyboard/screen-reader проверку и мобильную матрицу 320–1440 CSS px.
 - [ ] Выполнить внешний Firebase staging и двухаккаунтную ручную матрицу перед RC.
+
+
+### 13.36. Dialog focus regression coverage — 21.11.2026
+
+- PR #119 объединён в `main` (merge commit `df9bee4f`); Quality CI #44907088796 полностью прошёл: install, unit, browser, Firestore/Storage Rules Emulator, Auth Emulator и production build.
+- PR #119 добавил отдельные regression tests для focusable controls внутри `[hidden]` ancestors и для `aria-hidden="true"` непосредственно на control.
+- PR #120 объединён в `main` (merge commit `ae3633f6`); Quality CI #44907372730 полностью прошёл на точном PR head: install, unit, browser, Firestore/Storage Rules Emulator, Auth Emulator и production build.
+- PR #120 уточнил название aria-hidden test и добавил отдельный regression test для `inert` непосредственно на focusable control.
+- Изменения тестовые; runtime focus-trap implementation, Firebase production, Storage enablement, billing, Security Rules и пользовательские данные не менялись.
+- Автоматические тесты не закрывают ручные release gates: реальная keyboard-only проверка, видимый focus, screen reader, viewport matrix 320–1440 CSS px и отдельный Firebase staging с двумя аккаунтами остаются обязательными.
+
+- [x] Добавить regression coverage для hidden ancestors и aria-hidden controls (PR #119).
+- [x] Добавить отдельную regression coverage для inert controls и уточнить test title (PR #120).
+- [x] Подтвердить полный Quality CI для PR #119–#120.
+- [ ] Провести ручную keyboard/screen-reader проверку и мобильную матрицу 320–1440 CSS px.
+- [ ] Выполнить внешний Firebase staging и двухаккаунтную ручную матрицу перед RC.
