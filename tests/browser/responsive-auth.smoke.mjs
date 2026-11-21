@@ -9,18 +9,21 @@ const origin = `http://127.0.0.1:${port}`;
 const widths = [320, 375, 768, 1024, 1440];
 const server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { stdio: 'pipe' });
 let browser;
+let serverOutput = '';
+server.stdout.on('data', chunk => { serverOutput += chunk.toString(); });
+server.stderr.on('data', chunk => { serverOutput += chunk.toString(); });
 
 try {
     let ready = false;
     for (let attempt = 0; attempt < 60; attempt++) {
         if (server.exitCode !== null) throw new Error('Vite server exited before responsive auth browser test');
         try {
-            const response = await fetch(origin);
+            const response = await fetch(`${origin}/index.html`);
             if (response.ok) { ready = true; break; }
         } catch { /* Wait for Vite startup. */ }
         await delay(250);
     }
-    assert.ok(ready, 'Vite app should start for responsive auth test');
+    assert.ok(ready, `Vite app should start for responsive auth test. Server output: ${serverOutput || '(no output)'}`);
 
     const browserBinary = existsSync('/usr/bin/chromium') ? { executablePath: '/usr/bin/chromium' } : { channel: 'chrome' };
     browser = await chromium.launch({ ...browserBinary, headless: true, args: ['--no-sandbox'] });
