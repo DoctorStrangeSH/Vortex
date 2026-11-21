@@ -222,14 +222,15 @@ export function Sidebar({ user, activeChat, onSelectChat }) {
                     const color = getAvatarColor(name);
                     const active = activeChat?.id === chat.id;
                     return (
-                        <div key={chat.id} role="button" tabIndex={0} aria-label={`Открыть чат ${name}`} aria-current={active ? "true" : undefined} onKeyDown={e => { if (e.target !== e.currentTarget) return; if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openChat(chat); } }} onClick={() => openChat(chat)}
-                            class="vortex-chat-item" style={st.chatItem}>
-                            <div style={{...st.chatAvatar, background: color}}>{name.charAt(0).toUpperCase()}</div>
-                            <div style={st.chatInfo}>
-                                <div class="vortex-chat-name" style={st.chatName}>{pinnedChats.includes(chat.id) ? '📌 ' : ''}{chat.isChannel ? '📢 ' : chat.type === 'group' ? '👥 ' : ''}{name}</div>
-                                <div style={st.chatLast} title={chat.lastMessage || 'Нет сообщений'}>{chat.lastMessage || 'Нет сообщений'}</div>
-                            </div>
-                            <div class="vortex-chat-time" style={st.chatTime}>{formatChatTime(chat.lastMessageTime)}</div>
+                        <div key={chat.id} class={`vortex-chat-item${active ? ' is-active' : ''}`} style={st.chatItem}>
+                            <button type="button" class="vortex-chat-open" aria-label={`Открыть чат ${name}`} aria-current={active ? "true" : undefined} onClick={() => openChat(chat)}>
+                                <span style={{...st.chatAvatar, background: color}}>{name.charAt(0).toUpperCase()}</span>
+                                <span style={st.chatInfo}>
+                                    <span class="vortex-chat-name" style={st.chatName}>{pinnedChats.includes(chat.id) ? '📌 ' : ''}{chat.isChannel ? '📢 ' : chat.type === 'group' ? '👥 ' : ''}{name}</span>
+                                    <span style={st.chatLast} title={chat.lastMessage || 'Нет сообщений'}>{chat.lastMessage || 'Нет сообщений'}</span>
+                                </span>
+                                <span class="vortex-chat-time" style={st.chatTime}>{formatChatTime(chat.lastMessageTime)}</span>
+                            </button>
                             <div style={st.optionsWrapper} ref={chatOptionsId === chat.id ? optionsMenuRef : null}>
                                 <button type="button" class="vortex-chat-more" style={st.optionsButton} aria-label={`Настройки чата ${name}`} aria-haspopup="menu" aria-expanded={chatOptionsId === chat.id} onClick={e => { e.stopPropagation(); setChatOptionsId(prev => prev === chat.id ? null : chat.id); }}>⋮</button>
                                 {chatOptionsId === chat.id && <div style={st.optionsMenu} role="menu" aria-label={`Действия с чатом ${name}`}>
