@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Vortex responsive chat shell fixture</title>
+  <link rel="stylesheet" href="/src/styles/global.css">
+  <style>
+    html, body, #fixture { width:100%; height:100%; margin:0; overflow:hidden; }
+    #fixture { display:flex; min-width:0; }
+    .fixture-sidebar-panel { width:380px; min-width:380px; height:100%; flex:0 0 380px; }
+    .fixture-chat-panel { display:flex; flex:1; min-width:0; height:100%; flex-direction:column; }
+    .vortex-sidebar { display:flex; flex-direction:column; width:100%; height:100%; min-width:0; }
+    .vortex-sidebar-header { display:flex; align-items:center; justify-content:space-between; padding:12px; }
+    .vortex-chat-list { flex:1; min-height:0; overflow:auto; padding:8px; }
+    .vortex-chat-header { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:12px 20px; min-height:74px; }
+    .fixture-chat-heading-group { display:flex; align-items:center; gap:10px; min-width:0; }
+    .fixture-avatar { width:44px; height:44px; flex:0 0 44px; border-radius:14px; }
+    .fixture-name { min-width:0; }
+    .vortex-header-actions { display:flex; align-items:center; gap:4px; }
+    .fixture-action { width:39px; min-width:39px; height:39px; flex:0 0 39px; }
+    .vortex-chat-feed { flex:1; min-height:0; min-width:0; overflow:auto; padding:12px; }
+    .fixture-message { width:max-content; max-width:82%; overflow-wrap:anywhere; padding:10px 14px; margin:10px 0; border-radius:14px; background:var(--bg-tertiary); }
+    .vortex-composer { padding:13px 16px; }
+    .vortex-composer-controls { display:flex; align-items:center; gap:8px; }
+    .fixture-composer-button { width:40px; min-width:40px; height:40px; flex:0 0 40px; }
+    .vortex-composer-input { flex:1; min-width:0; width:100%; height:42px; }
+    .vortex-send-button { width:43px; min-width:43px; height:43px; flex:0 0 43px; }
+    @media (max-width:768px) {
+      #fixture { position:relative; }
+      .fixture-sidebar-panel, .fixture-chat-panel { position:absolute; inset:0; width:100%; height:100%; min-width:0; }
+      .fixture-sidebar-panel { flex:1 1 auto; }
+      .fixture-chat-panel { flex:1 1 auto; }
+    }
+  </style>
+</head>
+<body>
+  <main id="fixture">
+    <aside class="fixture-sidebar-panel">
+      <section class="vortex-sidebar">
+        <header class="vortex-sidebar-header"><strong class="vortex-brand">Vortex</strong><button type="button" aria-label="Меню">☰</button></header>
+        <div style="padding:12px"><input class="vortex-search" aria-label="Поиск чатов" placeholder="Поиск чатов и людей" style="width:100%;min-width:0;padding:12px;border-radius:12px"></div>
+        <div class="vortex-chat-list">
+          <button class="vortex-chat-item" style="display:flex;width:100%;align-items:center;padding:12px;border-radius:12px"><span style="width:42px;height:42px;flex:0 0 42px;border-radius:14px;background:var(--gradient-brand)"></span><span style="min-width:0;flex:1;text-align:left;padding-left:10px"><strong style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Очень длинное название групповой переписки Vortex</strong><small>Последнее сообщение</small></span></button>
+        </div>
+      </section>
+    </aside>
+    <section class="fixture-chat-panel">
+      <header class="vortex-chat-header">
+        <div class="fixture-chat-heading-group"><button class="fixture-back" type="button" aria-label="Назад" style="display:none">‹</button><span class="fixture-avatar" style="background:var(--gradient-brand)"></span><div class="fixture-name"><strong class="vortex-chat-heading">Очень длинное имя собеседника и название переписки</strong><small style="display:block">В сети</small></div></div>
+        <nav class="vortex-header-actions" aria-label="Действия чата">
+          <button class="fixture-action vortex-icon-button" type="button" aria-label="Информация">i</button>
+          <button class="fixture-action vortex-icon-button" type="button" aria-label="Галерея">▧</button>
+          <button class="fixture-action vortex-icon-button" type="button" aria-label="Оформление">◈</button>
+          <button class="fixture-action vortex-icon-button" type="button" aria-label="Статус">◉</button>
+          <button class="fixture-action vortex-icon-button" type="button" aria-label="Экспорт">↓</button>
+        </nav>
+      </header>
+      <div class="vortex-chat-feed">
+        <div class="fixture-message">Проверочное сообщение с длинной строкой без пробелов: abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789</div>
+        <div class="fixture-message" style="margin-left:auto">Сообщение собеседнику</div>
+      </div>
+      <footer class="vortex-composer">
+        <div class="vortex-composer-controls">
+          <button class="fixture-composer-button vortex-icon-button" type="button" aria-label="Прикрепить файл">＋</button>
+          <button class="fixture-composer-button vortex-icon-button" type="button" aria-label="Записать голосовое">◉</button>
+          <input class="vortex-composer-input" aria-label="Текст сообщения" placeholder="Сообщение">
+          <button class="vortex-send-button" type="button" aria-label="Отправить">➤</button>
+        </div>
+      </footer>
+    </section>
+  </main>
+</body>
+</html>

@@ -59,7 +59,7 @@ function AccountChatScreen({ user }) {
                 <div style={{ width: '380px', minWidth: '380px', height: '100%' }}>
                     <Sidebar user={user} activeChat={activeChat} onSelectChat={handleSelectChat} />
                 </div>
-                <div style={{ flex: 1, height: '100%' }}>
+                <div style={{ flex: 1, minWidth: 0, height: '100%' }}>
                     <ChatWindow chat={activeChat} user={user} onBack={handleBack} isMobile={false} />
                 </div>
             </div>
