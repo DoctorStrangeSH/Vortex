@@ -1181,3 +1181,22 @@ Vortex 1.0 завершён, только когда одновременно:
 - [x] Подтвердить полный Quality CI для PR #109–#112.
 - [ ] Провести ручную keyboard/screen-reader проверку и мобильную матрицу 320–1440 CSS px.
 - [ ] Выполнить внешний Firebase staging и двухаккаунтную ручную матрицу перед RC.
+
+
+### 13.35. Reaction picker, context-menu focus transitions и hidden focus targets — 21.11.2026
+
+- PR #113 объединён в `main` (`0bdff5c4`): документация зафиксировала accessibility progress PR #109–#112 и сохранила ручные release gates открытыми.
+- PR #114 объединён в `main` (`8d87737b`); Quality CI #44904791191 полностью прошёл на точном PR head. Reaction Picker получил начальный фокус, ArrowUp/ArrowDown/Home/End, roving tabindex, Escape и возврат фокуса к trigger.
+- PR #115 объединён в `main` (`0f163386`); Quality CI #44905169181 полностью прошёл на точном PR head. Message Context Menu восстанавливает фокус после Escape, Copy, Pin и Delete; Reply/Edit переводят фокус в composer; навигация меню использует один Tab stop.
+- PR #116 объединён в `main` (`1eadd1dc`); Quality CI #44906041289 полностью прошёл на точном PR head. Chat Info не возвращает фокус в старый слой при переходе к Media Gallery, Pinned Messages, Group Members или Theme; целевой слой получает управление фокусом.
+- PR #117 объединён в `main` (`1cb79903`); Quality CI #44906282431 полностью прошёл: unit, browser, Firestore/Storage Rules Emulator, Auth Emulator и production build. Общая dialog focus trap исключает элементы с `hidden` и элементы внутри предков с `hidden`, `inert` или `aria-hidden="true"`; добавлены регрессионные тесты.
+- Все изменения остаются в пределах UI accessibility. Firebase production, Storage enablement, billing, Firestore Rules и пользовательские данные не менялись.
+- CI подтверждает автоматические тесты и сборку, но не закрывает ручную приёмку: screen reader, keyboard-only сценарии, видимый focus и viewport matrix 320–1440 CSS px остаются обязательными release gates. Внешний Firebase staging и двухаккаунтная ручная матрица также остаются открытыми.
+
+- [x] Завершить keyboard navigation и focus restoration для Reaction Picker (PR #114).
+- [x] Завершить focus restoration для Message Context Menu actions (PR #115).
+- [x] Устранить перехват фокуса старым Chat Info слоем при переходе в дочерний dialog (PR #116).
+- [x] Исключить hidden/inert/aria-hidden элементы из dialog focus order и покрыть тестами (PR #117).
+- [x] Подтвердить полный Quality CI для PR #114–#117.
+- [ ] Провести ручную keyboard/screen-reader проверку и мобильную матрицу 320–1440 CSS px.
+- [ ] Выполнить внешний Firebase staging и двухаккаунтную ручную матрицу перед RC.
