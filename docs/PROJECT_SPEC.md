@@ -370,7 +370,7 @@ Storage выключен до положительного staging-теста up
 | 1. Безопасность и регистрация | Legacy DM (#91) и sanitization существующих public profile projections (#92) покрыты кодом/Emulator tests; Quality CI #669 зелёный | Production Rules, реальные legacy accounts, staging и rollback не проверены |
 | 2. Личная переписка | Стабильный DM, текст, история, scroll position, offline queue и Chromium restart покрыты кодом/тестами; legacy DM без `type` исправлены PR #91 | Реальная Firebase-доставка двумя staging аккаунтами и ручная матрица не проверены |
 | 3. Группы и каналы | Spark-совместимые membership/admin/channel rules и channel schema Emulator tests в main; UI self-leave исправлен PR #89 | Staging и двухаккаунтная проверка не пройдены; журнал действий отложен |
-| 4. Интерфейс и вложения | Obsidian Iris; Storage Rules ограничивают путь, размер, MIME, членство, владельца и требуют отсутствия объекта при create; PR #93 добавил regression tests | Полная мобильная матрица и реальный Storage staging не пройдены; cross-service Firestore lookup в локальном эмуляторе ранее возвращал null |
+| 4. Интерфейс и вложения | Obsidian Iris; Storage Rules ограничивают путь, размер, MIME, членство, владельца и требуют отсутствия объекта при create; PR #93 добавил positive/negative upload и overwrite regression tests | Полная мобильная матрица и реальный Storage staging не пройдены; cross-service Firestore lookup в локальном эмуляторе ранее возвращал null |
 | 5–6. RC и выпуск | Не начинались | Все release gates открыты |
 
 
@@ -1079,3 +1079,9 @@ PR #32 остаётся открытым, конфликтующим с теку
 - Storage create rule дополнительно требует `resource == null`, чтобы существующий объект не мог пройти через create-путь при same-path upload. Regression test проверяет разрешённую первичную загрузку и отказ при повторной загрузке по тому же пути.
 - Добавлены проверки запрета active-content MIME (HTML, SVG, JavaScript, XML/XHTML) и анонимного чтения существующего объекта.
 - PR #93 не включает Storage в production и не публикует правила. Положительный upload/read/revocation в staging, cross-service IAM/Firestore lookup, CORS, Firebase Spark ограничения и rollback остаются открытыми release gates.
+
+### Storage Emulator verification clarification (21.11.2026)
+
+- PR #93 / Quality CI #675 passes the positive authenticated participant upload path, participant-only metadata/read checks, nonmember and wrong-owner denial, MIME rejection, anonymous read denial, same-path overwrite denial, and owner-only orphan cleanup.
+- The test title no longer labels the positive path as pending: positive upload is exercised by the adjacent lifecycle test. The separate historical local Node 24/Java 21 emulator mismatch (Storage Rules cross-service Firestore lookup returning null) remains documented as an environment discrepancy; CI runs Node 22 and passes the positive path. Do not treat this as production/staging proof.
+- VITE_USE_FIREBASE_STORAGE remains opt-in and disabled by default until a separate staging project verifies cross-service access, CORS, upload/read/revocation, cleanup and rollback.
