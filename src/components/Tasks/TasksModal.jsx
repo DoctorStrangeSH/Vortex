@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'preact/hooks';
 import { Icon } from '../UI/Icon';
+import { useRef } from 'preact/hooks';
+import { trapDialogTab } from '../../utils/dialogFocus.js';
 
 const storageKey = uid => `vortex-tasks:${uid}`;
 function readTasks(uid) {
@@ -20,6 +22,9 @@ export function TasksModal({ user, onClose }) {
     const [filter, setFilter] = useState('all');
     const [error, setError] = useState('');
     const [storageError, setStorageError] = useState('');
+    const dialogRef = useRef(null);
+    const onCloseRef = useRef(onClose);
+    onCloseRef.current = onClose;
     useEffect(() => {
         setTasks(readTasks(user.uid));
         setTitle('');
@@ -30,10 +35,22 @@ export function TasksModal({ user, onClose }) {
         catch { setStorageError('Браузер не разрешил сохранить задачи. Изменения могут пропасть при перезагрузке.'); }
     }, [tasks, user.uid]);
     useEffect(() => {
-        const onKey = event => { if (event.key === 'Escape') onClose?.(); };
+        const previous = document.activeElement;
+        dialogRef.current?.querySelector('button:not([disabled]), input:not([disabled])')?.focus();
+        const onKey = event => {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                onCloseRef.current?.();
+                return;
+            }
+            trapDialogTab(event, dialogRef.current);
+        };
         document.addEventListener('keydown', onKey);
-        return () => document.removeEventListener('keydown', onKey);
-    }, [onClose]);
+        return () => {
+            document.removeEventListener('keydown', onKey);
+            previous?.focus?.();
+        };
+    }, []);
 
     const addTask = event => {
         event.preventDefault();
@@ -52,7 +69,7 @@ export function TasksModal({ user, onClose }) {
     const visible = useMemo(() => tasks.filter(task => filter === 'all' || (filter === 'done' ? task.done : !task.done)), [tasks,filter]);
     const done = tasks.filter(task => task.done).length;
     return <div class="vortex-dialog-overlay" style={s.overlay} onClick={onClose}>
-        <section class="vortex-dialog-surface vortex-tasks-dialog" role="dialog" aria-modal="true" aria-labelledby="vortex-tasks-title" style={s.modal} onClick={event => event.stopPropagation()}>
+        <section ref={dialogRef} class="vortex-dialog-surface vortex-tasks-dialog" role="dialog" aria-modal="true" aria-labelledby="vortex-tasks-title" tabIndex={-1} style={s.modal} onClick={event => event.stopPropagation()}>
             <header style={s.header}>
                 <div><div style={s.eyebrow}>VORTEX / МОЙ ПЛАН</div><h2 id="vortex-tasks-title" style={s.title}>Задачи</h2><p style={s.description}>Маленькие шаги к большим результатам.</p></div>
                 <button type="button" style={s.close} aria-label="Закрыть задачи" onClick={onClose}><Icon name="close"/></button>
