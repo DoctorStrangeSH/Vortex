@@ -363,14 +363,14 @@ Storage выключен до положительного staging-теста up
 
 **Правило статусов:** галочка означает, что требование реализовано и покрыто доступными автоматическими проверками в репозитории. Она не означает production/staging-приёмку. Все ручные и внешние проверки отмечаются отдельными пунктами и остаются открытыми до фактического выполнения.
 
-**Сводка на 21.11.2026 (после PR #89–#92 и Storage audit):**
+**Сводка на 21.11.2026 (после PR #89–#93 и Storage policy audit):**
 | Этап | Реализация в репозитории | Внешняя/ручная приёмка |
 | --- | --- | --- |
-| 0. Scope freeze | Зафиксирован; PR #90–#92 объединены; открыт PR #93 — дополнительные Storage policy tests | Инвентаризация и безопасное удаление исторических refs не завершены |
+| 0. Scope freeze | Зафиксирован; PR #90–#93 объединены; новых функций до выпуска 1.0 не добавлять | Инвентаризация и безопасное удаление исторических refs не завершены |
 | 1. Безопасность и регистрация | Legacy DM (#91) и sanitization существующих public profile projections (#92) покрыты кодом/Emulator tests; Quality CI #669 зелёный | Production Rules, реальные legacy accounts, staging и rollback не проверены |
 | 2. Личная переписка | Стабильный DM, текст, история, scroll position, offline queue и Chromium restart покрыты кодом/тестами; legacy DM без `type` исправлены PR #91 | Реальная Firebase-доставка двумя staging аккаунтами и ручная матрица не проверены |
 | 3. Группы и каналы | Spark-совместимые membership/admin/channel rules и channel schema Emulator tests в main; UI self-leave исправлен PR #89 | Staging и двухаккаунтная проверка не пройдены; журнал действий отложен |
-| 4. Интерфейс и вложения | Obsidian Iris и базовые UI-сценарии присутствуют | Полная мобильная матрица и реальный Storage staging не пройдены |
+| 4. Интерфейс и вложения | Obsidian Iris; Storage Rules ограничивают путь, размер, MIME, членство, владельца и требуют отсутствия объекта при create; PR #93 добавил regression tests | Полная мобильная матрица и реальный Storage staging не пройдены; cross-service Firestore lookup в локальном эмуляторе ранее возвращал null |
 | 5–6. RC и выпуск | Не начинались | Все release gates открыты |
 
 
@@ -1071,3 +1071,11 @@ PR #32 остаётся открытым, конфликтующим с теку
 - Добавлены Unit и Firestore Emulator tests для санитизации и защиты от чужой записи.
 - Это не миграция всех аккаунтов: cleanup выполняется при следующем входе владельца. Неактивные legacy accounts и конфликтные записи требуют staging-инвентаризации.
 - Production Rules/data не менялись; staging, backup и rollback остаются release gates.
+
+
+## Обновление после PR #93 — Storage policy tests (21.11.2026)
+
+- PR #93 объединён в main (`d8ec5d23`); Quality CI #675 полностью прошёл: npm ci, unit, browser, Firestore/Storage Rules, auth и production build.
+- Storage create rule дополнительно требует `resource == null`, чтобы существующий объект не мог пройти через create-путь при same-path upload. Regression test проверяет разрешённую первичную загрузку и отказ при повторной загрузке по тому же пути.
+- Добавлены проверки запрета active-content MIME (HTML, SVG, JavaScript, XML/XHTML) и анонимного чтения существующего объекта.
+- PR #93 не включает Storage в production и не публикует правила. Положительный upload/read/revocation в staging, cross-service IAM/Firestore lookup, CORS, Firebase Spark ограничения и rollback остаются открытыми release gates.
