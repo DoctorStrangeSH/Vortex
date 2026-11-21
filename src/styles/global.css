@@ -304,15 +304,15 @@ button:disabled { cursor: not-allowed !important; }
 @media (prefers-reduced-motion:reduce) { .vortex-chat-list-loader { animation:none; } }
 .vortex-chat-item { position: relative; border: 1px solid transparent; min-height: 70px; gap: 2px; }
 .vortex-chat-item::before { content: ''; position: absolute; inset: 11px auto 11px 0; width: 3px; border-radius: 4px; background: transparent; transition: background-color .18s ease; }
-.vortex-chat-item[aria-current="true"]::before { background: var(--vortex-primary-light); }
-.vortex-chat-item[aria-current="true"] .vortex-chat-name { color: var(--text-primary); }
+.vortex-chat-item.is-active::before { background: var(--vortex-primary-light); }
+.vortex-chat-item.is-active .vortex-chat-name { color: var(--text-primary); }
+.vortex-chat-open { display:flex; flex:1; align-items:center; align-self:stretch; min-width:0; padding:0; border:0; background:transparent; color:inherit; font:inherit; text-align:left; cursor:pointer; }
 .vortex-chat-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.4; }
 .vortex-chat-time { align-self: flex-start; padding-top: 5px; font-variant-numeric: tabular-nums; }
 .vortex-chat-more { min-width: 34px; min-height: 36px; transition: background-color .18s ease, color .18s ease; }
 .vortex-chat-more:hover, .vortex-chat-more[aria-expanded="true"] { background: var(--bg-active) !important; color: var(--text-primary) !important; }
-.vortex-chat-item:focus-visible { box-shadow: inset 0 0 0 1px var(--focus-ring); }
-.vortex-chat-item:focus-visible { outline-offset: -2px; }
-.vortex-chat-item[aria-current="true"] { background: var(--bg-active) !important; border-color: rgba(165,137,255,.29) !important; }
+.vortex-chat-open:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: -2px; border-radius: 10px; }
+.vortex-chat-item.is-active { background: var(--bg-active) !important; border-color: rgba(165,137,255,.29) !important; }
 .vortex-icon-button { border: 1px solid transparent !important; }
 .vortex-icon-button:hover:not(:disabled) { background: rgba(158,123,255,.13) !important; border-color: rgba(158,123,255,.18) !important; color: var(--text-primary) !important; }
 .vortex-chat-header, .vortex-composer { background: var(--surface-glass) !important; backdrop-filter: blur(24px); }
