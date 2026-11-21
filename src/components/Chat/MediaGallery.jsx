@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo } from 'preact/hooks';
 import { useAttachmentSource } from '../../services/useAttachmentSource.js';
 import { getGalleryMedia, getGalleryAttachments, getAdjacentGalleryMedia, getSelectedGalleryMedia } from '../../services/mediaGallerySelection.js';
 import { Icon } from '../UI/Icon';
+import { trapDialogTab } from '../../utils/dialogFocus.js';
 
 function GalleryMedia({ message, style, preview = false }) {
     const containerRef = useRef(null);
@@ -55,6 +56,7 @@ export function MediaGallery({ messages, onClose }) {
     const closeRef = useRef(null);
     const galleryRef = useRef(null);
     const openerRef = useRef(null);
+    const previewOpenerRef = useRef(null);
     const callbacksRef = useRef({ onClose, selectedId, media });
     callbacksRef.current = { onClose, selectedId, media };
 
@@ -75,15 +77,10 @@ export function MediaGallery({ messages, onClose }) {
                 if (adjacent) setSelectedId(adjacent.id);
                 return;
             }
-            if (event.key !== 'Tab') return;
-            const scope = current.selectedId ? document.querySelector('.vortex-gallery-preview') : galleryRef.current;
-            const buttons = [...(scope?.querySelectorAll('button:not([disabled]), a[href]') || [])];
-            if (!buttons.length) return;
-            if (event.shiftKey && document.activeElement === buttons[0]) {
-                event.preventDefault(); buttons[buttons.length - 1].focus();
-            } else if (!event.shiftKey && document.activeElement === buttons[buttons.length - 1]) {
-                event.preventDefault(); buttons[0].focus();
-            }
+            const scope = current.selectedId
+                ? galleryRef.current?.querySelector('.vortex-gallery-preview')
+                : galleryRef.current;
+            trapDialogTab(event, scope);
         };
         document.addEventListener('keydown', handleKeyDown);
         return () => { document.removeEventListener('keydown', handleKeyDown); openerRef.current?.focus?.(); };
@@ -94,12 +91,13 @@ export function MediaGallery({ messages, onClose }) {
     }, [selectedId, selectedMedia]);
 
     useEffect(() => {
-        if (selectedId) document.querySelector('.vortex-gallery-preview-close')?.focus();
+        if (selectedId) galleryRef.current?.querySelector('.vortex-gallery-preview-close')?.focus();
+        else previewOpenerRef.current?.focus?.();
     }, [selectedId]);
 
     return (
         <div class="vortex-dialog-overlay vortex-gallery-overlay" onClick={onClose}>
-            <div ref={galleryRef} class="vortex-dialog-surface vortex-gallery" role="dialog" aria-modal="true" aria-labelledby="vortex-gallery-title" onClick={e => e.stopPropagation()}>
+            <div ref={galleryRef} class="vortex-dialog-surface vortex-gallery" role="dialog" aria-modal="true" aria-labelledby="vortex-gallery-title" tabIndex={-1} onClick={e => e.stopPropagation()}>
                 <div class="vortex-gallery-header">
                     <div><span class="vortex-gallery-eyebrow">МЕДИАТЕКА</span><h3 id="vortex-gallery-title">Медиа и файлы</h3><p>Вложения из загруженной истории · {getGalleryAttachments(messages).length}</p></div>
                     <button ref={closeRef} type="button" class="vortex-icon-button vortex-gallery-close" aria-label="Закрыть галерею" onClick={onClose}><Icon name="close" /></button>
@@ -116,7 +114,7 @@ export function MediaGallery({ messages, onClose }) {
                         attachments.map(msg => msg.type === 'file' ? (
                             <GalleryFile key={msg.id} message={msg} />
                         ) : (
-                            <button type="button" aria-label={`Открыть ${msg.type === 'video' ? 'видео' : 'изображение'} ${msg.fileName || ''}`} key={msg.id} class="vortex-gallery-item" onClick={() => setSelectedId(msg.id)}>
+                            <button type="button" aria-label={`Открыть ${msg.type === 'video' ? 'видео' : 'изображение'} ${msg.fileName || ''}`} key={msg.id} class="vortex-gallery-item" onClick={event => { previewOpenerRef.current = event.currentTarget; setSelectedId(msg.id); }}>
                                 <GalleryMedia message={msg} style={s.thumb} />
                                 <span class="vortex-gallery-badge">{msg.type === 'video' ? '▶ Видео' : 'Фото'}</span>
                             </button>
@@ -125,7 +123,7 @@ export function MediaGallery({ messages, onClose }) {
                 </div>
                 
                 {selectedMedia && (
-                    <div class="vortex-gallery-preview" role="dialog" aria-modal="true" aria-label="Просмотр медиа" onClick={() => setSelectedId(null)}>
+                    <div class="vortex-gallery-preview" role="dialog" aria-modal="true" aria-label={`Просмотр медиа: ${selectedMedia.fileName || 'вложение'}`} tabIndex={-1} onClick={() => setSelectedId(null)}>
                         <GalleryMedia message={selectedMedia} style={s.previewMedia} preview />
                         <button type="button" class="vortex-gallery-preview-close" aria-label="Закрыть просмотр" onClick={() => setSelectedId(null)}><Icon name="close" /></button>
                         {media.length > 1 && <div class="vortex-gallery-preview-navigation" onClick={event => event.stopPropagation()}>
