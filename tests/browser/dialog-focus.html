@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="ru">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Dialog focus browser fixture</title></head>
+<body>
+  <main id="fixture">
+    <section id="dialog" role="dialog" aria-modal="true" aria-label="Проверка фокуса" tabindex="-1">
+      <button id="first" type="button">Первый</button>
+      <button id="display-none" type="button" style="display:none">Display none</button>
+      <button id="visibility-hidden" type="button" style="visibility:hidden">Visibility hidden</button>
+      <div hidden><button id="hidden-ancestor" type="button">Hidden ancestor</button></div>
+      <div inert><button id="inert-ancestor" type="button">Inert ancestor</button></div>
+      <div aria-hidden="true"><button id="aria-hidden-ancestor" type="button">Aria hidden ancestor</button></div>
+      <button id="last" type="button">Последний</button>
+    </section>
+    <button id="outside" type="button">Вне диалога</button>
+    <section id="empty-dialog" role="dialog" aria-modal="true" aria-label="Пустой диалог" tabindex="-1">
+      <button hidden type="button">Скрытая кнопка</button>
+      <button tabindex="-1" type="button">Не в Tab-порядке</button>
+    </section>
+  </main>
+</body>
+</html>
