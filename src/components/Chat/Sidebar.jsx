@@ -13,6 +13,7 @@ import { Icon } from '../UI/Icon';
 import { ThemeCustomizer } from '../Theme/ThemeCustomizer';
 import { filterChats, orderPinnedChats } from '../../services/chatList.js';
 import { createSearchRequestTracker } from '../../services/searchRequestTracker.js';
+import { getNextMenuItemIndex } from '../../utils/menuNavigation.js';
 
 const readLocalIds = key => {
     try { const saved = JSON.parse(localStorage.getItem(key) || '[]'); return Array.isArray(saved) ? saved.filter(id => typeof id === 'string') : []; }
@@ -78,13 +79,14 @@ export function Sidebar({ user, activeChat, onSelectChat }) {
 
     useEffect(() => {
         if (!chatOptionsId) return;
+        optionsMenuRef.current?.querySelector('[role="menuitem"]')?.focus();
         const handlePointerDown = event => {
             if (!optionsMenuRef.current?.contains(event.target)) setChatOptionsId(null);
         };
         const handleKeyDown = event => {
             if (event.key !== 'Escape') return;
             setChatOptionsId(null);
-            optionsMenuRef.current?.querySelector('button')?.focus();
+            optionsMenuRef.current?.querySelector('.vortex-chat-more')?.focus();
         };
         document.addEventListener('pointerdown', handlePointerDown);
         document.addEventListener('keydown', handleKeyDown);
@@ -233,7 +235,14 @@ export function Sidebar({ user, activeChat, onSelectChat }) {
                             </button>
                             <div style={st.optionsWrapper} ref={chatOptionsId === chat.id ? optionsMenuRef : null}>
                                 <button type="button" class="vortex-chat-more" style={st.optionsButton} aria-label={`Настройки чата ${name}`} aria-haspopup="menu" aria-expanded={chatOptionsId === chat.id} onClick={e => { e.stopPropagation(); setChatOptionsId(prev => prev === chat.id ? null : chat.id); }}>⋮</button>
-                                {chatOptionsId === chat.id && <div style={st.optionsMenu} role="menu" aria-label={`Действия с чатом ${name}`}>
+                                {chatOptionsId === chat.id && <div style={st.optionsMenu} role="menu" aria-label={`Действия с чатом ${name}`} onKeyDown={event => {
+                                    const items = [...event.currentTarget.querySelectorAll('[role="menuitem"]:not([disabled])')];
+                                    const current = items.indexOf(event.target.closest('[role="menuitem"]'));
+                                    const next = getNextMenuItemIndex(event.key, current, items.length);
+                                    if (next < 0) return;
+                                    event.preventDefault();
+                                    items[next]?.focus();
+                                }}>
                                     <button type="button" role="menuitem" style={st.optionItem} onClick={e => { e.stopPropagation(); togglePinned(chat.id); }}>{pinnedChats.includes(chat.id) ? 'Открепить' : '📌 Закрепить'}</button>
                                     <button type="button" role="menuitem" style={st.optionItem} onClick={e => { e.stopPropagation(); toggleHidden(chat.id); }}>Скрыть из списка</button>
                                 </div>}
