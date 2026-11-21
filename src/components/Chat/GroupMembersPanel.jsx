@@ -100,8 +100,7 @@ export function GroupMembersPanel({ chat, user, onClose, onLeave }) {
                 </div>
                 {error && <div role="alert" style={styles.error}>{error}</div>}
                 {!isOwner && <div style={styles.footer}>
-                    {isAdmin ? <div style={styles.hint}>Чтобы выйти, сначала попросите владельца снять ваши права администратора.</div> :
-                        <button type="button" disabled={busy} style={styles.leave} onClick={leave}>Выйти из группы</button>}
+                    <button type="button" disabled={busy} style={styles.leave} onClick={leave}>Выйти из группы</button>
                 </div>}
             </section>
         </div>
