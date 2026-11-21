@@ -120,9 +120,21 @@ export function AuthScreen({ pendingUser = null }) {
                 {mode === 'complete' && <p style={{ marginBottom: '1rem', color: 'var(--text-secondary)' }}>
                     Аккаунт создан, но профиль ещё не сохранён. Проверьте имя и @username и завершите регистрацию.
                 </p>}
-                {mode !== 'complete' && mode !== 'reset' && <div class="vortex-auth-tabs" role="tablist" aria-label="Режим авторизации" style={styles.tabs}>
+                {mode !== 'complete' && mode !== 'reset' && <div class="vortex-auth-tabs" role="tablist" aria-label="Режим авторизации" style={styles.tabs}
+                    onKeyDown={event => {
+                        const keys = ['ArrowLeft', 'ArrowRight', 'Home', 'End'];
+                        if (!keys.includes(event.key)) return;
+                        event.preventDefault();
+                        const tabs = [...event.currentTarget.querySelectorAll('[role="tab"]')];
+                        const current = tabs.indexOf(event.target.closest('[role="tab"]'));
+                        const next = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1
+                            : (current + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+                        setMode(next === 0 ? 'login' : 'register');
+                        setError('');
+                        tabs[next]?.focus();
+                    }}>
                     <button
-                        type="button" role="tab" aria-selected={mode === "login"} onClick={() => { setMode('login'); setError(''); }}
+                        type="button" id="vortex-auth-login-tab" role="tab" aria-controls="vortex-auth-panel" aria-selected={mode === "login"} tabIndex={mode === "login" ? 0 : -1} onClick={() => { setMode('login'); setError(''); }}
                         style={{
                             ...styles.tab,
                             background: mode === 'login' ? 'var(--bg-active)' : 'transparent',
@@ -132,7 +144,7 @@ export function AuthScreen({ pendingUser = null }) {
                         Вход
                     </button>
                     <button
-                        type="button" role="tab" aria-selected={mode === "register"} onClick={() => { setMode('register'); setError(''); }}
+                        type="button" id="vortex-auth-register-tab" role="tab" aria-controls="vortex-auth-panel" aria-selected={mode === "register"} tabIndex={mode === "register" ? 0 : -1} onClick={() => { setMode('register'); setError(''); }}
                         style={{
                             ...styles.tab,
                             background: mode === 'register' ? 'var(--bg-active)' : 'transparent',
@@ -144,7 +156,7 @@ export function AuthScreen({ pendingUser = null }) {
                 </div>}
 
                 {/* Форма */}
-                <form onSubmit={handleSubmit} style={styles.form}>
+                <form id="vortex-auth-panel" role={mode === 'login' || mode === 'register' ? 'tabpanel' : undefined} aria-labelledby={mode === 'login' ? 'vortex-auth-login-tab' : mode === 'register' ? 'vortex-auth-register-tab' : undefined} tabIndex={mode === 'login' || mode === 'register' ? 0 : undefined} onSubmit={handleSubmit} style={styles.form}>
                     {(mode === 'register' || mode === 'complete') && (
                         <>
                             <div style={styles.fieldGroup}>
