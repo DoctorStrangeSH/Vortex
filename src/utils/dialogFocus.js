@@ -1,7 +1,7 @@
 const FOCUSABLE_SELECTOR = 'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])';
 
 function isAvailableFocusTarget(element) {
-    if (element.hidden || element.closest?.('[hidden], [inert], [aria-hidden="true"]')) return false;
+    if (element.hidden || element.tabIndex === -1 || element.closest?.('[hidden], [inert], [aria-hidden="true"]')) return false;
 
     // Unit-test doubles may not implement layout APIs. Real browser elements do.
     if (typeof element.getClientRects === 'function' && element.getClientRects().length === 0) return false;
