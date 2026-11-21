@@ -62,6 +62,15 @@ export function MessageBubble({ msg, own, other, avatarColor, isMobile, isPinned
                 {/* Пузырёк сообщения */}
                 <div
                     class={own ? "vortex-bubble vortex-bubble-own" : "vortex-bubble vortex-bubble-other"}
+                    role="group"
+                    tabIndex={0}
+                    aria-label={`Сообщение от ${other.name || 'участника'}`}
+                    onKeyDown={event => {
+                        if (event.key !== 'ContextMenu' && !(event.shiftKey && event.key === 'F10')) return;
+                        event.preventDefault();
+                        const rect = event.currentTarget.getBoundingClientRect();
+                        onContextMenu?.({ preventDefault() {}, currentTarget: event.currentTarget, clientX: rect.left + Math.min(rect.width / 2, 100), clientY: rect.top + Math.min(rect.height / 2, 40) }, msg.id, own, msg.text);
+                    }}
                     style={{
                         ...s.bubble,
                         background: own ? 'var(--gradient-brand)' : 'var(--bg-tertiary)',
