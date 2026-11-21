@@ -363,14 +363,14 @@ Storage выключен до положительного staging-теста up
 
 **Правило статусов:** галочка означает, что требование реализовано и покрыто доступными автоматическими проверками в репозитории. Она не означает production/staging-приёмку. Все ручные и внешние проверки отмечаются отдельными пунктами и остаются открытыми до фактического выполнения.
 
-**Сводка на 21.11.2026 (после PR #89–#93 и Storage policy audit):**
+**Сводка на 21.11.2026 (после PR #89–#94 и Storage policy audit):**
 | Этап | Реализация в репозитории | Внешняя/ручная приёмка |
 | --- | --- | --- |
-| 0. Scope freeze | Зафиксирован; PR #90–#93 объединены; новых функций до выпуска 1.0 не добавлять | Инвентаризация и безопасное удаление исторических refs не завершены |
+| 0. Scope freeze | Зафиксирован; PR #90–#94 объединены; открытых PR нет; новых функций до выпуска 1.0 не добавлять | Инвентаризация исторических refs и безопасная очистка веток не завершены |
 | 1. Безопасность и регистрация | Legacy DM (#91) и sanitization существующих public profile projections (#92) покрыты кодом/Emulator tests; Quality CI #669 зелёный | Production Rules, реальные legacy accounts, staging и rollback не проверены |
 | 2. Личная переписка | Стабильный DM, текст, история, scroll position, offline queue и Chromium restart покрыты кодом/тестами; legacy DM без `type` исправлены PR #91 | Реальная Firebase-доставка двумя staging аккаунтами и ручная матрица не проверены |
 | 3. Группы и каналы | Spark-совместимые membership/admin/channel rules и channel schema Emulator tests в main; UI self-leave исправлен PR #89 | Staging и двухаккаунтная проверка не пройдены; журнал действий отложен |
-| 4. Интерфейс и вложения | Obsidian Iris; Storage Rules ограничивают путь, размер, MIME, членство, владельца и требуют отсутствия объекта при create; PR #93 добавил positive/negative upload и overwrite regression tests | Полная мобильная матрица и реальный Storage staging не пройдены; cross-service Firestore lookup в локальном эмуляторе ранее возвращал null |
+| 4. Интерфейс и вложения | Obsidian Iris; Storage Rules и CI покрывают authenticated upload, participant-only reads, wrong-owner/nonmember denial, MIME, anonymous read, overwrite и owner cleanup; PR #94 уточнил документацию и статус тестов | Полная мобильная матрица и реальный Storage staging не пройдены; локальная Node 24/Java 21 emulator discrepancy остаётся отдельной диагностикой |
 | 5–6. RC и выпуск | Не начинались | Все release gates открыты |
 
 
@@ -1085,3 +1085,17 @@ PR #32 остаётся открытым, конфликтующим с теку
 - PR #93 / Quality CI #675 passes the positive authenticated participant upload path, participant-only metadata/read checks, nonmember and wrong-owner denial, MIME rejection, anonymous read denial, same-path overwrite denial, and owner-only orphan cleanup.
 - The test title no longer labels the positive path as pending: positive upload is exercised by the adjacent lifecycle test. The separate historical local Node 24/Java 21 emulator mismatch (Storage Rules cross-service Firestore lookup returning null) remains documented as an environment discrepancy; CI runs Node 22 and passes the positive path. Do not treat this as production/staging proof.
 - VITE_USE_FIREBASE_STORAGE remains opt-in and disabled by default until a separate staging project verifies cross-service access, CORS, upload/read/revocation, cleanup and rollback.
+
+### 13.29. Storage coverage reconciliation и актуальный статус PR — 21.11.2026
+
+- PR #94 объединён в main (`79fbfbc5`); Quality CI #679 прошёл полностью.
+- Исправлено вводящее в заблуждение название отрицательного Storage upload test: успешная authenticated upload уже покрыта соседним lifecycle test. Он также проверяет чтение участником, отказ постороннему, удаление сообщения и owner-only orphan cleanup.
+- Документация разделяет результаты GitHub CI (Node 22, успешные cross-service Storage Emulator tests), историческую локальную диагностическую проблему Node 24/Java 21 и обязательную реальную staging-приёмку. Это разные уровни доказательств.
+- На момент аудита открытых PR нет. В репозитории остаётся большое количество исторических feature/fix/docs/test веток; удаление не выполнять без проверки уникальных commits, ancestry и соответствия main.
+- Storage остаётся выключенным по умолчанию; production Rules, billing, CORS и production data не менялись.
+
+- [x] Закрыть PR #94 после полного CI.
+- [x] Согласовать название теста и документацию с фактическим покрытием.
+- [x] Подтвердить отсутствие открытых PR на момент аудита.
+- [ ] Провести безопасную инвентаризацию исторических веток и определить только доказанно удаляемые refs.
+- [ ] Пройти отдельный Firebase staging и ручную двухаккаунтную матрицу.
