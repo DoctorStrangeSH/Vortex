@@ -53,7 +53,7 @@
 
 Эти изменения улучшают корректность клиентских операций, но **не являются заменой серверных Security Rules**. Проверки CI используют Emulator Suite и не доказывают состояние опубликованных production rules. Production Rules по-прежнему требуют аудита, staging-проверки и подготовленного отката.
 
-PR #32 остаётся открытым, конфликтующим с текущей main и заблокированным зависимостью от callable Cloud Functions; не объединять и не развёртывать без решения по тарифу и staging rollout.
+PR #32 закрыт без merge 21.11.2026: callable Cloud Functions не совместимы с зафиксированным Spark без отдельного решения по тарифу. Текущая main сохраняет прямые групповые операции под ограничительными Firestore Rules и Emulator tests; production/staging rollout не выполнен. Callable-backed membership journal отложен за пределы 1.0.
 
 ## Изменения security pass (repository only)
 
