@@ -1236,3 +1236,21 @@ Vortex 1.0 завершён, только когда одновременно:
 - [ ] Провести проверку с screen reader и видимым focus.
 - [ ] Проверить viewport matrix 320, 375, 768, 1024 и 1440 CSS px.
 - [ ] Выполнить отдельный Firebase staging и двухаккаунтную ручную матрицу перед RC.
+
+
+### 13.38. Responsive auth viewport matrix — 21.11.2026
+
+- PR #127 объединён в `main` (merge commit `298b91b8`).
+- Quality checks run #44914860907 (run 754) завершился `success` на точном PR head `34271887981205b03930a75252ed42aaa41b45ea`.
+- Полный pipeline прошёл: `npm ci`, unit tests (336 total, 0 failures), browser tests, Firestore/Storage Rules Emulator tests, Auth Emulator tests и production build.
+- Новый Chromium responsive auth smoke test проверил реальные UI bounds и видимые controls на 320, 375, 768, 1024 и 1440 CSS px; горизонтального выхода карточки и видимых элементов управления не обнаружено.
+- Подтверждён ожидаемый breakpoint story panel: скрыта при 320/375/768 px, отображается при 1024/1440 px. На каждом разрешении обнаружено 8 видимых controls.
+- Измерения карточки: 296 px при viewport 320; 351 px при 375; 440 px при 768, 1024 и 1440.
+- Тест локальный: внешние HTTPS запросы блокируются; production Firebase и реальные аккаунты не используются.
+- Важно: это автоматическая проверка auth screen, а не всего приложения. Ручная адаптивная приёмка чатов, меню, профиля и диалогов остаётся открытой; screen reader/keyboard-only и staging также не закрыты.
+
+- [x] Добавить Chromium auth viewport matrix для 320/375/768/1024/1440 CSS px (PR #127).
+- [x] Подтвердить полный Quality CI #44914860907.
+- [ ] Провести ручную адаптивную проверку чатов, composer, боковой панели, меню, профиля и dialogs.
+- [ ] Провести ручную keyboard-only и screen-reader приёмку.
+- [ ] Выполнить отдельный Firebase staging и двухаккаунтную ручную матрицу перед RC.
