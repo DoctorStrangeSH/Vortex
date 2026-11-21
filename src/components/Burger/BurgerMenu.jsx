@@ -1,23 +1,46 @@
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { themeService } from '../../services/themeService';
 import { Icon } from '../UI/Icon';
+import { trapDialogTab } from '../../utils/dialogFocus.js';
 
 export function BurgerMenu({ user, onLogout, onProfile, onContacts, onTasks, onTheme }) {
     const [isOpen, setIsOpen] = useState(false);
     const [currentTheme, setCurrentTheme] = useState(themeService.get());
+    const toggleRef = useRef(null);
+    const panelRef = useRef(null);
+    const skipRestoreFocusRef = useRef(false);
     useEffect(() => themeService.onChange(() => setCurrentTheme(themeService.get())), []);
     useEffect(() => {
         if (!isOpen) return;
-        const onKey = e => { if (e.key === 'Escape') setIsOpen(false); };
+        const previous = document.activeElement;
+        panelRef.current?.querySelector('button:not([disabled]), a[href]')?.focus();
+        const onKey = event => {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                setIsOpen(false);
+                return;
+            }
+            trapDialogTab(event, panelRef.current);
+        };
         document.addEventListener('keydown', onKey);
-        return () => document.removeEventListener('keydown', onKey);
+        return () => {
+            document.removeEventListener('keydown', onKey);
+            if (!skipRestoreFocusRef.current && (previous === toggleRef.current || panelRef.current?.contains(previous))) {
+                toggleRef.current?.focus();
+            }
+            skipRestoreFocusRef.current = false;
+        };
     }, [isOpen]);
-    const choose = fn => { setIsOpen(false); fn?.(); };
+    const choose = fn => {
+        skipRestoreFocusRef.current = Boolean(fn);
+        setIsOpen(false);
+        fn?.();
+    };
     const toggleTheme = () => themeService.toggle();
     return <>
-        <button type="button" aria-label="Открыть меню" aria-expanded={isOpen} aria-controls="vortex-main-menu" onClick={() => setIsOpen(true)} style={styles.toggle}><Icon name="menu" size={21}/></button>
+        <button ref={toggleRef} type="button" aria-label="Открыть меню" aria-expanded={isOpen} aria-controls="vortex-main-menu" onClick={() => setIsOpen(true)} style={styles.toggle}><Icon name="menu" size={21}/></button>
         {isOpen && <div onClick={() => setIsOpen(false)} style={styles.scrim} aria-hidden="true" />}
-        <nav id="vortex-main-menu" aria-label="Главное меню" aria-hidden={!isOpen} inert={!isOpen ? true : undefined} style={{...styles.panel,transform:isOpen ? 'translateX(0)' : 'translateX(-105%)'}}>
+        <nav ref={panelRef} id="vortex-main-menu" aria-label="Главное меню" aria-hidden={!isOpen} inert={!isOpen ? true : undefined} style={{...styles.panel,transform:isOpen ? 'translateX(0)' : 'translateX(-105%)'}}>
             <div style={styles.heading}>
                 <div><div style={styles.eyebrow}>VORTEX / МЕНЮ</div><h2 style={styles.headerTitle}>Ваше пространство</h2></div>
                 <button type="button" aria-label="Закрыть меню" onClick={() => setIsOpen(false)} style={styles.close}><Icon name="close"/></button>
