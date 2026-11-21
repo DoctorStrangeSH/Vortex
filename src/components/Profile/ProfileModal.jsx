@@ -3,6 +3,7 @@ import { authService } from '../../services/authService';
 import { userService } from '../../services/userService';
 import { Icon } from '../UI/Icon';
 import { updateProfile as updateFirebaseProfile } from 'firebase/auth';
+import { trapDialogTab } from '../../utils/dialogFocus.js';
 
 export function ProfileModal({ onClose }) {
     const [profile, setProfile] = useState(null);
@@ -13,6 +14,11 @@ export function ProfileModal({ onClose }) {
     const [loading, setLoading] = useState(true);
     const [loadError, setLoadError] = useState(false);
     const closeTimer = useRef(null);
+    const dialogRef = useRef(null);
+    const onCloseRef = useRef(onClose);
+    const savingRef = useRef(saving);
+    onCloseRef.current = onClose;
+    savingRef.current = saving;
 
     useEffect(() => {
         let active = true;
@@ -27,6 +33,24 @@ export function ProfileModal({ onClose }) {
         }).catch(() => { if (active) setLoadError(true); })
             .finally(() => { if (active) setLoading(false); });
         return () => { active = false; if (closeTimer.current) clearTimeout(closeTimer.current); };
+    }, []);
+
+    useEffect(() => {
+        const previous = document.activeElement;
+        dialogRef.current?.querySelector('button:not([disabled]), input:not([disabled]), textarea:not([disabled])')?.focus();
+        const onKey = event => {
+            if (event.key === 'Escape' && !savingRef.current) {
+                event.preventDefault();
+                onCloseRef.current?.();
+                return;
+            }
+            trapDialogTab(event, dialogRef.current);
+        };
+        document.addEventListener('keydown', onKey);
+        return () => {
+            document.removeEventListener('keydown', onKey);
+            previous?.focus?.();
+        };
     }, []);
 
     const handleSave = async () => {
@@ -72,7 +96,7 @@ export function ProfileModal({ onClose }) {
 
     return (
         <div class="vortex-dialog-overlay" style={styles.overlay} onClick={() => { if (!saving) onClose?.(); }}>
-            <div class="vortex-profile-modal vortex-dialog-surface" role="dialog" aria-modal="true" aria-label="Профиль" style={styles.modal} onClick={(e) => e.stopPropagation()}>
+            <div ref={dialogRef} class="vortex-profile-modal vortex-dialog-surface" role="dialog" aria-modal="true" aria-label="Профиль" tabIndex={-1} style={styles.modal} onClick={(e) => e.stopPropagation()}>
                 {/* Заголовок */}
                 <div class="vortex-profile-header" style={styles.header}>
                     <div><div class="vortex-profile-eyebrow">VORTEX · ВАШЕ ПРОСТРАНСТВО</div><h3 style={styles.title}>Мой профиль</h3></div>
