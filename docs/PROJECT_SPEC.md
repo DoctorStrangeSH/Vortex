@@ -1112,6 +1112,19 @@ Vortex 1.0 завершён, только когда одновременно:
 - [x] Подтвердить CI #681.
 - [x] Проверить, что текущий клиентский group membership использует Firestore SDK, а callable exports остаются отдельным dormant backend.
 - [x] Уточнить, что PR #32 закрыт без merge и не является текущим открытым blocker.
-- [ ] Убрать случайный Cloud Functions deploy target в PR #95 после полного CI.
+- [x] Убрать случайный Cloud Functions deploy target: PR #95 merged в main (`d5d79bf0`), Quality CI #44899570554 полностью прошёл.
 - [ ] Завершить физическую очистку устаревших branch refs, когда будет доступна безопасная delete-ref операция.
 - [ ] Реальная staging-приёмка и двухаккаунтная матрица остаются обязательными для RC.
+
+### 13.31. Сверка актуального ТЗ после PR #95–#96 — 21.11.2026
+
+- PR #95 объединён в `main` (`d5d79bf0`): Firebase CLI больше не регистрирует deferred Cloud Functions deployment target и Functions Emulator; исходники `functions/` сохранены как post-1.0 reference. Quality CI #44899570554 полностью прошёл: unit, browser, Firestore/Storage Rules, Auth Emulator и production build.
+- PR #96 объединён в `main` (`fde09ab6`); Quality CI #44900037932 полностью прошёл на точном PR head. Исторические упоминания PR #32 и #90 приведены к виду historical snapshots, актуальная дорожная карта больше не считает их открытыми задачами.
+- Текущий список открытых PR пуст на момент проверки. `main` содержит коммиты PR #95 и #96. GitHub Pages deployment для `fde09ab6` запущен отдельно; проверка его результата ожидается.
+- После PR #95–#96 никаких новых продуктовых функций не добавлено. Firebase Spark, Storage opt-in/disabled, запрет production изменений без staging/backup/rollback и текущий scope 1.0 сохранены.
+
+- [x] Удалить deferred Functions deploy target без изменения Firebase production или billing (PR #95).
+- [x] Сверить исторические PR статусы с текущей main и scope 1.0 (PR #96).
+- [x] Прогнать полный Quality CI на точном PR #96 head.
+- [ ] Подтвердить Pages deployment на текущем main commit.
+- [ ] Выполнить внешний Firebase staging и двухаккаунтную ручную матрицу перед RC.
