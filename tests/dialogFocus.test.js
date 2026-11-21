@@ -144,3 +144,36 @@ test('controls with inert on the control itself are excluded', () => {
     assert.equal(eventState.prevented, true);
     assert.equal(state.focused, 'close');
 });
+
+
+test('controls without layout boxes are excluded from dialog focus order', () => {
+    const { dialog, elements, state, documentState } = createDialog({ focusable: ['close', 'display-none', 'next'] });
+    elements[1].getClientRects = () => [];
+    documentState.activeElement = elements[0];
+    const { event, state: eventState } = keyEvent({ shiftKey: true });
+    trapDialogTab(event, dialog);
+    assert.equal(eventState.prevented, true);
+    assert.equal(state.focused, 'next');
+});
+
+test('controls with hidden computed visibility are excluded from dialog focus order', () => {
+    const { dialog, elements, state, documentState } = createDialog({ focusable: ['close', 'invisible', 'next'] });
+    elements[1].getClientRects = () => [{}];
+    elements[1].ownerDocument = { defaultView: { getComputedStyle: () => ({ display: 'inline', visibility: 'hidden' }) } };
+    documentState.activeElement = elements[0];
+    const { event, state: eventState } = keyEvent({ shiftKey: true });
+    trapDialogTab(event, dialog);
+    assert.equal(eventState.prevented, true);
+    assert.equal(state.focused, 'next');
+});
+
+
+test('native controls with tabindex=-1 are excluded from dialog focus order', () => {
+    const { dialog, elements, state, documentState } = createDialog({ focusable: ['close', 'programmatic-only', 'next'] });
+    elements[1].tabIndex = -1;
+    documentState.activeElement = elements[2];
+    const { event, state: eventState } = keyEvent();
+    trapDialogTab(event, dialog);
+    assert.equal(eventState.prevented, true);
+    assert.equal(state.focused, 'close');
+});
