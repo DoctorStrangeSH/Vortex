@@ -363,12 +363,12 @@ Storage выключен до положительного staging-теста up
 
 **Правило статусов:** галочка означает, что требование реализовано и покрыто доступными автоматическими проверками в репозитории. Она не означает production/staging-приёмку. Все ручные и внешние проверки отмечаются отдельными пунктами и остаются открытыми до фактического выполнения.
 
-**Сводка на 21.11.2026 (после PR #89/#90 и legacy DM compatibility audit):**
+**Сводка на 21.11.2026 (после PR #89–#91 и legacy public profile audit):**
 | Этап | Реализация в репозитории | Внешняя/ручная приёмка |
 | --- | --- | --- |
-| 0. Scope freeze | Зафиксирован; открыт PR #91 — совместимость старых личных чатов | Инвентаризация и безопасное удаление исторических refs не завершены |
-| 1. Безопасность и регистрация | Восстановление регистрации/username-claim и read receipts покрыты кодом/Emulator tests; CI зелёный | Production Rules, legacy accounts, staging и rollback не проверены |
-| 2. Личная переписка | Стабильный DM, текст, история, scroll position, offline queue и Chromium restart покрыты кодом/тестами | Legacy DM без `type` требуют совместимого preview update; PR #91 ожидает CI; реальная Firebase-доставка не проверена |
+| 0. Scope freeze | Зафиксирован; PR #91 и #90 объединены; открыт PR #92 — санитизация legacy public profiles | Инвентаризация и безопасное удаление исторических refs не завершены |
+| 1. Безопасность и регистрация | Восстановление регистрации/username-claim, read receipts и legacy DM compatibility (#91) покрыты кодом/Emulator tests; Quality CI #663 зелёный | PR #92 санитизирует legacy public projections и ожидает CI; Production Rules, legacy accounts, staging и rollback не проверены |
+| 2. Личная переписка | Стабильный DM, текст, история, scroll position, offline queue и Chromium restart покрыты кодом/тестами; legacy DM без `type` исправлены PR #91 | Реальная Firebase-доставка двумя production/staging аккаунтами и ручная матрица не проверены |
 | 3. Группы и каналы | Spark-совместимые membership/admin/channel rules и channel schema Emulator tests в main; UI self-leave исправлен PR #89 | Staging и двухаккаунтная проверка не пройдены; журнал действий отложен |
 | 4. Интерфейс и вложения | Obsidian Iris и базовые UI-сценарии присутствуют | Полная мобильная матрица и реальный Storage staging не пройдены |
 | 5–6. RC и выпуск | Не начинались | Все release gates открыты |
@@ -1035,15 +1035,6 @@ PR #32 остаётся открытым, конфликтующим с теку
 - [x] Сохранять запрет на использование чужого/повреждённого claim.
 - [x] Сохранить прежнее поведение обычной регистрации.
 - [ ] Проверить восстановление реального legacy-аккаунта на отдельном staging-проекте.
-### 13.29. Санитизация существующих public profile projections — 21.11.2026
-
-- PR #91 объединён в main (`0598adad`); Quality CI #663 полностью прошёл: install, unit, browser, Firestore/Storage Rules, auth и production build.
-- Повторный аудит миграции профилей выявил дополнительный риск: `ensurePublicProfile` ранее не переписывал существующий `publicProfiles/{uid}`. Если такой документ содержал legacy email или другие закрытые поля, они могли оставаться доступны всем авторизованным пользователям.
-- Новая миграция на входе владельца сверяет UID и username публичной проекции с приватным профилем и authoritative username claim. При совпадении документ переписывается по allowlist полей; email, телефон и неизвестные/private поля удаляются.
-- Допустимые публичные bio/status поля сохраняются только при корректных типах и ограничениях. При несовпадении UID/username миграция безопасно пропускается, не перезаписывая чужую или конфликтную карточку.
-- Добавлены unit tests для удаления закрытых полей, сохранения безопасных публичных данных, отсутствия лишней записи и отказа при конфликте владельца/username.
-- PR с изменением ожидает полный Quality CI; production Rules/data не менялись.
-
 ### 13.28. Channel schema tests и legacy DM compatibility — 21.11.2026
 
 - PR #90 объединён в main (`bddea465`); Quality CI #657 прошёл полностью: install, unit, browser, Firestore/Storage Rules, auth и production build.
