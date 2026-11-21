@@ -9,13 +9,14 @@ function createDialog({ focusable = [], active = null } = {}) {
         getAttribute: key => key === 'aria-hidden' ? null : null,
         focus() { state.focused = name; }
     }));
+    const documentState = { activeElement: active };
     const dialog = {
-        ownerDocument: { get activeElement() { return active; } },
+        ownerDocument: documentState,
         querySelectorAll: () => elements,
         contains: element => element === dialog || elements.includes(element),
         focus() { state.focused = 'dialog'; }
     };
-    return { dialog, elements, state };
+    return { dialog, elements, state, documentState };
 }
 
 function keyEvent({ shiftKey = false } = {}) {
@@ -31,7 +32,8 @@ function keyEvent({ shiftKey = false } = {}) {
 }
 
 test('Shift+Tab wraps from first to last focusable control', () => {
-    const { dialog, elements, state } = createDialog({ focusable: ['close', 'invite'], active: null });
+    const { dialog, elements, state, documentState } = createDialog({ focusable: ['close', 'invite'] });
+    documentState.activeElement = elements[0];
     const { event, state: eventState } = keyEvent({ shiftKey: true });
     trapDialogTab(event, dialog);
     assert.equal(eventState.prevented, true);
@@ -39,8 +41,8 @@ test('Shift+Tab wraps from first to last focusable control', () => {
 });
 
 test('Tab wraps from last to first focusable control', () => {
-    const { dialog, elements, state } = createDialog({ focusable: ['close', 'invite'] });
-    dialog.ownerDocument.activeElement = elements[1];
+    const { dialog, elements, state, documentState } = createDialog({ focusable: ['close', 'invite'] });
+    documentState.activeElement = elements[1];
     const { event, state: eventState } = keyEvent();
     trapDialogTab(event, dialog);
     assert.equal(eventState.prevented, true);
