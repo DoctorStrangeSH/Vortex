@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'preact/hooks';
 import { themeService } from '../../services/themeService';
 import { Icon } from '../UI/Icon';
+import { useRef } from 'preact/hooks';
+import { trapDialogTab } from '../../utils/dialogFocus.js';
 
 export function ThemeCustomizer({ onClose }) {
     const [activeTab, setActiveTab] = useState('presets');
@@ -9,6 +11,9 @@ export function ThemeCustomizer({ onClose }) {
     const [mode, setMode] = useState(themeService.get());
     const [selectedPreset, setSelectedPreset] = useState(() => themeService.getActivePreset());
     const presets = themeService.getPresetThemes();
+    const dialogRef = useRef(null);
+    const onCloseRef = useRef(onClose);
+    onCloseRef.current = onClose;
 
     useEffect(() => {
         const root = document.documentElement;
@@ -17,6 +22,24 @@ export function ThemeCustomizer({ onClose }) {
         setPrimaryColor(primary || '#8968FF');
         setSecondaryColor(secondary || '#6FE2CA');
         return themeService.onChange(() => setMode(themeService.get()));
+    }, []);
+
+    useEffect(() => {
+        const previous = document.activeElement;
+        dialogRef.current?.querySelector('button:not([disabled])')?.focus();
+        const onKey = event => {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                onCloseRef.current?.();
+                return;
+            }
+            trapDialogTab(event, dialogRef.current);
+        };
+        document.addEventListener('keydown', onKey);
+        return () => {
+            document.removeEventListener('keydown', onKey);
+            previous?.focus?.();
+        };
     }, []);
 
     const handleColorChange = (type, value) => {
@@ -56,7 +79,7 @@ export function ThemeCustomizer({ onClose }) {
 
     return (
         <div class="vortex-dialog-overlay" style={s.overlay} onClick={onClose}>
-            <div class="vortex-settings-modal vortex-dialog-surface" role="dialog" aria-modal="true" aria-labelledby="vortex-theme-title" style={s.modal} onClick={e => e.stopPropagation()}>
+            <div ref={dialogRef} class="vortex-settings-modal vortex-dialog-surface" role="dialog" aria-modal="true" aria-labelledby="vortex-theme-title" tabIndex={-1} style={s.modal} onClick={e => e.stopPropagation()}>
                 <div class="vortex-settings-header" style={s.header}>
                     <div><div class="vortex-settings-eyebrow">ВАШ VORTEX · ВАШИ ПРАВИЛА</div><h3 id="vortex-theme-title">Оформление</h3></div>
                     <button type="button" aria-label="Закрыть настройки" onClick={onClose} style={s.closeBtn}><Icon name="close" size={20} /></button>
