@@ -113,3 +113,24 @@ test('controls inside inert ancestors are excluded', () => {
     assert.equal(eventState.prevented, true);
     assert.equal(state.focused, 'close');
 });
+
+
+test('controls inside hidden ancestors are excluded from dialog focus order', () => {
+    const { dialog, elements, state, documentState } = createDialog({ focusable: ['close', 'hidden', 'next'] });
+    elements[1].closest = selector => selector.includes('[hidden]') ? {} : null;
+    documentState.activeElement = elements[2];
+    const { event, state: eventState } = keyEvent();
+    trapDialogTab(event, dialog);
+    assert.equal(eventState.prevented, true);
+    assert.equal(state.focused, 'close');
+});
+
+test('controls with aria-hidden or inert on the control itself are excluded', () => {
+    const { dialog, elements, state, documentState } = createDialog({ focusable: ['close', 'hidden', 'next'] });
+    elements[1].closest = selector => selector.includes('[aria-hidden="true"]') ? {} : null;
+    documentState.activeElement = elements[2];
+    const { event, state: eventState } = keyEvent();
+    trapDialogTab(event, dialog);
+    assert.equal(eventState.prevented, true);
+    assert.equal(state.focused, 'close');
+});
