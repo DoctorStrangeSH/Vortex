@@ -398,7 +398,7 @@ test('missing deterministic chat is readable but existing foreign chat is not', 
     await assertFails(getDoc(doc(eve, 'chats/chat-a')));
 });
 
-test('storage denies nonmember and wrong-owner uploads (positive path pending cross-service setup)', { skip: !available || !process.env.FIREBASE_STORAGE_EMULATOR_HOST }, async () => {
+test('storage denies nonmember and wrong-owner uploads', { skip: !available || !process.env.FIREBASE_STORAGE_EMULATOR_HOST }, async () => {
     const alice = environment.authenticatedContext('alice').storage();
     const eve = environment.authenticatedContext('eve').storage();
     await assertFails(uploadString(ref(alice, 'chats/chat-a/media/eve/photo2'), 'hello', 'raw', { contentType: 'text/plain' }));
