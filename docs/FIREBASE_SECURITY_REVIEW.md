@@ -95,6 +95,12 @@ PR #32 закрыт без merge 21.11.2026: callable Cloud Functions не со�
 - PR #86 добавил Emulator-проверки read receipts: получатель может добавить только собственный UID; нельзя подделать UID другого участника, заменить/удалить историю или писать от имени постороннего. Объединён в main; Quality CI #642 прошёл.
 - PR #88 добавил Emulator-проверки границ делегированного администратора группы: делегированный администратор может исключить обычного участника, но не владельца и не может менять список администраторов. Объединён в main; Quality CI #645 прошёл все шаги: `npm ci`, `npm test`, `npm run test:browser`, `npm run test:rules`, `npm run test:auth`, `npm run build`.
 - Это покрытие относится к репозиторию и Emulator Suite. Production Rules по-прежнему не сверены и не опубликованы; staging, миграция legacy-данных, проверка двух реальных аккаунтов и rollback остаются обязательными gate.
+## Обновление после PR #90 и PR #91 (21.11.2026)
+
+- PR #90 объединён в main (`bddea465`); Quality CI #657 прошёл полный набор проверок. Channel schema Emulator tests покрывают владельца/администратора, уникальность участников, согласованность `participants`/`subscribers` и `subscriberCount`.
+- PR #91 устраняет обнаруженный разрыв совместимости legacy DM: документ без `type` может обновлять только preview fields существующим участником. `participants`, `participantEmails`, `createdBy` и другие legacy поля остаются неизменяемыми через этот путь. Отправка сообщения и preview update проверяются атомарным Emulator batch.
+- PR #91 ожидает Quality CI #660; до полного успеха не объединять.
+- Это repository/Emulator coverage. Production Rules, legacy data migration, staging, двухаккаунтная проверка и rollback остаются отдельными release gates.
 ## Обязательные тесты Emulator Suite
 
 | Сценарий | Ожидается |
