@@ -4,7 +4,7 @@ export function trapDialogTab(event, dialog) {
     if (event.key !== 'Tab' || !dialog) return false;
 
     const focusable = [...dialog.querySelectorAll(FOCUSABLE_SELECTOR)]
-        .filter(element => element.getAttribute('aria-hidden') !== 'true');
+        .filter(element => !element.hidden && !element.closest?.('[hidden], [inert], [aria-hidden="true"]'));
     const activeElement = dialog.ownerDocument?.activeElement;
 
     if (!focusable.length) {

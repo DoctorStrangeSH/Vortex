@@ -6,7 +6,9 @@ function createDialog({ focusable = [], active = null } = {}) {
     const state = { focused: null, prevented: false };
     const elements = focusable.map((name, index) => ({
         name,
-        getAttribute: key => key === 'aria-hidden' ? null : null,
+        hidden: false,
+        getAttribute: () => null,
+        closest: () => null,
         focus() { state.focused = name; }
     }));
     const documentState = { activeElement: active };
@@ -80,4 +82,34 @@ test('Shift+Tab returns focus to the last control when focus escaped the dialog'
     trapDialogTab(event, dialog);
     assert.equal(eventState.prevented, true);
     assert.equal(state.focused, 'next');
+});
+
+test('hidden controls are excluded from dialog focus order', () => {
+    const { dialog, elements, state, documentState } = createDialog({ focusable: ['close', 'hidden', 'next'] });
+    elements[1].hidden = true;
+    documentState.activeElement = elements[2];
+    const { event, state: eventState } = keyEvent();
+    trapDialogTab(event, dialog);
+    assert.equal(eventState.prevented, true);
+    assert.equal(state.focused, 'close');
+});
+
+test('controls inside aria-hidden, inert, or hidden ancestors are excluded', () => {
+    const { dialog, elements, state, documentState } = createDialog({ focusable: ['close', 'hidden', 'next'] });
+    elements[1].closest = selector => selector.includes('[aria-hidden="true"]') ? {} : null;
+    documentState.activeElement = elements[2];
+    const { event, state: eventState } = keyEvent();
+    trapDialogTab(event, dialog);
+    assert.equal(eventState.prevented, true);
+    assert.equal(state.focused, 'close');
+});
+
+test('controls inside inert ancestors are excluded', () => {
+    const { dialog, elements, state, documentState } = createDialog({ focusable: ['close', 'inert', 'next'] });
+    elements[1].closest = selector => selector.includes('[inert]') ? {} : null;
+    documentState.activeElement = elements[2];
+    const { event, state: eventState } = keyEvent();
+    trapDialogTab(event, dialog);
+    assert.equal(eventState.prevented, true);
+    assert.equal(state.focused, 'close');
 });
