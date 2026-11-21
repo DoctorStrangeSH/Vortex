@@ -511,6 +511,39 @@ test('private profile protects email while public directory supports search', { 
     await assertSucceeds(updateDoc(doc(alice, 'publicProfiles/alice'), { displayName: 'Алиса' }));
 });
 
+test('owner can sanitize a legacy public profile without exposing private fields', { skip: !available }, async () => {
+    await seedDocument('publicProfiles/legacy-alice', {
+        uid: { stringValue: 'legacy-alice' },
+        username: { stringValue: 'legacy_alice' },
+        displayName: { stringValue: 'Legacy Alice' },
+        email: { stringValue: 'alice@example.test' },
+        phone: { stringValue: '+10000000000' },
+        internalFlags: { arrayValue: { values: [{ stringValue: 'staff' }] } },
+        bio: { stringValue: 'Public biography' }
+    });
+
+    const alice = environment.authenticatedContext('legacy-alice').firestore();
+    const bob = environment.authenticatedContext('bob').firestore();
+    const publicRef = doc(alice, 'publicProfiles/legacy-alice');
+
+    await assertSucceeds(setDoc(publicRef, {
+        uid: 'legacy-alice',
+        username: 'legacy_alice',
+        displayName: 'Legacy Alice',
+        bio: 'Public biography'
+    }));
+
+    const visible = await assertSucceeds(getDoc(doc(bob, 'publicProfiles/legacy-alice')));
+    assert.equal(visible.data().bio, 'Public biography');
+    assert.equal(Object.hasOwn(visible.data(), 'email'), false);
+    assert.equal(Object.hasOwn(visible.data(), 'phone'), false);
+    assert.equal(Object.hasOwn(visible.data(), 'internalFlags'), false);
+
+    await assertFails(setDoc(doc(bob, 'publicProfiles/legacy-alice'), {
+        uid: 'legacy-alice', username: 'legacy_alice', displayName: 'Forged'
+    }));
+});
+
 test('profile edits are atomic across private and public documents', { skip: !available }, async () => {
     const alice = environment.authenticatedContext('alice').firestore();
     const privateRef = doc(alice, 'users/alice');
