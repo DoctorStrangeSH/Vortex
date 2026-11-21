@@ -16,7 +16,7 @@ service firebase.storage {
 
     match /chats/{chatId}/media/{userId}/{fileId} {
       allow read: if member(chatId);
-      allow create: if member(chatId) && request.auth.uid == userId &&
+      allow create: if resource == null && member(chatId) && request.auth.uid == userId &&
         request.resource.size > 0 && request.resource.size <= 25 * 1024 * 1024 &&
         request.resource.contentType is string &&
         request.resource.contentType.size() <= 128 &&
