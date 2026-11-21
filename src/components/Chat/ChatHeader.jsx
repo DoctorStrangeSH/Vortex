@@ -5,7 +5,6 @@ export function ChatHeader({ chat, user, other, avatarColor, otherStatus, isTypi
     const [menuOpen, setMenuOpen] = useState(false);
     const menuRef = useRef(null);
     const menuButtonRef = useRef(null);
-    const skipMenuFocusRestoreRef = useRef(false);
 
     useEffect(() => { setMenuOpen(false); }, [chat.id, isMobile]);
     useEffect(() => {
@@ -15,19 +14,17 @@ export function ChatHeader({ chat, user, other, avatarColor, otherStatus, isTypi
             if (!menuRef.current?.contains(event.target) && !menuButtonRef.current?.contains(event.target)) setMenuOpen(false);
         };
         const dismissEscape = event => {
-            if (event.key === 'Escape') { event.preventDefault(); skipMenuFocusRestoreRef.current = false; setMenuOpen(false); menuButtonRef.current?.focus(); }
+            if (event.key === 'Escape') { event.preventDefault(); menuButtonRef.current?.focus(); setMenuOpen(false); }
         };
         document.addEventListener('pointerdown', dismissOutside);
         document.addEventListener('keydown', dismissEscape);
         return () => {
             document.removeEventListener('pointerdown', dismissOutside);
             document.removeEventListener('keydown', dismissEscape);
-            if (!skipMenuFocusRestoreRef.current && document.activeElement !== menuButtonRef.current) menuButtonRef.current?.focus();
-            skipMenuFocusRestoreRef.current = false;
         };
     }, [menuOpen]);
 
-    const runAction = callback => { skipMenuFocusRestoreRef.current = true; setMenuOpen(false); callback?.(); };
+    const runAction = callback => { setMenuOpen(false); callback?.(); };
     const handleMenuKeyDown = event => {
         const items = [...event.currentTarget.querySelectorAll('[role="menuitem"]:not([disabled])')];
         const current = items.indexOf(event.target.closest('[role="menuitem"]'));
