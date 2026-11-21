@@ -370,7 +370,7 @@ Storage выключен до положительного staging-теста up
 | 1. Безопасность и регистрация | Legacy DM (#91) и sanitization существующих public profile projections (#92) покрыты кодом/Emulator tests; Quality CI #669 зелёный | Production Rules, реальные legacy accounts, staging и rollback не проверены |
 | 2. Личная переписка | Стабильный DM, текст, история, scroll position, offline queue и Chromium restart покрыты кодом/тестами; legacy DM без `type` исправлены PR #91 | Реальная Firebase-доставка двумя staging аккаунтами и ручная матрица не проверены |
 | 3. Группы и каналы | Spark-совместимые membership/admin/channel rules и channel schema Emulator tests в main; UI self-leave исправлен PR #89 | Staging и двухаккаунтная проверка не пройдены; журнал действий отложен |
-| 4. Интерфейс и вложения | Obsidian Iris; Storage Rules и CI покрывают authenticated upload, participant-only reads, wrong-owner/nonmember denial, MIME, anonymous read, overwrite и owner cleanup; PR #99–#104 добавили keyboard/screen-reader implementation fixes для списка чатов, group dialog, auth tabs, chat menu, message context menu и image viewer | Полная мобильная матрица, ручная keyboard/screen-reader проверка и реальный Storage staging не пройдены; локальная Node 24/Java 21 emulator discrepancy остаётся отдельной диагностикой |
+| 4. Интерфейс и вложения | Obsidian Iris; Storage Rules и CI покрывают authenticated upload, participant-only reads, wrong-owner/nonmember denial, MIME, anonymous read, overwrite и owner cleanup; PR #99–#108 добавили keyboard/screen-reader implementation fixes для списка чатов, auth tabs, меню и всех основных диалогов/медиа preview | Полная мобильная матрица, ручная keyboard/screen-reader проверка и реальный Storage staging не пройдены; локальная Node 24/Java 21 emulator discrepancy остаётся отдельной диагностикой |
 | 5–6. RC и выпуск | Не начинались | Все release gates открыты |
 
 
@@ -1146,5 +1146,20 @@ Vortex 1.0 завершён, только когда одновременно:
 - [x] Объединить исправления списка чатов, group dialog, auth tabs, chat menu, message context menu и image viewer (PR #99–#104).
 - [x] Подтвердить полный Quality CI для PR #99–#104.
 - [ ] Проверить остальные диалоги и вложенные media preview на удержание фокуса.
+- [ ] Провести ручную keyboard/screen-reader проверку и мобильную матрицу 320–1440 CSS px.
+- [ ] Выполнить внешний Firebase staging и двухаккаунтную ручную матрицу перед RC.
+
+
+### 13.33. Остальные диалоги: focus containment — 21.11.2026
+
+- PR #107 объединён в `main` (`991e8997`); Quality CI #44903127913 полностью прошёл на актуальном PR head. Chat Info и Pinned Messages используют общий focus trap; Media Gallery удерживает фокус в активном слое (галерея либо вложенный preview) и возвращает фокус к миниатюре после закрытия preview.
+- PR #108 объединён в `main` (`65689caf`); Quality CI #44903404238 полностью прошёл: unit, browser, Firestore/Storage Rules Emulator, Auth Emulator и production build. Contacts, New Chat, Profile, Tasks, Theme Customizer и Status Picker используют общий focus trap и восстановление фокуса; Status Picker получил dialog semantics и доступное имя.
+- Добавленные проверки общей утилиты подтверждают Tab/Shift+Tab wrapping, восстановление фокуса при его выходе за границы диалога и fallback для пустого диалога.
+- UI-05 всё ещё не закрыт полностью: CI доказывает реализацию/регрессионные тесты, но не заменяет ручную проверку с реальным screen reader, keyboard-only сценарии, видимый focus и viewport matrix 320–1440 CSS px.
+- Firebase production, Storage enablement, billing, rules и пользовательские данные не менялись.
+
+- [x] Завершить focus containment для Chat Info, Pinned Messages и вложенного Media Gallery preview (PR #107).
+- [x] Завершить focus containment для Contacts, New Chat, Profile, Tasks, Theme Customizer и Status Picker (PR #108).
+- [x] Подтвердить полный Quality CI для PR #107–#108.
 - [ ] Провести ручную keyboard/screen-reader проверку и мобильную матрицу 320–1440 CSS px.
 - [ ] Выполнить внешний Firebase staging и двухаккаунтную ручную матрицу перед RC.
