@@ -519,6 +519,51 @@ test('channel join is atomic and may add only the current user', { skip: !availa
     await assertSucceeds(getDoc(channel));
 });
 
+test('channel creation and updates preserve owner, membership, and subscriber-count invariants', { skip: !available }, async () => {
+    const bob = environment.authenticatedContext('bob').firestore();
+    const base = {
+        type: 'channel',
+        name: 'Новости команды',
+        description: 'Объявления',
+        createdBy: 'bob',
+        ownerId: 'bob',
+        admins: ['bob'],
+        participants: ['bob'],
+        subscribers: ['bob'],
+        subscriberCount: 1,
+        isChannel: true
+    };
+
+    await assertSucceeds(setDoc(doc(bob, 'chats/channel-valid-schema'), base));
+
+    await assertFails(setDoc(doc(bob, 'chats/channel-wrong-count'), {
+        ...base, subscriberCount: 2
+    }));
+    await assertFails(setDoc(doc(bob, 'chats/channel-divergent-membership'), {
+        ...base, subscribers: ['bob', 'eve'], subscriberCount: 2
+    }));
+    await assertFails(setDoc(doc(bob, 'chats/channel-forged-owner'), {
+        ...base, ownerId: 'eve'
+    }));
+    await assertFails(setDoc(doc(bob, 'chats/channel-forged-admin'), {
+        ...base, admins: ['eve']
+    }));
+    await assertFails(setDoc(doc(bob, 'chats/channel-duplicate-subscriber'), {
+        ...base, participants: ['bob', 'bob'], subscribers: ['bob', 'bob'], subscriberCount: 2
+    }));
+
+    // Even a signed-in owner cannot commit a membership projection that diverges.
+    await assertFails(updateDoc(doc(bob, 'chats/channel-valid-schema'), {
+        participants: ['bob', 'eve'],
+        subscriberCount: 2
+    }));
+    await assertFails(updateDoc(doc(bob, 'chats/channel-valid-schema'), {
+        participants: ['bob', 'eve'],
+        subscribers: ['bob'],
+        subscriberCount: 2
+    }));
+});
+
 test('subscribers cannot publish, impersonate admins, or alter membership', { skip: !available }, async () => {
     const bob = environment.authenticatedContext('bob').firestore();
     const alice = environment.authenticatedContext('alice').firestore();
