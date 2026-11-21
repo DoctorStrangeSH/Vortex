@@ -18,7 +18,7 @@ try {
     for (let attempt = 0; attempt < 60; attempt++) {
         if (server.exitCode !== null) throw new Error('Vite server exited before responsive auth browser test');
         try {
-            const response = await fetch(`${origin}/`);
+            const response = await fetch(`${origin}/tests/browser/dialog-focus.html`);
             if (response.ok) { ready = true; break; }
         } catch { /* Wait for Vite startup. */ }
         await delay(250);
