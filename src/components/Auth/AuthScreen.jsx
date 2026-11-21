@@ -4,6 +4,7 @@ import { authService } from '../../services/authService';
 import { userService } from '../../services/userService';
 import { normalizeDisplayName } from '../../services/profilePolicy.js';
 import { normalizeUsername } from '../../services/usernamePolicy.js';
+import { getNextAuthTabIndex } from '../../utils/authTabs.js';
 
 export function AuthScreen({ pendingUser = null }) {
     const [registrationDraft] = useState(() => authService.getRegistrationDraft(pendingUser));
@@ -122,13 +123,11 @@ export function AuthScreen({ pendingUser = null }) {
                 </p>}
                 {mode !== 'complete' && mode !== 'reset' && <div class="vortex-auth-tabs" role="tablist" aria-label="Режим авторизации" style={styles.tabs}
                     onKeyDown={event => {
-                        const keys = ['ArrowLeft', 'ArrowRight', 'Home', 'End'];
-                        if (!keys.includes(event.key)) return;
-                        event.preventDefault();
                         const tabs = [...event.currentTarget.querySelectorAll('[role="tab"]')];
                         const current = tabs.indexOf(event.target.closest('[role="tab"]'));
-                        const next = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1
-                            : (current + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+                        const next = getNextAuthTabIndex(event.key, current, tabs.length);
+                        if (next < 0) return;
+                        event.preventDefault();
                         setMode(next === 0 ? 'login' : 'register');
                         setError('');
                         tabs[next]?.focus();
