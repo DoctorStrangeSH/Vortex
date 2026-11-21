@@ -1,25 +1,41 @@
 import { Icon } from '../UI/Icon';
 import { useEffect, useRef, useState } from 'preact/hooks';
+import { getNextMenuItemIndex } from '../../utils/menuNavigation.js';
 export function ChatHeader({ chat, user, other, avatarColor, otherStatus, isTyping, isMobile, onBack, onShowInfo, onShowGallery, onShowTheme, onShowStatus, onShowMembers, onExport }) {
     const [menuOpen, setMenuOpen] = useState(false);
     const menuRef = useRef(null);
     const menuButtonRef = useRef(null);
+    const skipMenuFocusRestoreRef = useRef(false);
 
     useEffect(() => { setMenuOpen(false); }, [chat.id, isMobile]);
     useEffect(() => {
         if (!menuOpen) return;
+        menuRef.current?.querySelector('[role="menuitem"]')?.focus();
         const dismissOutside = event => {
             if (!menuRef.current?.contains(event.target) && !menuButtonRef.current?.contains(event.target)) setMenuOpen(false);
         };
         const dismissEscape = event => {
-            if (event.key === 'Escape') { event.preventDefault(); setMenuOpen(false); menuButtonRef.current?.focus(); }
+            if (event.key === 'Escape') { event.preventDefault(); skipMenuFocusRestoreRef.current = false; setMenuOpen(false); menuButtonRef.current?.focus(); }
         };
         document.addEventListener('pointerdown', dismissOutside);
         document.addEventListener('keydown', dismissEscape);
-        return () => { document.removeEventListener('pointerdown', dismissOutside); document.removeEventListener('keydown', dismissEscape); };
+        return () => {
+            document.removeEventListener('pointerdown', dismissOutside);
+            document.removeEventListener('keydown', dismissEscape);
+            if (!skipMenuFocusRestoreRef.current && document.activeElement !== menuButtonRef.current) menuButtonRef.current?.focus();
+            skipMenuFocusRestoreRef.current = false;
+        };
     }, [menuOpen]);
 
-    const runAction = callback => { setMenuOpen(false); callback?.(); };
+    const runAction = callback => { skipMenuFocusRestoreRef.current = true; setMenuOpen(false); callback?.(); };
+    const handleMenuKeyDown = event => {
+        const items = [...event.currentTarget.querySelectorAll('[role="menuitem"]:not([disabled])')];
+        const current = items.indexOf(event.target.closest('[role="menuitem"]'));
+        const next = getNextMenuItemIndex(event.key, current, items.length);
+        if (next < 0) return;
+        event.preventDefault();
+        items[next]?.focus();
+    };
     const extraActions = [
         ...(chat.type === 'group' ? [{ icon: 'users', title: 'Участники группы', handler: onShowMembers }] : []),
         { icon: 'palette', title: 'Оформление', handler: onShowTheme },
@@ -54,8 +70,8 @@ export function ChatHeader({ chat, user, other, avatarColor, otherStatus, isTypi
                 {!isMobile && extraActions.map(action => <button key={action.title} type="button" class="vortex-icon-button" style={s.btn} onClick={action.handler} title={action.title} aria-label={action.title}><Icon name={action.icon} /></button>)}
                 {isMobile && <button ref={menuButtonRef} type="button" class="vortex-icon-button" style={s.btn} onClick={() => setMenuOpen(value => !value)} aria-label="Дополнительные действия" aria-expanded={menuOpen} aria-controls="vortex-header-menu"><Icon name="menu" /></button>}
             </div>
-            {isMobile && menuOpen && <div ref={menuRef} id="vortex-header-menu" class="vortex-header-menu" role="group" aria-label="Дополнительные действия с чатом">
-                {extraActions.map(action => <button key={action.title} type="button" class="vortex-header-menu-item" onClick={() => runAction(action.handler)}><Icon name={action.icon} size={18} /><span>{action.title}</span></button>)}
+            {isMobile && menuOpen && <div ref={menuRef} id="vortex-header-menu" class="vortex-header-menu" role="menu" aria-label="Дополнительные действия с чатом" onKeyDown={handleMenuKeyDown}>
+                {extraActions.map(action => <button key={action.title} type="button" role="menuitem" class="vortex-header-menu-item" onClick={() => runAction(action.handler)}><Icon name={action.icon} size={18} /><span>{action.title}</span></button>)}
             </div>}
         </div>
     );
