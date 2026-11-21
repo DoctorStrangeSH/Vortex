@@ -74,10 +74,10 @@ class UserService {
             const plan = planPublicProfileRepair(
                 { ...data, uid },
                 claim ? { exists: claim.exists(), data: claim.exists() ? claim.data() : null } : null,
-                publicProfile.exists()
+                publicProfile.exists() ? publicProfile.data() : null
             );
             if (plan.status !== 'ready') return plan;
-            if (plan.createPublicProfile) transaction.set(publicRef, plan.publicProfile);
+            if (plan.writePublicProfile) transaction.set(publicRef, plan.publicProfile);
             if (plan.createUsernameClaim) transaction.set(claimRef, plan.usernameClaim);
             if (plan.removeLegacyClaimEmail) {
                 transaction.update(claimRef, { email: deleteField() });
