@@ -166,3 +166,14 @@ test('controls with hidden computed visibility are excluded from dialog focus or
     assert.equal(eventState.prevented, true);
     assert.equal(state.focused, 'next');
 });
+
+
+test('native controls with tabindex=-1 are excluded from dialog focus order', () => {
+    const { dialog, elements, state, documentState } = createDialog({ focusable: ['close', 'programmatic-only', 'next'] });
+    elements[1].tabIndex = -1;
+    documentState.activeElement = elements[2];
+    const { event, state: eventState } = keyEvent();
+    trapDialogTab(event, dialog);
+    assert.equal(eventState.prevented, true);
+    assert.equal(state.focused, 'close');
+});
