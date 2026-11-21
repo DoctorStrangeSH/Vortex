@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'preact/hooks';
+import { trapDialogTab } from '../../utils/dialogFocus.js';
 
 export function PinnedMessagesDialog({ messages, onClose, onSelect }) {
     const closeRef = useRef(null);
@@ -11,16 +12,7 @@ export function PinnedMessagesDialog({ messages, onClose, onSelect }) {
         closeRef.current?.focus();
         const handleKeyDown = event => {
             if (event.key === 'Escape') { event.preventDefault(); onCloseRef.current(); }
-            if (event.key !== 'Tab') return;
-            const focusable = [...dialogRef.current.querySelectorAll('button:not([disabled])')];
-            if (!focusable.length) return;
-            const first = focusable[0];
-            const last = focusable[focusable.length - 1];
-            if (event.shiftKey && document.activeElement === first) {
-                event.preventDefault(); last.focus();
-            } else if (!event.shiftKey && document.activeElement === last) {
-                event.preventDefault(); first.focus();
-            }
+            trapDialogTab(event, dialogRef.current);
         };
         document.addEventListener('keydown', handleKeyDown);
         return () => {
@@ -31,7 +23,7 @@ export function PinnedMessagesDialog({ messages, onClose, onSelect }) {
 
     return (
         <div class="vortex-dialog-overlay vortex-pinned-overlay" style={styles.overlay} onClick={onClose}>
-            <section ref={dialogRef} class="vortex-dialog-surface vortex-pinned-dialog" role="dialog" aria-modal="true" aria-labelledby="vortex-pinned-heading"
+            <section ref={dialogRef} class="vortex-dialog-surface vortex-pinned-dialog" role="dialog" aria-modal="true" aria-labelledby="vortex-pinned-heading" tabIndex={-1}
                 style={styles.dialog} onClick={event => event.stopPropagation()}>
                 <header class="vortex-pinned-dialog-header" style={styles.header}>
                     <div>

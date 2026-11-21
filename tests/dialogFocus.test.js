@@ -63,3 +63,21 @@ test('non-Tab keys are not intercepted', () => {
     assert.equal(trapDialogTab(event, dialog), false);
     assert.equal(state.prevented, false);
 });
+
+test('Tab returns focus to the first control when focus escaped the dialog', () => {
+    const { dialog, state, documentState } = createDialog({ focusable: ['close', 'next'] });
+    documentState.activeElement = { name: 'outside' };
+    const { event, state: eventState } = keyEvent();
+    trapDialogTab(event, dialog);
+    assert.equal(eventState.prevented, true);
+    assert.equal(state.focused, 'close');
+});
+
+test('Shift+Tab returns focus to the last control when focus escaped the dialog', () => {
+    const { dialog, state, documentState } = createDialog({ focusable: ['close', 'next'] });
+    documentState.activeElement = { name: 'outside' };
+    const { event, state: eventState } = keyEvent({ shiftKey: true });
+    trapDialogTab(event, dialog);
+    assert.equal(eventState.prevented, true);
+    assert.equal(state.focused, 'next');
+});

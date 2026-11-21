@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'preact/hooks';
 import { Icon } from '../UI/Icon';
+import { trapDialogTab } from '../../utils/dialogFocus.js';
 
 export function ChatInfoDialog({ chat, other, avatarColor, loadedCount, pinnedCount, onClose, onGallery, onPinned, onMembers, onTheme, onExport }) {
     const surfaceRef = useRef(null);
@@ -16,15 +17,7 @@ export function ChatInfoDialog({ chat, other, avatarColor, loadedCount, pinnedCo
                 closeCallbackRef.current();
                 return;
             }
-            if (event.key !== 'Tab') return;
-            const buttons = [...surfaceRef.current.querySelectorAll('button:not([disabled])')];
-            const first = buttons[0];
-            const last = buttons[buttons.length - 1];
-            if (event.shiftKey && document.activeElement === first) {
-                event.preventDefault(); last.focus();
-            } else if (!event.shiftKey && document.activeElement === last) {
-                event.preventDefault(); first.focus();
-            }
+            trapDialogTab(event, surfaceRef.current);
         };
         document.addEventListener('keydown', onKeyDown);
         return () => {
@@ -46,7 +39,7 @@ export function ChatInfoDialog({ chat, other, avatarColor, loadedCount, pinnedCo
 
     return (
         <div class="vortex-dialog-overlay vortex-info-overlay" onClick={onClose}>
-            <section ref={surfaceRef} class="vortex-dialog-surface vortex-info-dialog" role="dialog" aria-modal="true" aria-labelledby="vortex-info-title" onClick={event => event.stopPropagation()}>
+            <section ref={surfaceRef} class="vortex-dialog-surface vortex-info-dialog" role="dialog" aria-modal="true" aria-labelledby="vortex-info-title" tabIndex={-1} onClick={event => event.stopPropagation()}>
                 <div class="vortex-info-toolbar">
                     <span>Информация о чате</span>
                     <button ref={closeRef} class="vortex-icon-button vortex-info-close" type="button" onClick={onClose} aria-label="Закрыть информацию о чате"><Icon name="close" /></button>
