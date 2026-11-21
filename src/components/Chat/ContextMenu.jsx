@@ -1,18 +1,24 @@
 import { useEffect, useRef } from 'preact/hooks';
 import { clampOverlayPosition } from '../../services/overlayPosition.js';
+import { getNextMenuItemIndex } from '../../utils/menuNavigation.js';
 
-export function ContextMenu({ x, y, messageId, text, isOwn, isPinned, onCopy, onEdit, onPin, onDelete, onReply }) {
+export function ContextMenu({ x, y, messageId, text, isOwn, isPinned, onCopy, onEdit, onPin, onDelete, onReply, onClose }) {
     const menuRef = useRef(null);
     const { x: adjustedX, y: adjustedY } = clampOverlayPosition(x, y, 200, 260, window.innerWidth, window.innerHeight);
 
     useEffect(() => { menuRef.current?.querySelector('button')?.focus(); }, [messageId]);
     const onMenuKeyDown = event => {
-        const buttons = [...event.currentTarget.querySelectorAll('button:not(:disabled)')];
-        const index = buttons.indexOf(document.activeElement);
-        if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        if (event.key === 'Escape') {
             event.preventDefault();
-            buttons[(index + (event.key === 'ArrowDown' ? 1 : -1) + buttons.length) % buttons.length]?.focus();
+            onClose?.();
+            return;
         }
+        const buttons = [...event.currentTarget.querySelectorAll('button:not(:disabled)')];
+        const index = buttons.indexOf(event.target.closest('button'));
+        const next = getNextMenuItemIndex(event.key, index, buttons.length);
+        if (next < 0) return;
+        event.preventDefault();
+        buttons[next]?.focus();
     };
 
     return (
