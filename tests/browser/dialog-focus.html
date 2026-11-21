@@ -13,10 +13,11 @@
       <button id="last" type="button">Последний</button>
     </section>
     <button id="outside" type="button">Вне диалога</button>
-    <section id="empty-dialog" role="dialog" aria-modal="true" aria-label="Пустой диалог" tabindex="-1" style="display:block; min-height:24px;">
+    <dialog id="empty-dialog" open aria-label="Пустой диалог" tabindex="-1" style="width:240px; min-height:40px;">
+      <p>В этом диалоге нет доступных элементов управления</p>
       <button hidden type="button">Скрытая кнопка</button>
       <button tabindex="-1" type="button">Не в Tab-порядке</button>
-    </section>
+    </dialog>
   </main>
 </body>
 </html>
