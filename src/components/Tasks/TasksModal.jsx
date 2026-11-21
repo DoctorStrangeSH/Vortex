@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useState } from 'preact/hooks';
+import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { Icon } from '../UI/Icon';
-import { useRef } from 'preact/hooks';
 import { trapDialogTab } from '../../utils/dialogFocus.js';
 
 const storageKey = uid => `vortex-tasks:${uid}`;
