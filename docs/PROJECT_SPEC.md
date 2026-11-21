@@ -1254,3 +1254,23 @@ Vortex 1.0 завершён, только когда одновременно:
 - [ ] Провести ручную адаптивную проверку чатов, composer, боковой панели, меню, профиля и dialogs.
 - [ ] Провести ручную keyboard-only и screen-reader приёмку.
 - [ ] Выполнить отдельный Firebase staging и двухаккаунтную ручную матрицу перед RC.
+
+
+### 13.39. Responsive chat shell regression guard — 21.11.2026
+
+- PR #129 объединён в `main` (merge commit `ee7b12470d62c55437ae3692033248a616c3bd47`).
+- Quality checks run #44915598608 (run 758) завершился `success` на PR head `7a4b3c378567c91d69c9620ae6d3a7d05349be76`.
+- Полный pipeline прошёл: `npm ci`, unit tests, browser tests, Firestore/Storage Rules Emulator, Auth Emulator и production build.
+- В desktop layout chat pane добавлен `minWidth: 0`, чтобы flex-элемент мог сжиматься рядом с фиксированной sidebar шириной 380px.
+- Добавлен Chromium smoke test для 320, 375, 768, 769, 1024 и 1440 CSS px; тест проверяет границы панели, header, composer и кнопок, отсутствие горизонтального document overflow и отсутствие page errors.
+- Ограничение покрытия: тест использует изолированную HTML fixture с общими CSS-классами/стилями чата, а не авторизованный реальный `ChatScreen` с Firebase. Он подтверждает поведение fixture и CSS sizing, но не доказывает полный mobile navigation flow или все responsive states приложения.
+- Production Firebase, реальные аккаунты и production data не использовались.
+
+- [x] Исправить desktop flex sizing для chat pane (PR #129).
+- [x] Добавить responsive chat shell browser matrix (PR #129).
+- [x] Подтвердить полный Quality CI #44915598608.
+- [ ] Добавить/выполнить E2E проверку реального `ChatScreen`: переход sidebar → chat → back на mobile viewport и resize через breakpoint.
+- [ ] Проверить реальную ширину composer, header actions, long messages и меню на 320/375/768/769/1024/1440 CSS px.
+- [ ] Провести ручную адаптивную проверку профиля, настроек, галереи, контекстных меню и диалогов.
+- [ ] Провести ручную keyboard-only и screen-reader приёмку.
+- [ ] Выполнить отдельный Firebase staging и двухаккаунтную ручную матрицу перед RC.
