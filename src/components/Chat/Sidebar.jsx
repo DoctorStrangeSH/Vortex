@@ -227,7 +227,7 @@ export function Sidebar({ user, activeChat, onSelectChat }) {
                                 <span style={{...st.chatAvatar, background: color}}>{name.charAt(0).toUpperCase()}</span>
                                 <span style={st.chatInfo}>
                                     <span class="vortex-chat-name" style={st.chatName}>{pinnedChats.includes(chat.id) ? '📌 ' : ''}{chat.isChannel ? '📢 ' : chat.type === 'group' ? '👥 ' : ''}{name}</span>
-                                    <span style={st.chatLast} title={chat.lastMessage || 'Нет сообщений'}>{chat.lastMessage || 'Нет сообщений'}</span>
+                                    <span class="vortex-chat-last" style={st.chatLast} title={chat.lastMessage || 'Нет сообщений'}>{chat.lastMessage || 'Нет сообщений'}</span>
                                 </span>
                                 <span class="vortex-chat-time" style={st.chatTime}>{formatChatTime(chat.lastMessageTime)}</span>
                             </button>
