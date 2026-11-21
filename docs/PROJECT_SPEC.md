@@ -363,12 +363,12 @@ Storage выключен до положительного staging-теста up
 
 **Правило статусов:** галочка означает, что требование реализовано и покрыто доступными автоматическими проверками в репозитории. Она не означает production/staging-приёмку. Все ручные и внешние проверки отмечаются отдельными пунктами и остаются открытыми до фактического выполнения.
 
-**Сводка на 21.11.2026 (после PR #89–#91 и legacy public profile audit):**
+**Сводка на 21.11.2026 (после PR #89–#92 и Storage audit):**
 | Этап | Реализация в репозитории | Внешняя/ручная приёмка |
 | --- | --- | --- |
-| 0. Scope freeze | Зафиксирован; PR #91 и #90 объединены; открыт PR #92 — санитизация legacy public profiles | Инвентаризация и безопасное удаление исторических refs не завершены |
-| 1. Безопасность и регистрация | Восстановление регистрации/username-claim, read receipts и legacy DM compatibility (#91) покрыты кодом/Emulator tests; Quality CI #663 зелёный | PR #92 санитизирует legacy public projections и ожидает CI; Production Rules, legacy accounts, staging и rollback не проверены |
-| 2. Личная переписка | Стабильный DM, текст, история, scroll position, offline queue и Chromium restart покрыты кодом/тестами; legacy DM без `type` исправлены PR #91 | Реальная Firebase-доставка двумя production/staging аккаунтами и ручная матрица не проверены |
+| 0. Scope freeze | Зафиксирован; PR #90–#92 объединены; открыт PR #93 — дополнительные Storage policy tests | Инвентаризация и безопасное удаление исторических refs не завершены |
+| 1. Безопасность и регистрация | Legacy DM (#91) и sanitization существующих public profile projections (#92) покрыты кодом/Emulator tests; Quality CI #669 зелёный | Production Rules, реальные legacy accounts, staging и rollback не проверены |
+| 2. Личная переписка | Стабильный DM, текст, история, scroll position, offline queue и Chromium restart покрыты кодом/тестами; legacy DM без `type` исправлены PR #91 | Реальная Firebase-доставка двумя staging аккаунтами и ручная матрица не проверены |
 | 3. Группы и каналы | Spark-совместимые membership/admin/channel rules и channel schema Emulator tests в main; UI self-leave исправлен PR #89 | Staging и двухаккаунтная проверка не пройдены; журнал действий отложен |
 | 4. Интерфейс и вложения | Obsidian Iris и базовые UI-сценарии присутствуют | Полная мобильная матрица и реальный Storage staging не пройдены |
 | 5–6. RC и выпуск | Не начинались | Все release gates открыты |
@@ -1062,3 +1062,12 @@ PR #32 остаётся открытым, конфликтующим с теку
 - [x] Зафиксировать PR #32 как единственный открытый rollout blocker.
 - [ ] Завершить реальные staging-проверки и ручную матрицу.
 
+
+
+## Обновление после PR #92 (21.11.2026)
+
+- PR #92 объединён в main (`4eb7f755`); Quality CI #669 полностью прошёл: install, unit, browser, Firestore/Storage Rules, auth и production build.
+- Owner-authenticated legacy profile repair теперь переписывает существующую публичную проекцию по allowlist, удаляя email, телефон и неизвестные/private поля. Сохраняются только валидные публичные поля; UID/username conflicts безопасно пропускаются.
+- Добавлены Unit и Firestore Emulator tests для санитизации и защиты от чужой записи.
+- Это не миграция всех аккаунтов: cleanup выполняется при следующем входе владельца. Неактивные legacy accounts и конфликтные записи требуют staging-инвентаризации.
+- Production Rules/data не менялись; staging, backup и rollback остаются release gates.

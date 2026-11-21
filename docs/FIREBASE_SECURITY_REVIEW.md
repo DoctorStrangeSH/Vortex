@@ -99,7 +99,7 @@ PR #32 закрыт без merge 21.11.2026: callable Cloud Functions не со�
 
 - PR #90 объединён в main (`bddea465`); Quality CI #657 прошёл полный набор проверок. Channel schema Emulator tests покрывают владельца/администратора, уникальность участников, согласованность `participants`/`subscribers` и `subscriberCount`.
 - PR #91 объединён в main (`0598adad`); Quality CI #663 полностью прошёл. Документ без `type` может обновлять только preview fields существующим участником; `participants`, `participantEmails`, `createdBy` и остальные legacy поля остаются неизменяемыми через этот путь. Атомарная отправка сообщения и preview update проверены Emulator Suite.
-- PR #92 добавляет owner-authenticated sanitization существующих public profile projections; удаляет email/phone/unknown fields, сохраняет только валидные allowlisted public fields. Ожидает полного Quality CI.
+- PR #92 merged (`4eb7f755`); Quality CI #669 passed all steps. Owner-authenticated repair sanitizes existing public profile projections using an allowlist, removes legacy email/phone/unknown fields, preserves valid public fields, and skips conflicting UID/username records.
 - Это repository/Emulator coverage. Production Rules, legacy data migration, staging, двухаккаунтная проверка и rollback остаются отдельными release gates.
 ## Обязательные тесты Emulator Suite
 
@@ -138,3 +138,10 @@ Unit coverage и полный Quality CI #630 прошли на точном HEA
 ### Registration resume with an existing username claim (PR #83)
 
 The recovery form may reuse an existing username claim only when both its UID and normalized username match the authenticated pending account. Claims owned by another UID, claims whose stored username does not match the requested name, and malformed claims remain unavailable. Ordinary registration without a pending authenticated UID continues to treat every existing claim as taken. Unit coverage and full Quality CI #635 passed on the exact PR head. Real legacy-account recovery remains a staging check; production Rules/data were not changed.
+
+
+## Storage policy test coverage update (21.11.2026)
+
+- Existing Storage Emulator coverage verifies participant-only byte/metadata reads, immediate revocation after group removal, owner-only orphan cleanup, and denial of nonmember/wrong-owner uploads.
+- PR #93 adds explicit cases for active-content MIME rejection (HTML, SVG, JavaScript, XML/XHTML) and unauthenticated reads of an existing object. A same-path replacement was accepted in the initial emulator test despite `allow update: if false`. The create rule now explicitly requires `resource == null`, so an existing object cannot pass the create path even if an SDK/emulator classifies the overwrite unexpectedly. The regression test is restored and must prove this guard before merge.
+- Storage remains disabled for production use until the approved Firebase Spark constraints, separate staging project, CORS, upload/read/revocation and rollback are verified. Emulator pass is not a production rollout authorization.
