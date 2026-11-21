@@ -1014,7 +1014,7 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
             )}
 
             {contextMenu && <ContextMenu x={contextMenu.x} y={contextMenu.y} messageId={contextMenu.messageId} text={contextMenu.text} isOwn={contextMenu.isOwn} isPinned={pinnedMessageIds.has(contextMenu.messageId)} onCopy={handleCopy} onEdit={contextMenu.isOwn ? handleEdit : null} onPin={handlePin} onDelete={contextMenu.isOwn ? handleDelete : null} onReply={handleReply} onClose={closeContextMenu} />}
-            {showReactions && <ReactionPicker x={Math.min(showReactions.x, window.innerWidth - 200)} y={showReactions.y} onReaction={(emoji) => handleReaction(showReactions.messageId, emoji)} />}
+            {showReactions && <ReactionPicker x={Math.min(showReactions.x, window.innerWidth - 200)} y={showReactions.y} onReaction={(emoji) => handleReaction(showReactions.messageId, emoji)} onClose={() => setShowReactions(null)} />}
             {micDenied && <div style={s.micOverlay} onClick={() => setMicDenied(false)}><div style={s.micPrompt}><div>🎙️</div><h3>Микрофон запрещён</h3><p>📱 iPhone: Настройки → Safari → Микрофон<br/>📱 Android: Настройки → Приложения → Браузер → Разрешения</p><button onClick={retryMicAccess} style={s.micAllowBtn}>🔄 Попробовать снова</button></div></div>}
             {showGallery && <MediaGallery messages={messages} onClose={() => setShowGallery(false)} />}
             {showAllPinned && <PinnedMessagesDialog messages={pinnedMessages} onClose={() => setShowAllPinned(false)} onSelect={id => { handleScrollToPinned(id); setShowAllPinned(false); }} />}
