@@ -363,12 +363,12 @@ Storage выключен до положительного staging-теста up
 
 **Правило статусов:** галочка означает, что требование реализовано и покрыто доступными автоматическими проверками в репозитории. Она не означает production/staging-приёмку. Все ручные и внешние проверки отмечаются отдельными пунктами и остаются открытыми до фактического выполнения.
 
-**Сводка на 21.11.2026 (после PR #89/#90 и legacy DM compatibility audit):**
+**Сводка на 21.11.2026 (после PR #89–#91 и legacy public profile audit):**
 | Этап | Реализация в репозитории | Внешняя/ручная приёмка |
 | --- | --- | --- |
-| 0. Scope freeze | Зафиксирован; открыт PR #91 — совместимость старых личных чатов | Инвентаризация и безопасное удаление исторических refs не завершены |
-| 1. Безопасность и регистрация | Восстановление регистрации/username-claim и read receipts покрыты кодом/Emulator tests; CI зелёный | Production Rules, legacy accounts, staging и rollback не проверены |
-| 2. Личная переписка | Стабильный DM, текст, история, scroll position, offline queue и Chromium restart покрыты кодом/тестами | Legacy DM без `type` требуют совместимого preview update; PR #91 ожидает CI; реальная Firebase-доставка не проверена |
+| 0. Scope freeze | Зафиксирован; PR #91 и #90 объединены; открыт PR #92 — санитизация legacy public profiles | Инвентаризация и безопасное удаление исторических refs не завершены |
+| 1. Безопасность и регистрация | Восстановление регистрации/username-claim, read receipts и legacy DM compatibility (#91) покрыты кодом/Emulator tests; Quality CI #663 зелёный | PR #92 санитизирует legacy public projections и ожидает CI; Production Rules, legacy accounts, staging и rollback не проверены |
+| 2. Личная переписка | Стабильный DM, текст, история, scroll position, offline queue и Chromium restart покрыты кодом/тестами; legacy DM без `type` исправлены PR #91 | Реальная Firebase-доставка двумя production/staging аккаунтами и ручная матрица не проверены |
 | 3. Группы и каналы | Spark-совместимые membership/admin/channel rules и channel schema Emulator tests в main; UI self-leave исправлен PR #89 | Staging и двухаккаунтная проверка не пройдены; журнал действий отложен |
 | 4. Интерфейс и вложения | Obsidian Iris и базовые UI-сценарии присутствуют | Полная мобильная матрица и реальный Storage staging не пройдены |
 | 5–6. RC и выпуск | Не начинались | Все release gates открыты |
