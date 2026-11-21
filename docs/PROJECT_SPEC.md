@@ -1274,3 +1274,21 @@ Vortex 1.0 завершён, только когда одновременно:
 - [ ] Провести ручную адаптивную проверку профиля, настроек, галереи, контекстных меню и диалогов.
 - [ ] Провести ручную keyboard-only и screen-reader приёмку.
 - [ ] Выполнить отдельный Firebase staging и двухаккаунтную ручную матрицу перед RC.
+
+
+### 13.40. ChatScreen navigation state coverage — 21.11.2026
+
+- PR #131 объединён в `main` (merge commit `c01f3452b28968c1825b6e966e3aaf0de92efeb2`).
+- Quality checks run #44916368575 (run 762) завершился `success` на точном PR head `b83590097cef887af0497e8836fd58b05c56cd3e`.
+- Вынесены переходы состояния навигации `ChatScreen` в чистый модуль `src/services/chatScreenState.js`; сам Preact-компонент и unit tests используют один reducer.
+- Добавлены 7 unit tests: breakpoint 768/769px, выбор чата на mobile/desktop, возврат без потери выбранного чата, resize через breakpoint, обновление snapshot только активного чата, отзыв доступа/удаление чата и игнорирование устаревших событий.
+- Сохранено разделение состояния по аккаунту через `key={user.uid}`; Firebase schema/rules не менялись.
+- Ограничение покрытия: это тестирование реальной state transition logic, но не авторизованный браузерный E2E с Firebase и не ручная проверка на физических устройствах.
+
+- [x] Покрыть мобильные и desktop transitions ChatScreen unit tests (PR #131).
+- [x] Подтвердить полный Quality CI #44916368575: npm ci, unit, browser, Rules/Auth emulators, production build.
+- [ ] Добавить авторизованный браузерный сценарий ChatScreen с управляемым Firebase Emulator: sidebar → chat → back, resize и смена пользователя.
+- [ ] Проверить реальные header actions, composer, длинные сообщения и контекстные меню на 320/375/768/769/1024/1440 CSS px.
+- [ ] Провести ручную адаптивную проверку профиля, настроек, галереи и диалогов.
+- [ ] Провести ручную keyboard-only и screen-reader приёмку.
+- [ ] Выполнить отдельный Firebase staging и двухаккаунтную ручную матрицу перед RC.
