@@ -636,6 +636,45 @@ test('group membership is managed by admins, while ordinary members can only lea
     await assertFails(updateDoc(doc(alice, 'chats', groupId), { participants: ['alice', 'charlie', 'eve', 'mallory'] }));
 });
 
+test('delegated group admins can remove ordinary members but cannot remove the owner', { skip: !available }, async () => {
+    const alice = environment.authenticatedContext('alice').firestore();
+    const bob = environment.authenticatedContext('bob').firestore();
+    const groupId = 'group-delegated-admin-removal';
+
+    await assertSucceeds(setDoc(doc(alice, 'chats', groupId), {
+        type: 'group',
+        createdBy: 'alice',
+        participants: ['alice', 'bob', 'charlie'],
+        admins: ['alice']
+    }));
+    await assertSucceeds(updateDoc(doc(alice, 'chats', groupId), {
+        admins: arrayUnion('bob')
+    }));
+
+    // A delegated administrator may moderate ordinary members.
+    await assertSucceeds(updateDoc(doc(bob, 'chats', groupId), {
+        participants: arrayRemove('charlie')
+    }));
+    assert.deepEqual(
+        (await assertSucceeds(getDoc(doc(alice, 'chats', groupId)))).data().participants,
+        ['alice', 'bob']
+    );
+
+    // No administrator may remove the group creator/owner from membership.
+    await assertFails(updateDoc(doc(bob, 'chats', groupId), {
+        participants: arrayRemove('alice')
+    }));
+    assert.deepEqual(
+        (await assertSucceeds(getDoc(doc(alice, 'chats', groupId)))).data().participants,
+        ['alice', 'bob']
+    );
+
+    // Delegated admins cannot change the role list themselves.
+    await assertFails(updateDoc(doc(bob, 'chats', groupId), {
+        admins: arrayRemove('alice')
+    }));
+});
+
 test('non-owner group administrators can leave when another administrator remains', { skip: !available }, async () => {
     const alice = environment.authenticatedContext('alice').firestore();
     const bob = environment.authenticatedContext('bob').firestore();
