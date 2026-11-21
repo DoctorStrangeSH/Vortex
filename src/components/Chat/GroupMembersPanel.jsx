@@ -1,10 +1,15 @@
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 import { chatService } from '../../services/chatService';
 import { userService } from '../../services/userService';
 
 export function GroupMembersPanel({ chat, user, onClose, onLeave }) {
+    const panelRef = useRef(null);
+    const closeRef = useRef(null);
+    const closeCallbackRef = useRef(onClose);
+    closeCallbackRef.current = onClose;
+
     const [profiles, setProfiles] = useState({});
     const [username, setUsername] = useState('');
     const [error, setError] = useState('');
@@ -13,6 +18,45 @@ export function GroupMembersPanel({ chat, user, onClose, onLeave }) {
     const admins = chat.admins || [];
     const isOwner = chat.createdBy === user.uid;
     const isAdmin = admins.includes(user.uid);
+
+    useEffect(() => {
+        const previous = document.activeElement;
+        closeRef.current?.focus();
+
+        const handleDialogKeys = event => {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                closeCallbackRef.current?.();
+                return;
+            }
+            if (event.key !== 'Tab' || !panelRef.current) return;
+
+            const focusable = [...panelRef.current.querySelectorAll(
+                'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])'
+            )].filter(element => element.getAttribute('aria-hidden') !== 'true');
+            if (!focusable.length) {
+                event.preventDefault();
+                panelRef.current.focus();
+                return;
+            }
+
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            if (event.shiftKey && (document.activeElement === first || !panelRef.current.contains(document.activeElement))) {
+                event.preventDefault();
+                last.focus();
+            } else if (!event.shiftKey && (document.activeElement === last || !panelRef.current.contains(document.activeElement))) {
+                event.preventDefault();
+                first.focus();
+            }
+        };
+
+        document.addEventListener('keydown', handleDialogKeys);
+        return () => {
+            document.removeEventListener('keydown', handleDialogKeys);
+            previous?.focus?.();
+        };
+    }, []);
 
     useEffect(() => {
         let active = true;
@@ -61,10 +105,10 @@ export function GroupMembersPanel({ chat, user, onClose, onLeave }) {
 
     return (
         <div style={styles.overlay} role="presentation" onClick={event => { if (event.target === event.currentTarget) onClose(); }}>
-            <section style={styles.panel} role="dialog" aria-modal="true" aria-label="Управление группой">
+            <section ref={panelRef} style={styles.panel} role="dialog" aria-modal="true" aria-labelledby="vortex-group-members-title" tabIndex={-1}>
                 <div style={styles.header}>
-                    <div><h2 style={styles.title}>Участники группы</h2><div style={styles.hint}>{participants.length} участников · {admins.length} администраторов</div></div>
-                    <button type="button" onClick={onClose} style={styles.close} aria-label="Закрыть">✕</button>
+                    <div><h2 id="vortex-group-members-title" style={styles.title}>Участники группы</h2><div style={styles.hint}>{participants.length} участников · {admins.length} администраторов</div></div>
+                    <button ref={closeRef} type="button" onClick={onClose} style={styles.close} aria-label="Закрыть">✕</button>
                 </div>
 
                 {isAdmin && <form onSubmit={invite} style={styles.invite}>
@@ -109,7 +153,7 @@ export function GroupMembersPanel({ chat, user, onClose, onLeave }) {
 
 const styles = {
     overlay: { position: 'fixed', inset: 0, zIndex: 1100, background: 'rgba(0,0,0,.72)', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: 16 },
-    panel: { width: 'min(520px, 100%)', maxHeight: '85vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', borderRadius: 20, background: 'var(--bg-secondary)', border: '1px solid var(--border-default)', color: 'var(--text-primary)', boxShadow: '0 24px 80px rgba(0,0,0,.55)' },
+    panel: { width: 'min(520px, 100%)', maxHeight: '85vh', maxBlockSize: '85dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden', borderRadius: 20, background: 'var(--bg-secondary)', border: '1px solid var(--border-default)', color: 'var(--text-primary)', boxShadow: '0 24px 80px rgba(0,0,0,.55)' },
     header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '22px 24px 16px', borderBottom: '1px solid var(--border-subtle)' },
     title: { margin: 0, fontSize: '1.1rem' }, hint: { color: 'var(--text-tertiary)', fontSize: '.76rem' },
     close: { border: 0, background: 'transparent', fontSize: '1.2rem', color: 'var(--text-secondary)', cursor: 'pointer' },
