@@ -409,6 +409,7 @@ test('storage rejects active-content MIME types and unauthenticated reads', { sk
     const alice = environment.authenticatedContext('alice').storage();
     const guest = environment.unauthenticatedContext().storage();
     const safePath = 'chats/chat-a/media/alice/mime-policy-check';
+    const safeRef = ref(alice, safePath);
 
     for (const contentType of [
         'text/html',
@@ -426,6 +427,7 @@ test('storage rejects active-content MIME types and unauthenticated reads', { sk
         ));
     }
 
+    await assertSucceeds(uploadString(safeRef, 'safe text', 'raw', { contentType: 'text/plain' }));
     await assertFails(getMetadata(ref(guest, safePath)));
 });
 
