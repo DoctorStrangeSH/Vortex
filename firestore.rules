@@ -27,7 +27,7 @@ service cloud.firestore {
         chatId == 'dm_' + string(first.size()) + '_' + first + '_' + string(second.size()) + '_' + second;
     }
     function validChat(data) {
-      return data.keys().hasAll(['type','participants']) && data.type in ['private','group','channel','secret'] &&
+      return data.keys().hasAll(['participants']) && data.get('type', null) in ['private','group','channel','secret'] &&
         (!('createdBy' in data) || (data.createdBy is string && data.createdBy.size() > 0)) &&
         data.participants is list && data.participants.size() >= 1 && data.participants.size() <= 100 &&
         data.participants.toSet().size() == data.participants.size() &&
@@ -245,7 +245,7 @@ service cloud.firestore {
         allow read: if chatMember(chatId);
         allow create: if chatMember(chatId) && validMessage(request.resource.data, chatId) &&
           validNewAttachment(request.resource.data) &&
-          (get(/databases/$(database)/documents/chats/$(chatId)).data.type != 'channel' ||
+          (get(/databases/$(database)/documents/chats/$(chatId)).data.get('type', null) != 'channel' ||
            request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.admins) &&
           request.resource.data.senderId == request.auth.uid &&
           request.resource.data.text is string && request.resource.data.text.size() <= 4096 &&
