@@ -609,27 +609,50 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
         contextMenuTriggerRef.current = e.currentTarget;
         setContextMenu({ x: Math.min(e.clientX, window.innerWidth - 190), y: Math.min(e.clientY, window.innerHeight - 260), messageId, text: msgText, isOwn });
     };
+    const restoreContextMenuFocus = (target = 'trigger') => {
+        requestAnimationFrame(() => {
+            if (target === 'composer') {
+                document.querySelector('.vortex-composer-input')?.focus();
+                return;
+            }
+            const trigger = contextMenuTriggerRef.current;
+            if (trigger?.isConnected) trigger.focus();
+            else document.querySelector('.vortex-composer-input')?.focus();
+        });
+    };
     const closeContextMenu = () => {
         setContextMenu(null);
-        requestAnimationFrame(() => contextMenuTriggerRef.current?.focus?.());
+        restoreContextMenuFocus();
     };
-    const handleCopy = (text) => { navigator.clipboard.writeText(text); setContextMenu(null); };
-    const handleEdit = (messageId, oldText) => { setEditingMessage({ id: messageId, text: oldText }); setText(oldText); setContextMenu(null); };
+    const handleCopy = (text) => {
+        void navigator.clipboard.writeText(text);
+        setContextMenu(null);
+        restoreContextMenuFocus();
+    };
+    const handleEdit = (messageId, oldText) => {
+        setEditingMessage({ id: messageId, text: oldText });
+        setText(oldText);
+        setContextMenu(null);
+        restoreContextMenuFocus('composer');
+    };
     const handleDelete = async (messageId) => {
         if (!confirm('Удалить сообщение?')) return;
         await messageService.deleteMessage(chat.id, messageId);
         setContextMenu(null);
+        restoreContextMenuFocus();
     };
     const handlePin = async (messageId, messageText) => {
         const msg = messages.find(m => m.id === messageId);
         if (!msg) return;
         await chatService.pinMessage(chat.id, messageId, messageText, msg.senderName || '');
         setContextMenu(null);
+        restoreContextMenuFocus();
     };
     const handleReply = (messageId) => {
         const msg = messages.find(m => m.id === messageId);
         if (msg) setText(`@${msg.senderName || 'пользователь'} `);
         setContextMenu(null);
+        restoreContextMenuFocus('composer');
     };
     const cancelEdit = () => { setEditingMessage(null); setText(''); };
 
