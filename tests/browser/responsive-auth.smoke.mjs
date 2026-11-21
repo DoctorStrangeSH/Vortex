@@ -4,7 +4,7 @@ import { existsSync } from 'node:fs';
 import { setTimeout as delay } from 'node:timers/promises';
 import { chromium } from 'playwright-core';
 
-const port = 4190;
+const port = 4187;
 const origin = `http://127.0.0.1:${port}`;
 const widths = [320, 375, 768, 1024, 1440];
 const server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { stdio: 'pipe' });
