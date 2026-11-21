@@ -3,6 +3,7 @@ import { userService } from '../../services/userService';
 import { chatService } from '../../services/chatService';
 import { createSearchRequestTracker } from '../../services/searchRequestTracker';
 import { Icon } from '../UI/Icon';
+import { trapDialogTab } from '../../utils/dialogFocus.js';
 
 export function ContactsModal({ user, onClose, onChatCreated }) {
     const [query, setQuery] = useState('');
@@ -13,13 +14,29 @@ export function ContactsModal({ user, onClose, onChatCreated }) {
     const tracker = useRef(null);
     if (!tracker.current) tracker.current = createSearchRequestTracker();
     const inputRef = useRef(null);
+    const dialogRef = useRef(null);
+    const onCloseRef = useRef(onClose);
+    const creatingRef = useRef(creatingId);
+    onCloseRef.current = onClose;
+    creatingRef.current = creatingId;
 
     useEffect(() => {
+        const previous = document.activeElement;
         inputRef.current?.focus();
-        const onKey = event => { if (event.key === 'Escape' && !creatingId) onClose?.(); };
+        const onKey = event => {
+            if (event.key === 'Escape' && !creatingRef.current) {
+                event.preventDefault();
+                onCloseRef.current?.();
+                return;
+            }
+            trapDialogTab(event, dialogRef.current);
+        };
         document.addEventListener('keydown', onKey);
-        return () => document.removeEventListener('keydown', onKey);
-    }, [onClose, creatingId]);
+        return () => {
+            document.removeEventListener('keydown', onKey);
+            previous?.focus?.();
+        };
+    }, []);
     useEffect(() => () => tracker.current.dispose(), []);
 
     useEffect(() => {
@@ -62,7 +79,7 @@ export function ContactsModal({ user, onClose, onChatCreated }) {
     };
 
     return <div class="vortex-dialog-overlay" style={styles.overlay} onClick={() => { if (!creatingId) onClose?.(); }}>
-        <div class="vortex-dialog-surface vortex-contacts-dialog" role="dialog" aria-modal="true" aria-labelledby="vortex-contacts-title" style={styles.modal} onClick={event => event.stopPropagation()}>
+        <div ref={dialogRef} class="vortex-dialog-surface vortex-contacts-dialog" role="dialog" aria-modal="true" aria-labelledby="vortex-contacts-title" tabIndex={-1} style={styles.modal} onClick={event => event.stopPropagation()}>
             <header style={styles.header}>
                 <div><div style={styles.eyebrow}>VORTEX / ЛЮДИ</div><h2 id="vortex-contacts-title" style={styles.title}>Найти собеседника</h2><p style={styles.description}>Ищите людей по @username. Email остаётся приватным.</p></div>
                 <button type="button" aria-label="Закрыть контакты" disabled={Boolean(creatingId)} onClick={onClose} style={styles.close}><Icon name="close" size={19}/></button>

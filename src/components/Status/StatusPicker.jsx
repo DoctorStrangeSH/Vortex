@@ -1,15 +1,39 @@
+import { useEffect, useRef } from 'preact/hooks';
 import { statusService } from '../../services/statusService';
+import { trapDialogTab } from '../../utils/dialogFocus.js';
 
 export function StatusPicker({ userId, onClose }) {
     const emojis = statusService.getEmojis();
     const presets = statusService.PRESET_STATUSES;
+    const dialogRef = useRef(null);
+    const closeRef = useRef(null);
+    const onCloseRef = useRef(onClose);
+    onCloseRef.current = onClose;
+
+    useEffect(() => {
+        const previous = document.activeElement;
+        closeRef.current?.focus();
+        const onKey = event => {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                onCloseRef.current?.();
+                return;
+            }
+            trapDialogTab(event, dialogRef.current);
+        };
+        document.addEventListener('keydown', onKey);
+        return () => {
+            document.removeEventListener('keydown', onKey);
+            previous?.focus?.();
+        };
+    }, []);
 
     return (
         <div style={st.overlay} onClick={onClose}>
-            <div style={st.modal} onClick={e => e.stopPropagation()}>
+            <div ref={dialogRef} style={st.modal} role="dialog" aria-modal="true" aria-labelledby="vortex-status-title" tabIndex={-1} onClick={e => e.stopPropagation()}>
                 <div style={st.header}>
-                    <h4>😊 Выбрать статус</h4>
-                    <button onClick={onClose} style={st.closeBtn}>✕</button>
+                    <h4 id="vortex-status-title">😊 Выбрать статус</h4>
+                    <button ref={closeRef} type="button" aria-label="Закрыть выбор статуса" onClick={onClose} style={st.closeBtn}>✕</button>
                 </div>
                 <div style={st.body}>
                     <div style={st.emojis}>
