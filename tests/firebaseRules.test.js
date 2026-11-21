@@ -302,6 +302,36 @@ test('two participants can complete a message lifecycle: send, receive, read and
     assert.equal((await assertSucceeds(getDoc(bobMessage))).exists(), false);
 });
 
+test('read receipts are append-only and bound to the authenticated participant UID', { skip: !available }, async () => {
+    const alice = environment.authenticatedContext('alice').firestore();
+    const bob = environment.authenticatedContext('bob').firestore();
+    const eve = environment.authenticatedContext('eve').firestore();
+    const aliceMessage = doc(alice, 'chats/chat-a/messages/read-receipt-identity');
+    const bobMessage = doc(bob, 'chats/chat-a/messages/read-receipt-identity');
+    const eveMessage = doc(eve, 'chats/chat-a/messages/read-receipt-identity');
+
+    await assertSucceeds(setDoc(aliceMessage, {
+        senderId: 'alice', text: 'Проверка отметок прочтения', readBy: []
+    }));
+
+    // The recipient may append only their own authenticated UID.
+    await assertSucceeds(updateDoc(bobMessage, { readBy: arrayUnion('bob') }));
+    assert.deepEqual((await assertSucceeds(getDoc(aliceMessage))).data().readBy, ['bob']);
+
+    // A participant cannot forge another reader or replace the receipt history.
+    await assertFails(updateDoc(bobMessage, { readBy: arrayUnion('alice') }));
+    await assertFails(updateDoc(bobMessage, { readBy: ['bob', 'alice'] }));
+    await assertFails(updateDoc(bobMessage, { readBy: ['alice'] }));
+
+    // Receipts are append-only: a reader cannot revoke their own or another
+    // participant's receipt, and an outsider cannot write any receipt.
+    await assertFails(updateDoc(bobMessage, { readBy: arrayRemove('bob') }));
+    await assertFails(updateDoc(bobMessage, { readBy: [] }));
+    await assertFails(updateDoc(eveMessage, { readBy: arrayUnion('eve') }));
+
+    assert.deepEqual((await assertSucceeds(getDoc(aliceMessage))).data().readBy, ['bob']);
+});
+
 test('authors cannot mark their own messages as read', { skip: !available }, async () => {
     const alice = environment.authenticatedContext('alice').firestore();
     const message = doc(alice, 'chats/chat-a/messages/self-read-denied');
