@@ -66,6 +66,7 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
     const [editingMessage, setEditingMessage] = useState(null);
     const [otherStatus, setOtherStatus] = useState({ isOnline: false, lastSeen: null });
     const [contextMenu, setContextMenu] = useState(null);
+    const contextMenuTriggerRef = useRef(null);
     const [isRecording, setIsRecording] = useState(false);
     const [voiceStarting, setVoiceStarting] = useState(false);
     const [recordSeconds, setRecordSeconds] = useState(0);
@@ -605,7 +606,12 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
     // Контекстное меню
     const handleContextMenu = (e, messageId, isOwn, msgText) => {
         e.preventDefault();
+        contextMenuTriggerRef.current = e.currentTarget;
         setContextMenu({ x: Math.min(e.clientX, window.innerWidth - 190), y: Math.min(e.clientY, window.innerHeight - 260), messageId, text: msgText, isOwn });
+    };
+    const closeContextMenu = () => {
+        setContextMenu(null);
+        requestAnimationFrame(() => contextMenuTriggerRef.current?.focus?.());
     };
     const handleCopy = (text) => { navigator.clipboard.writeText(text); setContextMenu(null); };
     const handleEdit = (messageId, oldText) => { setEditingMessage({ id: messageId, text: oldText }); setText(oldText); setContextMenu(null); };
@@ -1007,7 +1013,7 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
                 </div>
             )}
 
-            {contextMenu && <ContextMenu x={contextMenu.x} y={contextMenu.y} messageId={contextMenu.messageId} text={contextMenu.text} isOwn={contextMenu.isOwn} isPinned={pinnedMessageIds.has(contextMenu.messageId)} onCopy={handleCopy} onEdit={contextMenu.isOwn ? handleEdit : null} onPin={handlePin} onDelete={contextMenu.isOwn ? handleDelete : null} onReply={handleReply} />}
+            {contextMenu && <ContextMenu x={contextMenu.x} y={contextMenu.y} messageId={contextMenu.messageId} text={contextMenu.text} isOwn={contextMenu.isOwn} isPinned={pinnedMessageIds.has(contextMenu.messageId)} onCopy={handleCopy} onEdit={contextMenu.isOwn ? handleEdit : null} onPin={handlePin} onDelete={contextMenu.isOwn ? handleDelete : null} onReply={handleReply} onClose={closeContextMenu} />}
             {showReactions && <ReactionPicker x={Math.min(showReactions.x, window.innerWidth - 200)} y={showReactions.y} onReaction={(emoji) => handleReaction(showReactions.messageId, emoji)} />}
             {micDenied && <div style={s.micOverlay} onClick={() => setMicDenied(false)}><div style={s.micPrompt}><div>🎙️</div><h3>Микрофон запрещён</h3><p>📱 iPhone: Настройки → Safari → Микрофон<br/>📱 Android: Настройки → Приложения → Браузер → Разрешения</p><button onClick={retryMicAccess} style={s.micAllowBtn}>🔄 Попробовать снова</button></div></div>}
             {showGallery && <MediaGallery messages={messages} onClose={() => setShowGallery(false)} />}
