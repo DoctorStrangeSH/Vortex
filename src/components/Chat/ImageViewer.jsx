@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { useAttachmentSource } from '../../services/useAttachmentSource.js';
 import { getAdjacentGalleryMedia } from '../../services/mediaGallerySelection.js';
 import { getImageSwipeDirection } from '../../services/imageViewerGestures.js';
+import { trapDialogTab } from '../../utils/dialogFocus.js';
 import { Icon } from '../UI/Icon';
 
 const ZOOM_MIN = 1;
@@ -61,20 +62,16 @@ export function ImageViewer({ messages, selectedId, onClose }) {
                 event.preventDefault(); navigate(event.key === 'ArrowRight' ? 1 : -1);
                 return;
             }
-            if (event.key !== 'Tab') return;
-            const buttons = [...dialogRef.current.querySelectorAll('button:not([disabled])')];
-            if (!buttons.length) return;
-            if (event.shiftKey && document.activeElement === buttons[0]) { event.preventDefault(); buttons[buttons.length - 1].focus(); }
-            else if (!event.shiftKey && document.activeElement === buttons[buttons.length - 1]) { event.preventDefault(); buttons[0].focus(); }
+            trapDialogTab(event, dialogRef.current);
         };
         document.addEventListener('keydown', handleKeyDown);
         return () => { document.removeEventListener('keydown', handleKeyDown); previousFocus?.focus?.(); };
     }, []);
 
     return (
-        <div ref={dialogRef} class="vortex-image-viewer" role="dialog" aria-modal="true" aria-label="Просмотр изображений">
+        <div ref={dialogRef} class="vortex-image-viewer" role="dialog" aria-modal="true" aria-labelledby="vortex-image-viewer-title" tabIndex={-1}>
             <header class="vortex-image-viewer-toolbar">
-                <div class="vortex-image-viewer-title"><span aria-live="polite">МЕДИА · {position || '—'} / {images.length}</span><strong>{current?.fileName || 'Изображение'}</strong></div>
+                <div class="vortex-image-viewer-title"><span aria-live="polite">МЕДИА · {position || '—'} / {images.length}</span><strong id="vortex-image-viewer-title">{current?.fileName || 'Изображение'}</strong></div>
                 <div class="vortex-image-viewer-tools">
                     <button type="button" aria-label="Уменьшить изображение" disabled={zoom <= ZOOM_MIN} onClick={() => setZoom(value => Math.max(ZOOM_MIN, value - ZOOM_STEP))}>−</button>
                     <button type="button" aria-label="Вернуть исходный масштаб" onClick={() => setZoom(1)}>{Math.round(zoom * 100)}%</button>
