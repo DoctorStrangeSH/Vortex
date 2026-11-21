@@ -25,6 +25,7 @@ export function ReactionPicker({ x, y, onReaction, onClose }) {
         const next = getNextMenuItemIndex(event.key, current, items.length);
         if (next < 0) return;
         event.preventDefault();
+        items.forEach((item, index) => { item.tabIndex = index === next ? 0 : -1; });
         items[next]?.focus();
     };
 
