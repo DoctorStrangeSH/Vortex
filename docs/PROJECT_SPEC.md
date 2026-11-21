@@ -363,13 +363,13 @@ Storage выключен до положительного staging-теста up
 
 **Правило статусов:** галочка означает, что требование реализовано и покрыто доступными автоматическими проверками в репозитории. Она не означает production/staging-приёмку. Все ручные и внешние проверки отмечаются отдельными пунктами и остаются открытыми до фактического выполнения.
 
-**Сводка на 21.11.2026 (после PR #89 и channel schema audit):**
+**Сводка на 21.11.2026 (после PR #89/#90 и legacy DM compatibility audit):**
 | Этап | Реализация в репозитории | Внешняя/ручная приёмка |
 | --- | --- | --- |
-| 0. Scope freeze | Зафиксирован; открыт PR #90 — дополнительные channel schema Emulator tests | Инвентаризация и безопасное удаление исторических refs не завершены |
+| 0. Scope freeze | Зафиксирован; открыт PR #91 — совместимость старых личных чатов | Инвентаризация и безопасное удаление исторических refs не завершены |
 | 1. Безопасность и регистрация | Восстановление регистрации/username-claim и read receipts покрыты кодом/Emulator tests; CI зелёный | Production Rules, legacy accounts, staging и rollback не проверены |
-| 2. Личная переписка | Стабильный DM, текст, история, scroll position, offline queue и Chromium restart покрыты кодом/тестами | Реальная Firebase-доставка двумя аккаунтами и ручная матрица не пройдены |
-| 3. Группы и каналы | Spark-совместимые membership/admin/channel rules в main; UI self-leave исправлен PR #89 | Staging и двухаккаунтная проверка не пройдены; channel schema test PR #90 ожидает CI; журнал действий отложен |
+| 2. Личная переписка | Стабильный DM, текст, история, scroll position, offline queue и Chromium restart покрыты кодом/тестами | Legacy DM без `type` требуют совместимого preview update; PR #91 ожидает CI; реальная Firebase-доставка не проверена |
+| 3. Группы и каналы | Spark-совместимые membership/admin/channel rules и channel schema Emulator tests в main; UI self-leave исправлен PR #89 | Staging и двухаккаунтная проверка не пройдены; журнал действий отложен |
 | 4. Интерфейс и вложения | Obsidian Iris и базовые UI-сценарии присутствуют | Полная мобильная матрица и реальный Storage staging не пройдены |
 | 5–6. RC и выпуск | Не начинались | Все release gates открыты |
 
@@ -1035,6 +1035,14 @@ PR #32 остаётся открытым, конфликтующим с теку
 - [x] Сохранять запрет на использование чужого/повреждённого claim.
 - [x] Сохранить прежнее поведение обычной регистрации.
 - [ ] Проверить восстановление реального legacy-аккаунта на отдельном staging-проекте.
+### 13.28. Channel schema tests и legacy DM compatibility — 21.11.2026
+
+- PR #90 объединён в main (`bddea465`); Quality CI #657 прошёл полностью: install, unit, browser, Firestore/Storage Rules, auth и production build.
+- Добавлены Emulator-проверки целостности channel documents: owner/admin identity, равенство participants/subscribers, subscriberCount, уникальность и запрет независимой рассинхронизации membership projection.
+- В ходе следующего аудита обнаружено: клиент находит legacy direct chats без `type`, но Firestore update gate требовал `validChat()` с обязательным `type`. Это могло оставить старые чаты доступными только для чтения.
+- PR #91 добавляет узкий compatibility path: только два существующих участника, только preview fields, без изменения participants, participantEmails, ownership и прочих legacy полей. Добавлен Emulator test атомарной отправки сообщения и негативные проверки.
+- PR #91 открыт; Quality CI #660 выполняется. Не объединять до полного зелёного результата.
+- Production Rules/data, Firebase billing, Storage flags и deployments не изменялись.
 ### 13.27. Исправление выхода делегированного администратора и проверка схемы каналов — 21.11.2026
 
 - PR #89 объединён в main (550aeb5); Quality CI #654 прошёл полностью: install, unit, browser, Firestore Rules, auth и production build.
