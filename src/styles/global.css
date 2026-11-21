@@ -307,6 +307,7 @@ button:disabled { cursor: not-allowed !important; }
 .vortex-chat-item.is-active::before { background: var(--vortex-primary-light); }
 .vortex-chat-item.is-active .vortex-chat-name { color: var(--text-primary); }
 .vortex-chat-open { display:flex; flex:1; align-items:center; align-self:stretch; min-width:0; padding:0; border:0; background:transparent; color:inherit; font:inherit; text-align:left; cursor:pointer; }
+.vortex-chat-name, .vortex-chat-last { display:block; min-width:0; }
 .vortex-chat-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.4; }
 .vortex-chat-time { align-self: flex-start; padding-top: 5px; font-variant-numeric: tabular-nums; }
 .vortex-chat-more { min-width: 34px; min-height: 36px; transition: background-color .18s ease, color .18s ease; }
