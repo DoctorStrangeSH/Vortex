@@ -370,7 +370,7 @@ Storage выключен до положительного staging-теста up
 | 1. Безопасность и регистрация | Legacy DM (#91) и sanitization существующих public profile projections (#92) покрыты кодом/Emulator tests; Quality CI #669 зелёный | Production Rules, реальные legacy accounts, staging и rollback не проверены |
 | 2. Личная переписка | Стабильный DM, текст, история, scroll position, offline queue и Chromium restart покрыты кодом/тестами; legacy DM без `type` исправлены PR #91 | Реальная Firebase-доставка двумя staging аккаунтами и ручная матрица не проверены |
 | 3. Группы и каналы | Spark-совместимые membership/admin/channel rules и channel schema Emulator tests в main; UI self-leave исправлен PR #89 | Staging и двухаккаунтная проверка не пройдены; журнал действий отложен |
-| 4. Интерфейс и вложения | Obsidian Iris; Storage Rules и CI покрывают authenticated upload, participant-only reads, wrong-owner/nonmember denial, MIME, anonymous read, overwrite и owner cleanup; PR #99–#108 добавили keyboard/screen-reader implementation fixes для списка чатов, auth tabs, меню и всех основных диалогов/медиа preview | Полная мобильная матрица, ручная keyboard/screen-reader проверка и реальный Storage staging не пройдены; локальная Node 24/Java 21 emulator discrepancy остаётся отдельной диагностикой |
+| 4. Интерфейс и вложения | Obsidian Iris; Storage Rules и CI покрывают authenticated upload, participant-only reads, wrong-owner/nonmember denial, MIME, anonymous read, overwrite и owner cleanup; PR #99–#112 добавили keyboard/focus improvements для списка чатов, диалогов, меню, image viewer, mobile navigation и poll creator | Полная мобильная матрица, ручная keyboard/screen-reader проверка и реальный Storage staging не пройдены; локальная Node 24/Java 21 emulator discrepancy остаётся отдельной диагностикой |
 | 5–6. RC и выпуск | Не начинались | Все release gates открыты |
 
 
@@ -1161,5 +1161,23 @@ Vortex 1.0 завершён, только когда одновременно:
 - [x] Завершить focus containment для Chat Info, Pinned Messages и вложенного Media Gallery preview (PR #107).
 - [x] Завершить focus containment для Contacts, New Chat, Profile, Tasks, Theme Customizer и Status Picker (PR #108).
 - [x] Подтвердить полный Quality CI для PR #107–#108.
+- [ ] Провести ручную keyboard/screen-reader проверку и мобильную матрицу 320–1440 CSS px.
+- [ ] Выполнить внешний Firebase staging и двухаккаунтную ручную матрицу перед RC.
+
+
+### 13.34. Mobile menus и poll creator accessibility — 21.11.2026
+
+- PR #109 объединён в `main` (`3a9d9d4f`); полный Quality CI #44903603614 прошёл. Документация зафиксировала PR #107–#108 и оставшиеся ручные/release gates.
+- PR #110 объединён в `main` (`68f9f668`); полный Quality CI #44903670500 прошёл. Mobile navigation drawer переносит фокус внутрь, удерживает Tab/Shift+Tab, закрывается Escape и возвращает фокус к toggle без перехвата фокуса при переходе к другому действию.
+- PR #111 объединён в `main` (`61a297e0`); полный Quality CI #44904060401 прошёл: unit, browser, Firestore/Storage Rules Emulator, Auth Emulator и production build. Mobile chat-header actions теперь имеют семантику menu/menuitem, начальный фокус и навигацию ArrowUp/ArrowDown/Home/End; Escape возвращает фокус к trigger.
+- PR #112 объединён в `main` (`479d73c6`); полный Quality CI #44904185346 прошёл. Poll Creator стал настоящим modal overlay с accessible labels, close/cancel, backdrop dismissal, Escape, focus trap и focus restoration. Схема poll и message write behavior не менялись.
+- Изменения UI не заменяют ручную приёмку. Screen reader, keyboard-only сценарии, видимый focus и viewport matrix 320–1440 CSS px остаются открытыми release gates.
+- Firebase production, Storage enablement, billing, Rules и пользовательские данные не менялись.
+
+- [x] Объединить и проверить документирующий PR #109.
+- [x] Объединить mobile navigation focus management (PR #110).
+- [x] Объединить keyboard-operable chat header menu (PR #111).
+- [x] Объединить accessible Poll Creator modal (PR #112).
+- [x] Подтвердить полный Quality CI для PR #109–#112.
 - [ ] Провести ручную keyboard/screen-reader проверку и мобильную матрицу 320–1440 CSS px.
 - [ ] Выполнить внешний Firebase staging и двухаккаунтную ручную матрицу перед RC.
