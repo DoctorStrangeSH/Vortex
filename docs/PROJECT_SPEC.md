@@ -1099,3 +1099,19 @@ PR #32 остаётся открытым, конфликтующим с теку
 - [x] Подтвердить отсутствие открытых PR на момент аудита.
 - [ ] Провести безопасную инвентаризацию исторических веток и определить только доказанно удаляемые refs.
 - [ ] Пройти отдельный Firebase staging и ручную двухаккаунтную матрицу.
+
+### 13.30. Актуализация Firebase callable deployment и branch audit — 21.11.2026
+
+- Quality CI #681 прошёл полностью на коммите `bfabd730`.
+- PR #31 и #32 закрыты без merge. PR #32 не является открытым rollout blocker: callable-backed group membership и immutable membership history не входят в 1.0 при зафиксированном Firebase Spark. Текущий клиентский `chatService` использует Firestore SDK; текущая модель групп защищена Firestore Rules и покрыта Emulator tests (включая PR #58, #88 и #90).
+- Исторический `functions/index.js` всё ещё экспортирует `createGroupChat` и `updateGroupMembership`; `firebase.json` ранее регистрировал папку `functions` как deploy target, хотя клиент не использует эти callables. Это создавало риск случайного Cloud Functions deploy/Blaze prompt при общем `firebase deploy`.
+- Подготовлен PR #95: удалить Functions deployment target и Functions Emulator port из `firebase.json`, добавить regression test против повторной регистрации target, явно описать dormant callable source как post-1.0 reference. Исходники `functions/` и их pure validation tests сохраняются; production deploy, billing, Firestore/Storage Rules и пользовательские данные не затрагиваются.
+- Ветка-аудит: PR #64, #65, #66, #89, #91 и #45 merged; связанные ветки остаются в Git refs. PR #31/#32 закрыты без merge; PR #40 заменён #42, PR #52 заменён #53. PR #68–#70 закрыты без merge; PR #71/#67 содержат последующую консолидированную security-документацию/реализацию. В репозитории нет открытых PR на момент проверки.
+- Удаление branch refs не выполнялось: доступный GitHub connector не предоставляет безопасную delete-ref операцию. Не использовать force-push или перемещение refs как замену удалению.
+
+- [x] Подтвердить CI #681.
+- [x] Проверить, что текущий клиентский group membership использует Firestore SDK, а callable exports остаются отдельным dormant backend.
+- [x] Уточнить, что PR #32 закрыт без merge и не является текущим открытым blocker.
+- [ ] Убрать случайный Cloud Functions deploy target в PR #95 после полного CI.
+- [ ] Завершить физическую очистку устаревших branch refs, когда будет доступна безопасная delete-ref операция.
+- [ ] Реальная staging-приёмка и двухаккаунтная матрица остаются обязательными для RC.
