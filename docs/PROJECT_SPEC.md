@@ -1216,3 +1216,23 @@ Vortex 1.0 завершён, только когда одновременно:
 - [x] Подтвердить полный Quality CI для PR #119–#120.
 - [ ] Провести ручную keyboard/screen-reader проверку и мобильную матрицу 320–1440 CSS px.
 - [ ] Выполнить внешний Firebase staging и двухаккаунтную ручную матрицу перед RC.
+
+
+### 13.37. Dialog focus browser regression and CI closure — 21.11.2026
+
+- PR #122 объединён в `main` (merge commit `f262c557`).
+- Quality checks run #44908198331 (run 746) завершился `success` на точном PR head `fd3ba137d096e8dd456f5d17ba434087f997072d`: `npm ci`, unit tests, browser tests, Firestore/Storage Rules Emulator, Auth Emulator и production build прошли.
+- Добавлена фильтрация focus targets без layout boxes, а также с `display:none`, `visibility:hidden` и `visibility:collapse`; добавлены unit regression tests.
+- Добавлен Chromium browser smoke test для CSS-hidden, `hidden`, `inert`, `aria-hidden`, возврата фокуса после выхода из диалога и fallback для пустого диалога.
+- PR #123–#124 скорректировали только browser fixture: сначала видимую область пустого диалога, затем native `<dialog open>` для достоверного тестирования focus fallback.
+- PR #125 выявил и исправил реальную ошибку: native controls с `tabIndex === -1` не должны участвовать в последовательной Tab-навигации. Добавлен unit regression test.
+- PR #121 ранее объединён в `main` (merge commit `754681fb`), документируя прогресс PR #119–#120.
+- Эти изменения не затрагивали Firebase production, Storage enablement, тариф, Security Rules, секреты или пользовательские данные.
+
+- [x] Завершить браузерную проверку dialog focus и пустого-dialog fallback (PR #122, CI #44908198331).
+- [x] Исключить native controls с `tabIndex === -1` из Tab focus order (PR #125).
+- [x] Подтвердить полный Quality CI: unit, Chromium browser, Rules Emulator, Auth Emulator, production build.
+- [ ] Провести ручную keyboard-only проверку на реальном интерфейсе.
+- [ ] Провести проверку с screen reader и видимым focus.
+- [ ] Проверить viewport matrix 320, 375, 768, 1024 и 1440 CSS px.
+- [ ] Выполнить отдельный Firebase staging и двухаккаунтную ручную матрицу перед RC.
