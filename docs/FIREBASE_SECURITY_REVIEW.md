@@ -101,6 +101,15 @@ PR #32 закрыт без merge 21.11.2026: callable Cloud Functions не со�
 - PR #91 устраняет обнаруженный разрыв совместимости legacy DM: документ без `type` может обновлять только preview fields существующим участником. `participants`, `participantEmails`, `createdBy` и другие legacy поля остаются неизменяемыми через этот путь. Отправка сообщения и preview update проверяются атомарным Emulator batch.
 - PR #91 ожидает Quality CI #660; до полного успеха не объединять.
 - Это repository/Emulator coverage. Production Rules, legacy data migration, staging, двухаккаунтная проверка и rollback остаются отдельными release gates.
+## Legacy public profile projection sanitization (21.11.2026)
+
+- PR #91 merged as `0598adad`; Quality CI #663 passed all stages, including Firestore/Storage Rules, auth and production build.
+- Owner-login repair now also inspects an existing `publicProfiles/{uid}` document. Previously, the repair planner only created a missing projection; it did not remove unexpected legacy fields from an existing public document.
+- The new allowlist projection preserves only valid public fields (UID, username, display name, bounded bio/status fields). Legacy email, phone, and unknown fields are removed by an owner-authenticated replacement write.
+- The repair refuses to overwrite a projection whose UID or username conflicts with the private owner record. Conflicts remain a manual migration/staging case.
+- Unit coverage is added for sanitization, preservation of valid public data, no-op on already-safe documents, and conflicting ownership.
+- Pending PR must pass full Quality CI. This remains repository-side migration logic; no production data or Rules have been changed.
+
 ## Обязательные тесты Emulator Suite
 
 | Сценарий | Ожидается |
