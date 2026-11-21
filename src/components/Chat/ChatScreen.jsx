@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'preact/hooks';
+import { useReducer, useEffect } from 'preact/hooks';
 import { Sidebar } from './Sidebar';
 import { ChatWindow } from './ChatWindow';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../../services/firebase';
+import { createChatScreenState, reduceChatScreenState } from '../../services/chatScreenState.js';
 
 export function ChatScreen({ user }) {
     // A new signed-in account must never inherit the previous account's
@@ -11,25 +12,25 @@ export function ChatScreen({ user }) {
 }
 
 function AccountChatScreen({ user }) {
-    const [activeChat, setActiveChat] = useState(null);
-    const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
-    const [showChat, setShowChat] = useState(false);
+    const [navigation, dispatch] = useReducer(
+        reduceChatScreenState,
+        window.innerWidth,
+        createChatScreenState
+    );
+    const { activeChat, isMobile, showChat } = navigation;
 
     // The sidebar updates its own list, but a selected chat must also refresh:
     // newly invited members and admin changes should appear without reopening it.
     useEffect(() => {
         const chatId = activeChat?.id;
         if (!chatId) return undefined;
-        const clearIfCurrent = () => {
-            setActiveChat(current => current?.id === chatId ? null : current);
-            setShowChat(false);
-        };
+        const clearIfCurrent = () => dispatch({ type: 'revoke-chat', chatId });
         return onSnapshot(doc(db, 'chats', chatId), snapshot => {
             if (!snapshot.exists() || !snapshot.data().participants?.includes(user.uid)) {
                 clearIfCurrent();
                 return;
             }
-            setActiveChat(current => current?.id === chatId ? { id: snapshot.id, ...snapshot.data() } : current);
+            dispatch({ type: 'update-chat', chat: { id: snapshot.id, ...snapshot.data() } });
         }, error => {
             if (error.code === 'permission-denied' || error.code === 'not-found') clearIfCurrent();
             else console.error('Не удалось обновить чат', error);
@@ -37,21 +38,13 @@ function AccountChatScreen({ user }) {
     }, [activeChat?.id, user.uid]);
 
     useEffect(() => {
-        const handleResize = () => {
-            const mobile = window.innerWidth <= 768;
-            setIsMobile(mobile);
-            if (!mobile) setShowChat(false);
-        };
+        const handleResize = () => dispatch({ type: 'resize', viewportWidth: window.innerWidth });
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    const handleSelectChat = (chat) => {
-        setActiveChat(chat);
-        if (isMobile) setShowChat(true);
-    };
-
-    const handleBack = () => setShowChat(false);
+    const handleSelectChat = chat => dispatch({ type: 'select-chat', chat });
+    const handleBack = () => dispatch({ type: 'back' });
 
     if (!isMobile) {
         return (
