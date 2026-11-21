@@ -428,6 +428,7 @@ test('storage rejects active-content MIME types and unauthenticated reads', { sk
     }
 
     await assertSucceeds(uploadString(safeRef, 'safe text', 'raw', { contentType: 'text/plain' }));
+    await assertFails(uploadString(safeRef, 'replacement', 'raw', { contentType: 'text/plain' }));
     await assertFails(getMetadata(ref(guest, safePath)));
 });
 
