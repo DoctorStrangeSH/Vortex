@@ -5,6 +5,7 @@ import { trapDialogTab } from '../../utils/dialogFocus.js';
 export function ChatInfoDialog({ chat, other, avatarColor, loadedCount, pinnedCount, onClose, onGallery, onPinned, onMembers, onTheme, onExport }) {
     const surfaceRef = useRef(null);
     const closeRef = useRef(null);
+    const skipFocusRestoreRef = useRef(false);
     const closeCallbackRef = useRef(onClose);
     closeCallbackRef.current = onClose;
 
@@ -22,9 +23,14 @@ export function ChatInfoDialog({ chat, other, avatarColor, loadedCount, pinnedCo
         document.addEventListener('keydown', onKeyDown);
         return () => {
             document.removeEventListener('keydown', onKeyDown);
-            previous?.focus?.();
+            if (!skipFocusRestoreRef.current) previous?.focus?.();
         };
     }, []);
+
+    const runAction = (handler, opensLayer = false) => {
+        if (opensLayer) skipFocusRestoreRef.current = true;
+        handler?.();
+    };
 
     const group = chat.type === 'group';
     const channel = chat.type === 'channel';
@@ -56,7 +62,7 @@ export function ChatInfoDialog({ chat, other, avatarColor, loadedCount, pinnedCo
                 </div>
                 <nav class="vortex-info-actions" aria-label="Разделы чата">
                     {actions.map(action => (
-                        <button key={action.title} type="button" class="vortex-info-action" onClick={action.handler}>
+                        <button key={action.title} type="button" class="vortex-info-action" onClick={() => runAction(action.handler, action.title !== "Экспорт переписки")}>
                             <span class="vortex-info-action-icon"><Icon name={action.icon} /></span>
                             <span class="vortex-info-action-copy"><strong>{action.title}</strong><small>{action.detail}</small></span>
                             <span class="vortex-info-chevron" aria-hidden="true">›</span>
