@@ -27,7 +27,7 @@ service cloud.firestore {
         chatId == 'dm_' + string(first.size()) + '_' + first + '_' + string(second.size()) + '_' + second;
     }
     function validChat(data) {
-      return data.keys().hasAll(['type','participants']) && data.type in ['private','group','channel','secret'] &&
+      return data.keys().hasAll(['participants']) && data.get('type', null) in ['private','group','channel','secret'] &&
         (!('createdBy' in data) || (data.createdBy is string && data.createdBy.size() > 0)) &&
         data.participants is list && data.participants.size() >= 1 && data.participants.size() <= 100 &&
         data.participants.toSet().size() == data.participants.size() &&
@@ -46,6 +46,24 @@ service cloud.firestore {
           data.ownerId == data.createdBy && data.admins is list && data.admins.size() == 1 &&
           data.admins[0] == data.ownerId && data.subscribers is list && data.subscribers == data.participants &&
           data.subscriberCount == data.subscribers.size()));
+    }
+    // Legacy direct chats created before deterministic IDs/type metadata existed.
+    // They remain writable only by their two existing participants, and only for preview fields.
+    function validLegacyPrivateChat(data) {
+      let participants = data.get('participants', []);
+      return data.get('type', null) == null &&
+        participants is list && participants.size() == 2 &&
+        participants[0] is string && participants[0].size() > 0 &&
+        participants[1] is string && participants[1].size() > 0 &&
+        participants[0] != participants[1] &&
+        (!('createdBy' in data) || (data.createdBy is string && data.createdBy.size() > 0));
+    }
+    function validLegacyChatPreview(data) {
+      return (!('lastMessage' in data) || (data.lastMessage is string && data.lastMessage.size() <= 4096)) &&
+        (!('lastMessageTime' in data) || data.lastMessageTime is timestamp) &&
+        (!('lastMessageId' in data) || data.lastMessageId == null ||
+          (data.lastMessageId is string && data.lastMessageId.size() > 0 && data.lastMessageId.size() <= 150)) &&
+        (!('pinnedMessages' in data) || (data.pinnedMessages is list && data.pinnedMessages.size() <= 30));
     }
     function validChannelMembershipChange() {
       let before = resource.data;
@@ -212,16 +230,22 @@ service cloud.firestore {
         request.resource.data.type != 'secret' &&
         (request.resource.data.type != 'group' || request.resource.data.admins == [request.auth.uid]) &&
         (request.resource.data.type != 'private' || validPrivateChatId(chatId, request.resource.data));
-      allow update: if validChat(request.resource.data) && (
-        (member(resource.data) && (resource.data.type != 'channel' || request.auth.uid in resource.data.admins) &&
-          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastMessage','lastMessageTime','lastMessageId','pinnedMessages'])) ||
-        validChannelMembershipChange() || validGroupMemberChange() || validGroupAdminChange());
+      allow update: if (
+        (validChat(request.resource.data) && (
+          (member(resource.data) && (resource.data.type != 'channel' || request.auth.uid in resource.data.admins) &&
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastMessage','lastMessageTime','lastMessageId','pinnedMessages'])) ||
+          validChannelMembershipChange() || validGroupMemberChange() || validGroupAdminChange())) ||
+        (validLegacyPrivateChat(resource.data) && validLegacyPrivateChat(request.resource.data) &&
+          member(resource.data) &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastMessage','lastMessageTime','lastMessageId','pinnedMessages']) &&
+          validLegacyChatPreview(request.resource.data))
+      );
       allow delete: if signedIn() && resource.data.createdBy == request.auth.uid && resource.data.type != 'group';
       match /messages/{messageId} {
         allow read: if chatMember(chatId);
         allow create: if chatMember(chatId) && validMessage(request.resource.data, chatId) &&
           validNewAttachment(request.resource.data) &&
-          (get(/databases/$(database)/documents/chats/$(chatId)).data.type != 'channel' ||
+          (get(/databases/$(database)/documents/chats/$(chatId)).data.get('type', null) != 'channel' ||
            request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.admins) &&
           request.resource.data.senderId == request.auth.uid &&
           request.resource.data.text is string && request.resource.data.text.size() <= 4096 &&
