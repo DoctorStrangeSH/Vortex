@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { Icon } from '../UI/Icon';
 import { userService } from '../../services/userService';
 import { chatService } from '../../services/chatService';
 import { channelService } from '../../services/channelService';
 import { resolveGroupParticipants } from '../../services/groupParticipantSelection.js';
+import { trapDialogTab } from '../../utils/dialogFocus.js';
 
 export function NewChatModal({ user, onClose, onChatCreated, mode = 'personal' }) {
     const [searchInput, setSearchInput] = useState('');
@@ -13,12 +14,29 @@ export function NewChatModal({ user, onClose, onChatCreated, mode = 'personal' }
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [step, setStep] = useState(mode === 'group' ? 'groupForm' : mode === 'channel' ? 'channelForm' : 'search');
+    const dialogRef = useRef(null);
+    const onCloseRef = useRef(onClose);
+    const loadingRef = useRef(loading);
+    onCloseRef.current = onClose;
+    loadingRef.current = loading;
 
     useEffect(() => {
-        const onKey = event => { if (event.key === 'Escape' && !loading) onClose?.(); };
+        const previous = document.activeElement;
+        dialogRef.current?.querySelector('input:not([disabled]), button:not([disabled])')?.focus();
+        const onKey = event => {
+            if (event.key === 'Escape' && !loadingRef.current) {
+                event.preventDefault();
+                onCloseRef.current?.();
+                return;
+            }
+            trapDialogTab(event, dialogRef.current);
+        };
         document.addEventListener('keydown', onKey);
-        return () => document.removeEventListener('keydown', onKey);
-    }, [loading, onClose]);
+        return () => {
+            document.removeEventListener('keydown', onKey);
+            previous?.focus?.();
+        };
+    }, []);
 
     const handleSearch = async () => {
         if (loading) return;
@@ -76,7 +94,7 @@ export function NewChatModal({ user, onClose, onChatCreated, mode = 'personal' }
 
     return (
         <div class="vortex-dialog-overlay" style={st.overlay} onClick={() => { if (!loading) onClose?.(); }}>
-            <div class="vortex-dialog-surface vortex-newchat-dialog" style={st.modal} role="dialog" aria-modal="true" aria-labelledby="new-chat-heading" onClick={e => e.stopPropagation()}>
+            <div ref={dialogRef} class="vortex-dialog-surface vortex-newchat-dialog" style={st.modal} role="dialog" aria-modal="true" aria-labelledby="new-chat-heading" tabIndex={-1} onClick={e => e.stopPropagation()}>
                 <div style={st.header}>
                     <div><div style={st.eyebrow}>VORTEX · НОВОЕ</div><h3 id="new-chat-heading" style={st.title}>{mode === 'group' ? 'Новая группа' : mode === 'channel' ? 'Новый канал' : 'Новый чат'}</h3></div>
                     <button type="button" onClick={onClose} disabled={loading} aria-label="Закрыть окно" style={st.closeBtn}><Icon name="close" size={20}/></button>
