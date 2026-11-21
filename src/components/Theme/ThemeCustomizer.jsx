@@ -1,7 +1,6 @@
-import { useState, useEffect } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { themeService } from '../../services/themeService';
 import { Icon } from '../UI/Icon';
-import { useRef } from 'preact/hooks';
 import { trapDialogTab } from '../../utils/dialogFocus.js';
 
 export function ThemeCustomizer({ onClose }) {
