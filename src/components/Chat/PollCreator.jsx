@@ -60,7 +60,8 @@ export function PollCreator({ onSend, onClose }) {
     };
     
     return (
-        <div ref={dialogRef} style={s.container} class="vortex-dialog-surface vortex-poll-creator" role="dialog" aria-modal="true" aria-labelledby="vortex-poll-creator-title" tabIndex={-1}>
+        <div class="vortex-dialog-overlay" style={s.overlay} onClick={event => { if (event.target === event.currentTarget) onClose?.(); }}>
+        <div ref={dialogRef} style={s.container} class="vortex-dialog-surface vortex-poll-creator" role="dialog" aria-modal="true" aria-labelledby="vortex-poll-creator-title" tabIndex={-1} onClick={event => event.stopPropagation()}>
             <div style={s.heading}><h4 id="vortex-poll-creator-title" style={s.title}>📊 Создать опрос</h4><button type="button" aria-label="Закрыть создание опроса" onClick={() => onClose?.()} style={s.closeBtn}>×</button></div>
             
             <label style={s.fieldLabel}>Вопрос<input aria-label="Вопрос опроса" required value={question} onInput={e => setQuestion(e.target.value)} placeholder="Введите вопрос" style={s.input} /></label>
@@ -75,10 +76,12 @@ export function PollCreator({ onSend, onClose }) {
             <button type="button" onClick={addOption} style={s.addBtn}>+ Добавить вариант</button>
             <div style={s.actions}><button type="button" onClick={() => onClose?.()} style={s.cancelBtn}>Отмена</button><button type="button" onClick={handleSend} style={s.sendBtn}>📊 Отправить опрос</button></div>
         </div>
+        </div>
     );
 }
 
 const s = {
+    overlay: { position:'fixed', inset:0, zIndex:1200, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px', background:'rgba(2,4,16,.62)', backdropFilter:'blur(5px)' },
     container: { padding: '1rem', background: 'var(--bg-secondary)', borderRadius: '12px', border: '1px solid var(--border-default)' },
     heading: { display:'flex', alignItems:'center', justifyContent:'space-between', gap:'12px' },
     title: { marginBottom: '0.75rem', fontSize: '1rem' },
