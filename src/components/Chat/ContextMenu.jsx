@@ -18,13 +18,14 @@ export function ContextMenu({ x, y, messageId, text, isOwn, isPinned, onCopy, on
         const next = getNextMenuItemIndex(event.key, index, buttons.length);
         if (next < 0) return;
         event.preventDefault();
+        buttons.forEach((button, buttonIndex) => { button.tabIndex = buttonIndex === next ? 0 : -1; });
         buttons[next]?.focus();
     };
 
     return (
         <div ref={menuRef} onKeyDown={onMenuKeyDown} class="vortex-context-menu" role="menu" aria-label="Действия с сообщением" style={{ ...s.menu, top: adjustedY, left: adjustedX }}>
-            <button type="button" role="menuitem" class="vortex-menu-item" style={s.item} onClick={() => onCopy(text)}>📋 Копировать</button>
-            {onReply && <button type="button" role="menuitem" class="vortex-menu-item" style={s.item} onClick={() => onReply(messageId)}>💬 Ответить</button>}
+            <button type="button" role="menuitem" class="vortex-menu-item" style={s.item} tabIndex={0} onClick={() => onCopy(text)}>📋 Копировать</button>
+            {onReply && <button type="button" role="menuitem" class="vortex-menu-item" tabIndex={-1} style={s.item} onClick={() => onReply(messageId)}>💬 Ответить</button>}
             {isOwn && onEdit && <button type="button" role="menuitem" class="vortex-menu-item" style={s.item} onClick={() => onEdit(messageId, text)}>✏️ Редактировать</button>}
             <button type="button" role="menuitem" class="vortex-menu-item" style={s.item} onClick={() => onPin(messageId, text)}>
                 {isPinned ? '📌 Открепить' : '📌 Закрепить'}
