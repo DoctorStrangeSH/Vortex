@@ -405,6 +405,33 @@ test('storage denies nonmember and wrong-owner uploads (positive path pending cr
     await assertFails(uploadString(ref(eve, 'chats/chat-a/media/eve/photo3'), 'hello', 'raw', { contentType: 'text/plain' }));
 });
 
+test('storage rejects active-content MIME types, unauthenticated reads and object overwrites', { skip: !available || !process.env.FIREBASE_STORAGE_EMULATOR_HOST }, async () => {
+    const alice = environment.authenticatedContext('alice').storage();
+    const guest = environment.unauthenticatedContext().storage();
+    const safePath = 'chats/chat-a/media/alice/mime-policy-check';
+    const safeRef = ref(alice, safePath);
+
+    for (const contentType of [
+        'text/html',
+        'image/svg+xml',
+        'application/javascript',
+        'text/javascript',
+        'application/xhtml+xml',
+        'application/xml'
+    ]) {
+        await assertFails(uploadString(
+            ref(alice, `chats/chat-a/media/alice/blocked-${contentType.replace(/[^a-z0-9]/gi, '-')}`),
+            '<script>alert(1)</script>',
+            'raw',
+            { contentType }
+        ));
+    }
+
+    await assertSucceeds(uploadString(safeRef, 'safe text', 'raw', { contentType: 'text/plain' }));
+    await assertFails(uploadString(safeRef, 'replacement', 'raw', { contentType: 'text/plain' }));
+    await assertFails(getMetadata(ref(guest, safePath)));
+});
+
 test('storage members can read attachments; only the owner can delete after the message is gone', { skip: !available || !process.env.FIREBASE_STORAGE_EMULATOR_HOST }, async () => {
     const aliceDb = environment.authenticatedContext('alice').firestore();
     const aliceStorage = environment.authenticatedContext('alice').storage();
