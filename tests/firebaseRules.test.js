@@ -1175,3 +1175,79 @@ test('concurrent retries with the same message ID create one message and one mat
     const allMessages = await assertSucceeds(getDocs(collection(aliceTabOne, 'chats', chatId, 'messages')));
     assert.equal(allMessages.docs.filter(item => item.id === messageId).length, 1);
 });
+
+
+test('concurrent same-ID message retries from two tabs commit one message and one preview', { skip: !available }, async () => {
+    const aliceFirstTab = environment.authenticatedContext('alice').firestore();
+    const aliceSecondTab = environment.authenticatedContext('alice').firestore();
+    const bob = environment.authenticatedContext('bob').firestore();
+    const chatId = 'dm_5_alice_3_bob';
+    const messageId = 'concurrent-stable-message-id';
+    const chatRef = doc(aliceFirstTab, 'chats', chatId);
+    const firstMessageRef = doc(aliceFirstTab, 'chats', chatId, 'messages', messageId);
+    const secondMessageRef = doc(aliceSecondTab, 'chats', chatId, 'messages', messageId);
+
+    await assertSucceeds(setDoc(chatRef, {
+        type: 'private',
+        createdBy: 'alice',
+        participants: ['alice', 'bob'],
+        participantNames: ['Alice', 'Bob'],
+        createdAt: serverTimestamp(),
+        lastMessage: 'Чат создан',
+        lastMessageTime: serverTimestamp(),
+        lastMessageId: null,
+        pinnedMessages: []
+    }));
+
+    const sendFromTab = firestore => runTransaction(firestore, async transaction => {
+        const messageRef = doc(firestore, 'chats', chatId, 'messages', messageId);
+        const existing = await transaction.get(messageRef);
+        if (existing.exists()) {
+            if (existing.data().senderId !== 'alice') {
+                throw new Error('Идентификатор сообщения уже занят другим отправителем');
+            }
+            return false;
+        }
+
+        const currentChat = await transaction.get(doc(firestore, 'chats', chatId));
+        assert.equal(currentChat.exists(), true);
+        transaction.set(messageRef, {
+            senderId: 'alice',
+            senderName: 'Alice',
+            type: 'text',
+            text: 'Одно сообщение из двух вкладок',
+            readBy: [],
+            createdAt: serverTimestamp()
+        });
+        transaction.update(doc(firestore, 'chats', chatId), {
+            lastMessage: 'Одно сообщение из двух вкладок',
+            lastMessageId: messageId,
+            lastMessageTime: serverTimestamp()
+        });
+        return true;
+    });
+
+    const outcomes = await Promise.all([
+        assertSucceeds(sendFromTab(aliceFirstTab)),
+        assertSucceeds(sendFromTab(aliceSecondTab))
+    ]);
+    assert.deepEqual([...outcomes].sort(), [false, true]);
+
+    const storedMessages = await assertSucceeds(getDocs(collection(aliceFirstTab, 'chats', chatId, 'messages')));
+    assert.equal(storedMessages.docs.filter(item => item.id === messageId).length, 1);
+    assert.equal(storedMessages.docs.find(item => item.id === messageId).data().text, 'Одно сообщение из двух вкладок');
+
+    const storedChat = await assertSucceeds(getDoc(chatRef));
+    assert.equal(storedChat.data().lastMessageId, messageId);
+    assert.equal(storedChat.data().lastMessage, 'Одно сообщение из двух вкладок');
+
+    const bobMessageRef = doc(bob, 'chats', chatId, 'messages', messageId);
+    assert.equal((await assertSucceeds(getDoc(bobMessageRef))).data().senderId, 'alice');
+
+    await assertFails(runTransaction(bob, async transaction => {
+        const existing = await transaction.get(bobMessageRef);
+        if (existing.exists() && existing.data().senderId !== 'bob') {
+            throw new Error('Идентификатор сообщения уже занят другим отправителем');
+        }
+    }));
+});
