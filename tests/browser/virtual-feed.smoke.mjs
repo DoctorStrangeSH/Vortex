@@ -31,7 +31,7 @@ try {
     await page.waitForFunction(() => Boolean(window.virtualFeedQA));
 
     await page.waitForFunction(() => window.virtualFeedQA.metrics().mountedRows > 0);
-    assert.ok((await page.evaluate(() => window.virtualFeedQA.metrics().mountedRows)) < 50, 'virtual feed should mount fewer than 50 of 1500 rows');
+    assert.ok((await page.evaluate(() => window.virtualFeedQA.metrics().mountedRows)) < 50, 'virtual feed should mount fewer than 50 of 10000 rows');
 
     await page.evaluate(() => window.virtualFeedQA.navigate('message-1200'));
     await page.waitForSelector('[data-qa-id="message-1200"]');
@@ -41,7 +41,7 @@ try {
     assert.ok(await page.locator('[data-qa-id="message-1200"]').count(), 'prepending older history should preserve the visible target');
 
     await page.evaluate(() => window.virtualFeedQA.scrollBottom());
-    await page.waitForSelector('[data-qa-id="message-1499"]');
+    await page.waitForSelector('[data-qa-id="message-9999"]');
     await page.waitForFunction(() => {
         const { scrollTop, scrollHeight, clientHeight } = window.virtualFeedQA.metrics();
         return scrollHeight - scrollTop - clientHeight < 110;
