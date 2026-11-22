@@ -24,7 +24,7 @@ try {
     for (let attempt = 0; attempt < 60; attempt++) {
         if (server.exitCode !== null) throw new Error('Vite exited before responsive dialogs test');
         try {
-            const response = await fetch(`${origin}/tests/browser/dialog-focus.html`);
+            const response = await fetch(`${origin}/`);
             if (response.ok) { ready = true; break; }
         } catch { /* Wait for Vite startup. */ }
         await delay(250);
