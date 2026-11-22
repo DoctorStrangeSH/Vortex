@@ -13,7 +13,6 @@ const viewports = [
     { width: 1440, height: 900 }, { width: 375, height: 480 },
     { width: 1024, height: 480 }
 ];
-const expected = ['chat-info', 'gallery', 'pinned', 'profile', 'group'];
 const server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { stdio: 'pipe' });
 let browser;
 let serverOutput = '';
@@ -25,12 +24,14 @@ try {
     for (let attempt = 0; attempt < 60; attempt++) {
         if (server.exitCode !== null) throw new Error('Vite exited before responsive dialogs test');
         try {
-            const response = await fetch(`${origin}/tests/browser/responsive-dialogs.html`);
+            const response = await fetch(`${origin}/tests/browser/dialog-focus.html`);
             if (response.ok) { ready = true; break; }
         } catch { /* Wait for Vite startup. */ }
         await delay(250);
     }
-    assert.ok(ready, `Vite fixture did not become ready: ${serverOutput || '(no output)'}`);
+    assert.ok(ready, `Vite server did not become ready: ${serverOutput || '(no output)'}`);
+    const fixtureResponse = await fetch(`${origin}/tests/browser/responsive-dialogs.html`);
+    assert.equal(fixtureResponse.status, 200, `Responsive dialog fixture should be served (HTTP ${fixtureResponse.status})`);
     const browserBinary = existsSync('/usr/bin/chromium') ? { executablePath: '/usr/bin/chromium' } : { channel: 'chrome' };
     browser = await chromium.launch({ ...browserBinary, headless: true, args: ['--no-sandbox'] });
     const page = await browser.newPage({ viewport: viewports[0], deviceScaleFactor: 1 });
