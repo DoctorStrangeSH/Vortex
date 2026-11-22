@@ -4,9 +4,12 @@ import { existsSync } from 'node:fs';
 import { setTimeout as delay } from 'node:timers/promises';
 import { chromium } from 'playwright-core';
 
-const port = 4190;
+const port = 4192;
 const origin = `http://127.0.0.1:${port}`;
-const server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { stdio: 'pipe' });
+const server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { stdio: ['ignore', 'pipe', 'pipe'] });
+let serverOutput = '';
+server.stdout.on('data', chunk => { serverOutput += chunk.toString(); });
+server.stderr.on('data', chunk => { serverOutput += chunk.toString(); });
 let browser;
 
 try {
@@ -16,10 +19,11 @@ try {
         try {
             const response = await fetch(`${origin}/tests/browser/composer.html`);
             if (response.ok) { ready = true; break; }
+            if (response.status !== 404) serverOutput += `Fixture HTTP ${response.status}\\n`;
         } catch { /* Wait for Vite startup. */ }
         await delay(250);
     }
-    assert.ok(ready, 'composer fixture should start');
+    assert.ok(ready, `composer fixture should start; Vite output: ${serverOutput}`);
     const browserBinary = existsSync('/usr/bin/chromium') ? { executablePath: '/usr/bin/chromium' } : { channel: 'chrome' };
     browser = await chromium.launch({ ...browserBinary, headless: true, args: ['--no-sandbox'] });
     const page = await browser.newPage({ viewport: { width: 390, height: 720 } });
