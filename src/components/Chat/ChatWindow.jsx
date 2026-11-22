@@ -10,6 +10,7 @@ import { MAX_STORAGE_FILE_BYTES, validateLegacyMediaFile } from '../../services/
 import { presenceService } from '../../services/presenceService';
 import { voiceService } from '../../services/voiceService';
 import { typingService } from '../../services/typingService';
+import { watchChatActivity } from '../../services/chatActivitySubscriptions.js';
 import { reactionService } from '../../services/reactionService';
 import { soundService } from '../../services/soundService';
 import { offlineService } from '../../services/offlineService';
@@ -472,12 +473,25 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
 
     // Онлайн-статус + печатает
     useEffect(() => {
-        if (!chat) return;
-        const otherId = chat.participants?.find(id => id !== user.uid);
-        if (otherId) {
-            presenceService.watchUser(otherId, setOtherStatus);
-            typingService.watchTyping(chat.id, otherId, setIsTyping);
+        if (!chat) {
+            setOtherStatus({ isOnline: false, lastSeen: null });
+            setIsTyping(false);
+            return;
         }
+        const otherId = chat.participants?.find(id => id !== user.uid);
+        const stopWatching = watchChatActivity({
+            chatId: chat.id,
+            otherId,
+            watchPresence: (uid, callback) => presenceService.watchUser(uid, callback),
+            watchTyping: (chatId, uid, callback) => typingService.watchTyping(chatId, uid, callback),
+            onPresenceChange: setOtherStatus,
+            onTypingChange: setIsTyping
+        });
+        return () => {
+            stopWatching();
+            setOtherStatus({ isOnline: false, lastSeen: null });
+            setIsTyping(false);
+        };
     }, [chat?.id, user.uid]);
 
     // Закрытие меню
