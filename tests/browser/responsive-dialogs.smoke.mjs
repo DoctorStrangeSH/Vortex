@@ -1,11 +1,9 @@
 import assert from 'node:assert/strict';
-import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { setTimeout as delay } from 'node:timers/promises';
+import { readFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
 import { chromium } from 'playwright-core';
 
-const port = 4190;
-const origin = `http://127.0.0.1:${port}`;
 const viewports = [
     { width: 320, height: 720 }, { width: 375, height: 800 },
     { width: 560, height: 800 }, { width: 561, height: 800 },
@@ -13,39 +11,26 @@ const viewports = [
     { width: 1440, height: 900 }, { width: 375, height: 480 },
     { width: 1024, height: 480 }
 ];
-const server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { stdio: 'pipe' });
 let browser;
-let serverOutput = '';
-server.stdout.on('data', chunk => { serverOutput += chunk.toString(); });
-server.stderr.on('data', chunk => { serverOutput += chunk.toString(); });
 
 try {
-    let ready = false;
-    for (let attempt = 0; attempt < 60; attempt++) {
-        if (server.exitCode !== null) throw new Error('Vite exited before responsive dialogs test');
-        // Vite's startup banner is the readiness signal; do not couple process
-        // startup to the HTTP status of the app root or a particular fixture.
-        if (/VITE.*ready in/i.test(serverOutput)) { ready = true; break; }
-        await delay(250);
-    }
-    assert.ok(ready, `Vite process did not report readiness: ${serverOutput || '(no output)'}`);
-
-    let fixtureResponse;
-    for (let attempt = 0; attempt < 20; attempt++) {
-        try {
-            fixtureResponse = await fetch(`${origin}/tests/browser/responsive-dialogs.html`);
-            if (fixtureResponse.ok) break;
-        } catch { /* Retry briefly while the local server begins accepting requests. */ }
-        await delay(100);
-    }
-    assert.equal(fixtureResponse?.status, 200, `Responsive dialog fixture should be served (HTTP ${fixtureResponse?.status ?? 'unreachable'})`);
+    // This is a static layout fixture. Load the repository's actual CSS and
+    // fixture HTML directly, avoiding an unnecessary Vite server/process race.
+    const [fixture, styles] = await Promise.all([
+        readFile(resolve('tests/browser/responsive-dialogs.html'), 'utf8'),
+        readFile(resolve('src/styles/global.css'), 'utf8')
+    ]);
+    const html = fixture.replace(
+        '<link rel="stylesheet" href="/src/styles/global.css">',
+        `<style>${styles}</style>`
+    );
+    assert.notEqual(html, fixture, 'fixture must include the real global stylesheet');
     const browserBinary = existsSync('/usr/bin/chromium') ? { executablePath: '/usr/bin/chromium' } : { channel: 'chrome' };
     browser = await chromium.launch({ ...browserBinary, headless: true, args: ['--no-sandbox'] });
     const page = await browser.newPage({ viewport: viewports[0], deviceScaleFactor: 1 });
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
-    await page.route(/^https:\/\//, route => route.abort());
-    await page.goto(`${origin}/tests/browser/responsive-dialogs.html`, { waitUntil: 'domcontentloaded' });
+    await page.setContent(html, { waitUntil: 'domcontentloaded' });
 
     const results = [];
     for (const viewport of viewports) {
@@ -87,5 +72,4 @@ try {
     console.log('Responsive dialog viewport matrix passed:', results);
 } finally {
     await browser?.close();
-    server.kill('SIGTERM');
 }
