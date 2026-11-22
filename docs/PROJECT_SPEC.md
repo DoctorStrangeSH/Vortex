@@ -363,15 +363,15 @@ Storage выключен до положительного staging-теста up
 
 **Правило статусов:** галочка означает, что требование реализовано и покрыто доступными автоматическими проверками в репозитории. Она не означает production/staging-приёмку. Все ручные и внешние проверки отмечаются отдельными пунктами и остаются открытыми до фактического выполнения.
 
-**Сводка на 21.11.2026 (после PR #99–#104 и Firebase/Storage audits):**
+**Сводка на 22.11.2026 (актуализирована после PR #134–#139):**
 | Этап | Реализация в репозитории | Внешняя/ручная приёмка |
 | --- | --- | --- |
-| 0. Scope freeze | Зафиксирован; PR #90–#97 объединены/закрыты; открытых PR нет на момент аудита; новых функций до выпуска 1.0 не добавлять | Инвентаризация исторических refs и безопасная очистка веток не завершены |
-| 1. Безопасность и регистрация | Legacy DM (#91) и sanitization существующих public profile projections (#92) покрыты кодом/Emulator tests; Quality CI #669 зелёный | Production Rules, реальные legacy accounts, staging и rollback не проверены |
-| 2. Личная переписка | Стабильный DM, текст, история, scroll position, offline queue и Chromium restart покрыты кодом/тестами; legacy DM без `type` исправлены PR #91 | Реальная Firebase-доставка двумя staging аккаунтами и ручная матрица не проверены |
-| 3. Группы и каналы | Spark-совместимые membership/admin/channel rules и channel schema Emulator tests в main; UI self-leave исправлен PR #89 | Staging и двухаккаунтная проверка не пройдены; журнал действий отложен |
-| 4. Интерфейс и вложения | Obsidian Iris; Storage Rules и CI покрывают authenticated upload, participant-only reads, wrong-owner/nonmember denial, MIME, anonymous read, overwrite и owner cleanup; PR #99–#112 добавили keyboard/focus improvements для списка чатов, диалогов, меню, image viewer, mobile navigation и poll creator | Полная мобильная матрица, ручная keyboard/screen-reader проверка и реальный Storage staging не пройдены; локальная Node 24/Java 21 emulator discrepancy остаётся отдельной диагностикой |
-| 5–6. RC и выпуск | Не начинались | Все release gates открыты |
+| 0. Scope freeze | Зафиксирован; новые функции до выпуска 1.0 не добавлять; PR #133 закрыт как superseded, PR #134–#139 объединены | Инвентаризация исторических refs и безопасная очистка веток не завершены |
+| 1. Безопасность и регистрация | Legacy DM, public profile sanitization, username claims и access Rules покрыты unit/Emulator tests; Production Firestore Rules синхронизированы владельцем с `main`, после публикации владелец подтвердил восстановление отправки | Staging, реальные legacy accounts, rollback и полная проверка приватных полей/read receipts ещё не пройдены |
+| 2. Личная переписка | Стабильный DM, текст, история, scroll position, offline queue и restart покрыты тестами; PR #138 добавил production-shaped атомарную send+preview регрессию; Quality CI #783 зелёный; владелец подтвердил Production send работает после обновления Rules | Полная двухаккаунтная RC-матрица, offline queue recovery на реальных сессиях, edits/deletes/read receipts и staging не завершены |
+| 3. Группы и каналы | Spark-совместимые membership/admin/channel rules и schema Emulator tests в main; UI self-leave исправлен PR #89 | Staging и двухаккаунтная проверка не пройдены; журнал действий отложен |
+| 4. Интерфейс и вложения | Obsidian Iris; responsive auth/chat/dialog/profile smoke coverage; Storage Rules Emulator покрывает доступ/отзыв; PR #99–#112 добавили keyboard/focus improvements | Полная ручная мобильная матрица, keyboard/screen-reader и реальный Storage staging не пройдены |
+| 5–6. RC и выпуск | Подготовительные тесты и документация продолжаются; RC не объявлен | Release gates остаются открытыми |
 
 
 ### Этап 0 — Scope freeze
@@ -383,7 +383,7 @@ Storage выключен до положительного staging-теста up
 **Выход:** утверждённый scope и список блокеров.
 
 ### Этап 1 — Безопасность и регистрация
-- [ ] Сопоставить production и repository Rules.
+- [x] Сопоставить и синхронизировать Production Firestore Rules с repository `firestore.rules`: владелец подтвердил расхождение; после публикации актуальных правил отправка сообщений восстановилась (инцидент закрыт PR #139).
 - [x] Исправить регистрацию/восстановление профиля на уровне кода: безопасная миграция public profile (PR #81) и повторное использование username claim только для того же UID и нормализованного username (PR #83); unit/Emulator CI пройдены. Реальные legacy-аккаунты остаются staging gate.
 - [ ] Закрыть приватные поля и username claims.
 - [x] Проверить авторство, реакции и read receipts на уровне Firestore Rules Emulator; PR #86 добавил отдельный append-only/UID-bound тест. Production-публикация остаётся отдельным gate.
@@ -399,7 +399,8 @@ Storage выключен до положительного staging-теста up
 - [x] Offline queue и идемпотентная доставка — unit/browser tests, две вкладки, tab restart и полный Chromium process restart с persistent profile; реальный Firestore staging остаётся отдельной проверкой.
 - [x] Read receipts: UID-bound append-only правила и Emulator coverage в main (PR #86).
 - [ ] Ручная проверка синхронизации отметок прочтения между двумя реальными аккаунтами/браузерами.
-- [ ] Ручная проверка двух аккаунтов/браузеров.
+- [x] Базовая Production отправка текста подтверждена владельцем после синхронизации Rules; PR #138 добавил production-shaped Emulator transaction regression, Quality CI #783 прошёл.
+- [ ] Полная реальная двухаккаунтная RC-приёмка: realtime, edits/deletes, read receipts, offline queue recovery и staging.
 
 **Выход:** надёжная личная переписка при нормальной сети и временных сбоях.
 
