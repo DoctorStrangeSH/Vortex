@@ -28,6 +28,8 @@ try {
     const browserBinary = existsSync('/usr/bin/chromium') ? { executablePath: '/usr/bin/chromium' } : { channel: 'chrome' };
     browser = await chromium.launch({ ...browserBinary, headless: true, args: ['--no-sandbox'] });
     const page = await browser.newPage({ viewport: viewports[0], deviceScaleFactor: 1 });
+    // Layout assertions should measure the settled geometry, not the dialog's entrance animation.
+    await page.emulateMedia({ reducedMotion: 'reduce' });
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
     await page.setContent(html, { waitUntil: 'domcontentloaded' });
