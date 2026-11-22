@@ -1316,3 +1316,13 @@ Vortex 1.0 завершён, только когда одновременно:
 - [ ] Проверить header actions, composer, длинные сообщения, меню и диалоги на 320/375/768/769/1024/1440 CSS px.
 - [ ] Провести ручную keyboard-only и screen-reader приёмку.
 - [ ] Выполнить отдельную staging и двухаккаунтную ручную матрицу перед RC.
+
+
+### 13.42. Production Firestore message-send incident — resolved (22.11.2026)
+
+- [x] Владелец синхронизировал Production Firestore Rules с актуальным `firestore.rules` из GitHub.
+- [x] Владелец подтвердил, что отправка сообщений снова работает.
+- [x] Добавлен production-shaped Emulator regression test для атомарной транзакции сообщения и chat preview (PR #138, merge commit `37e534165cf77816d1800b1c6921ee13612d0da2`).
+- [x] Quality CI #783 прошёл: unit tests, browser tests, Firestore/Storage Rules Emulator, Auth Emulator и production build.
+- [x] Зафиксировано: Production Rules необходимо публиковать отдельно; успешный Emulator CI сам по себе не обновляет правила в Firebase Production.
+- [ ] Завершить общую RC-приёмку с двумя тестовыми аккаунтами на staging/production-safe сценариях, включая offline queue recovery и read receipts.
