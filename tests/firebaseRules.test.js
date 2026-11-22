@@ -142,6 +142,60 @@ test('two users can create a new private dialog and exchange the first message p
     await assertFails(getDoc(doc(eve, 'chats', chatId, 'messages', messageId)));
 });
 
+test('production-shaped deterministic DM transaction creates message and updates preview atomically', { skip: !available }, async () => {
+    const firstUid = 'RvMAtBudmqhcb5J0IPe6B5RLveQ2';
+    const secondUid = 'w2dg3ZBB36RJpOfiad0H6MlyGEp1';
+    const chatId = `dm_${firstUid.length}_${firstUid}_${secondUid.length}_${secondUid}`;
+    const first = environment.authenticatedContext(firstUid).firestore();
+    const second = environment.authenticatedContext(secondUid).firestore();
+    const outsider = environment.authenticatedContext('unrelated-outsider').firestore();
+    const chatRef = doc(first, 'chats', chatId);
+    const messageId = '34ce80d0-f8e9-494a-96b4-5677ff739c07';
+    const firstMessageRef = doc(first, 'chats', chatId, 'messages', messageId);
+    const secondMessageRef = doc(second, 'chats', chatId, 'messages', messageId);
+
+    await assertSucceeds(setDoc(chatRef, {
+        type: 'private',
+        createdBy: firstUid,
+        participants: [firstUid, secondUid],
+        participantNames: ['Other participant', 'Sherlock'],
+        createdAt: serverTimestamp(),
+        lastMessage: 'Чат создан',
+        lastMessageTime: serverTimestamp(),
+        lastMessageId: null,
+        pinnedMessages: []
+    }));
+
+    await assertSucceeds(runTransaction(second, async transaction => {
+        const existing = await transaction.get(secondMessageRef);
+        assert.equal(existing.exists(), false);
+        const chat = await transaction.get(doc(second, 'chats', chatId));
+        assert.equal(chat.exists(), true);
+        transaction.set(secondMessageRef, {
+            senderId: secondUid,
+            senderName: 'Sherlock',
+            type: 'text',
+            text: 'Приветик',
+            readBy: [],
+            createdAt: serverTimestamp()
+        });
+        transaction.update(doc(second, 'chats', chatId), {
+            lastMessage: 'Приветик',
+            lastMessageId: messageId,
+            lastMessageTime: serverTimestamp()
+        });
+    }));
+
+    const storedMessage = await assertSucceeds(getDoc(firstMessageRef));
+    const storedChat = await assertSucceeds(getDoc(chatRef));
+    assert.equal(storedMessage.data().senderId, secondUid);
+    assert.equal(storedMessage.data().text, 'Приветик');
+    assert.equal(storedChat.data().lastMessage, 'Приветик');
+    assert.equal(storedChat.data().lastMessageId, messageId);
+    await assertFails(getDoc(doc(outsider, 'chats', chatId)));
+    await assertFails(getDoc(doc(outsider, 'chats', chatId, 'messages', messageId)));
+});
+
 test('simultaneous private-chat creation from both accounts converges on one canonical document', { skip: !available }, async () => {
     const alice = environment.authenticatedContext('alice').firestore();
     const bob = environment.authenticatedContext('bob').firestore();
