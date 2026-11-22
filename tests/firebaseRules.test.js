@@ -1302,3 +1302,60 @@ test('concurrent distinct message sends leave preview pointing to the latest com
     const allMessages = await assertSucceeds(getDocs(collection(aliceTabTwo, 'chats', chatId, 'messages')));
     assert.equal(allMessages.docs.filter(snapshot => messages.some(item => item.id === snapshot.id)).length, 2);
 });
+
+
+test('legacy private profile and email-bearing username claim stay owner-only while public projection omits email', { skip: !available }, async () => {
+    await seedDocument('users/alice', {
+        uid: { stringValue: 'alice' },
+        email: { stringValue: 'alice@example.test' },
+        displayName: { stringValue: 'Alice' },
+        username: { stringValue: 'alice_legacy' }
+    });
+    await seedDocument('publicProfiles/alice', {
+        uid: { stringValue: 'alice' },
+        username: { stringValue: 'alice_legacy' },
+        displayName: { stringValue: 'Alice' },
+        bio: { stringValue: 'Public bio' }
+    });
+    await seedDocument('usernames/alice_legacy', {
+        uid: { stringValue: 'alice' },
+        username: { stringValue: 'alice_legacy' },
+        email: { stringValue: 'alice@example.test' }
+    });
+
+    const alice = environment.authenticatedContext('alice').firestore();
+    const bob = environment.authenticatedContext('bob').firestore();
+    const anonymous = environment.unauthenticatedContext().firestore();
+
+    const ownPrivateProfile = await assertSucceeds(getDoc(doc(alice, 'users/alice')));
+    assert.equal(ownPrivateProfile.data().email, 'alice@example.test');
+    await assertFails(getDoc(doc(bob, 'users/alice')));
+    await assertFails(getDoc(doc(anonymous, 'users/alice')));
+
+    const publicProfile = await assertSucceeds(getDoc(doc(bob, 'publicProfiles/alice')));
+    assert.equal(publicProfile.data().displayName, 'Alice');
+    assert.equal(Object.hasOwn(publicProfile.data(), 'email'), false);
+    assert.equal(Object.hasOwn(publicProfile.data(), 'phone'), false);
+    await assertFails(getDoc(doc(anonymous, 'publicProfiles/alice')));
+
+    const ownLegacyClaim = await assertSucceeds(getDoc(doc(alice, 'usernames/alice_legacy')));
+    assert.equal(ownLegacyClaim.data().uid, 'alice');
+    await assertFails(getDoc(doc(bob, 'usernames/alice_legacy')));
+    await assertFails(getDoc(doc(anonymous, 'usernames/alice_legacy')));
+});
+
+test('public profile creation cannot copy private email or unknown fields into the searchable projection', { skip: !available }, async () => {
+    const alice = environment.authenticatedContext('alice').firestore();
+    await assertFails(setDoc(doc(alice, 'publicProfiles/alice'), {
+        uid: 'alice',
+        username: '',
+        displayName: 'Alice',
+        email: 'alice@example.test'
+    }));
+    await assertFails(setDoc(doc(alice, 'publicProfiles/alice'), {
+        uid: 'alice',
+        username: '',
+        displayName: 'Alice',
+        internalFlags: ['staff']
+    }));
+});
