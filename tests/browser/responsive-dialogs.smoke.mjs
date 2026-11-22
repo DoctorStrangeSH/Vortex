@@ -23,15 +23,22 @@ try {
     let ready = false;
     for (let attempt = 0; attempt < 60; attempt++) {
         if (server.exitCode !== null) throw new Error('Vite exited before responsive dialogs test');
-        try {
-            const response = await fetch(`${origin}/`);
-            if (response.ok) { ready = true; break; }
-        } catch { /* Wait for Vite startup. */ }
+        // Vite's startup banner is the readiness signal; do not couple process
+        // startup to the HTTP status of the app root or a particular fixture.
+        if (/VITE.*ready in/i.test(serverOutput)) { ready = true; break; }
         await delay(250);
     }
-    assert.ok(ready, `Vite server did not become ready: ${serverOutput || '(no output)'}`);
-    const fixtureResponse = await fetch(`${origin}/tests/browser/responsive-dialogs.html`);
-    assert.equal(fixtureResponse.status, 200, `Responsive dialog fixture should be served (HTTP ${fixtureResponse.status})`);
+    assert.ok(ready, `Vite process did not report readiness: ${serverOutput || '(no output)'}`);
+
+    let fixtureResponse;
+    for (let attempt = 0; attempt < 20; attempt++) {
+        try {
+            fixtureResponse = await fetch(`${origin}/tests/browser/responsive-dialogs.html`);
+            if (fixtureResponse.ok) break;
+        } catch { /* Retry briefly while the local server begins accepting requests. */ }
+        await delay(100);
+    }
+    assert.equal(fixtureResponse?.status, 200, `Responsive dialog fixture should be served (HTTP ${fixtureResponse?.status ?? 'unreachable'})`);
     const browserBinary = existsSync('/usr/bin/chromium') ? { executablePath: '/usr/bin/chromium' } : { channel: 'chrome' };
     browser = await chromium.launch({ ...browserBinary, headless: true, args: ['--no-sandbox'] });
     const page = await browser.newPage({ viewport: viewports[0], deviceScaleFactor: 1 });
