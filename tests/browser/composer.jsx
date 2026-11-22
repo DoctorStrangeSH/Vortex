@@ -11,6 +11,7 @@ function ComposerFixture() {
     const onSend = () => {
         setSent(value => value + 1);
         setText('');
+        setEditingMessage(null);
     };
     const onCancelEdit = () => {
         setCancelled(value => value + 1);
