@@ -22,6 +22,7 @@ function ComposerFixture() {
         h('output', { 'data-testid': 'sent-count' }, String(sent)),
         h('output', { 'data-testid': 'cancel-count' }, String(cancelled)),
         h('output', { 'data-testid': 'typing-count' }, String(typing)),
+        h('button', { type: 'button', 'data-testid': 'start-edit', onClick: () => setEditingMessage({ id: 'message-2' }) }, 'Начать редактирование'),
         h(MessageInput, {
             text,
             onTextChange: setText,
