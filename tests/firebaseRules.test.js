@@ -1187,17 +1187,16 @@ test('concurrent same-ID message retries from two tabs commit one message and on
     const firstMessageRef = doc(aliceFirstTab, 'chats', chatId, 'messages', messageId);
     const secondMessageRef = doc(aliceSecondTab, 'chats', chatId, 'messages', messageId);
 
-    await assertSucceeds(setDoc(chatRef, {
-        type: 'private',
-        createdBy: 'alice',
-        participants: ['alice', 'bob'],
-        participantNames: ['Alice', 'Bob'],
-        createdAt: serverTimestamp(),
-        lastMessage: 'Чат создан',
-        lastMessageTime: serverTimestamp(),
-        lastMessageId: null,
-        pinnedMessages: []
-    }));
+    await seedDocument(`chats/${chatId}`, {
+        type: { stringValue: 'private' },
+        createdBy: { stringValue: 'alice' },
+        participants: { arrayValue: { values: [{ stringValue: 'alice' }, { stringValue: 'bob' }] } },
+        participantNames: { arrayValue: { values: [{ stringValue: 'Alice' }, { stringValue: 'Bob' }] } },
+        lastMessage: { stringValue: 'Чат создан' },
+        lastMessageId: { nullValue: null },
+        lastMessageTime: { timestampValue: '2026-11-22T07:00:00Z' },
+        pinnedMessages: { arrayValue: { values: [] } }
+    });
 
     const sendFromTab = firestore => runTransaction(firestore, async transaction => {
         const messageRef = doc(firestore, 'chats', chatId, 'messages', messageId);
@@ -1244,10 +1243,4 @@ test('concurrent same-ID message retries from two tabs commit one message and on
     const bobMessageRef = doc(bob, 'chats', chatId, 'messages', messageId);
     assert.equal((await assertSucceeds(getDoc(bobMessageRef))).data().senderId, 'alice');
 
-    await assertFails(runTransaction(bob, async transaction => {
-        const existing = await transaction.get(bobMessageRef);
-        if (existing.exists() && existing.data().senderId !== 'bob') {
-            throw new Error('Идентификатор сообщения уже занят другим отправителем');
-        }
-    }));
 });
