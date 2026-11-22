@@ -2,7 +2,7 @@ import { h, render } from 'preact';
 import { useRef, useState } from 'preact/hooks';
 import { VirtualMessageList } from '../../src/components/Chat/VirtualMessageList.jsx';
 
-const initialMessages = Array.from({ length: 1500 }, (_, index) => ({ id: `message-${index}`, type: 'message' }));
+const initialMessages = Array.from({ length: 10000 }, (_, index) => ({ id: `message-${index}`, type: 'message' }));
 
 function VirtualFeedHarness() {
     const [chatId, setChatId] = useState('first');
@@ -43,7 +43,7 @@ function VirtualFeedHarness() {
         <VirtualMessageList key={chatId} messages={messages} navigationTarget={navigationTarget}
             externalContainerRef={containerRef}
             onVisibleRowsChange={() => setVisibleChanges(count => count + 1)}
-            renderMessage={row => <div data-qa-id={row.id} style={{ boxSizing: 'border-box', minHeight: row.id === 'message-1499' && expanded ? '420px' : '82px', borderBottom: '1px solid #ccc' }}>
+            renderMessage={row => <div data-qa-id={row.id} style={{ boxSizing: 'border-box', minHeight: row.id === 'message-9999' && expanded ? '420px' : '82px', borderBottom: '1px solid #ccc' }}>
                 {row.id === unreadId && <div data-unread-divider role="separator">Непрочитанные сообщения</div>}
                 {row.id}
             </div>} />
