@@ -47,7 +47,9 @@ try {
     assert.equal(await page.getByTestId('sent-count').textContent(), '1', 'Enter during IME composition must not send');
     assert.equal(await normalInput.inputValue(), 'Текст во время IME', 'IME composition text must remain intact');
 
-    await normalInput.press('Escape');
+    await page.getByTestId('start-edit').click();
+    const editInput = page.getByRole('textbox', { name: 'Редактировать сообщение' });
+    await editInput.press('Escape');
     assert.equal(await page.getByTestId('cancel-count').textContent(), '1', 'Escape should cancel message editing');
     assert.equal(await page.getByRole('textbox', { name: 'Текст сообщения' }).count(), 1, 'composer should return to normal mode');
 
