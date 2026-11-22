@@ -32,13 +32,22 @@
 - **PR #140:** актуализация статуса требований и release gates.
 - **PR #141:** Chromium browser tests реального MessageInput — Enter, IME и Escape.
 - **PR #142:** Chromium browser tests реального MessageBubble — текст, edited/pinned, reaction, double-click и keyboard context menu.
+- **PR #143:** оформление README, единый статус Firebase Security Review и отдельный roadmap.
+- **PR #144:** освобождение Presence/Typing subscriptions при переключении чатов и защита от запоздавших callbacks.
+- **PR #145:** Chromium stress test виртуализированного списка на 10 000 сообщений; менее 50 строк в DOM при навигации, prepend, mobile и keyboard сценариях.
 
 ## Ближайшие задачи
 
-1. Проверить полный жизненный цикл сообщения на двух staging аккаунтах.
-2. Закрыть оставшиеся приватность, legacy-account и rollback gates.
-3. Провести ручную адаптивную и accessibility приёмку.
-4. Подготовить RC checklist и получить подтверждение владельца.
+1. Провести staging-проверку жизненного цикла сообщений на двух независимых аккаунтах.
+2. Проверить синхронизацию очереди при нескольких вкладках и восстановление после перезапуска браузера на реальном Firebase staging.
+3. Закрыть privacy, legacy-account и rollback gates.
+4. Провести ручную адаптивную и accessibility приёмку.
+5. Подготовить RC checklist и получить подтверждение владельца.
+
+## Производительность истории
+
+- **Автоматизировано:** Chromium virtual-feed fixture на 10 000 сообщений; проверяется ограниченный DOM (<50 mounted rows), историческая навигация, prepend старой страницы, late media resize, unread marker, keyboard/mobile scroll и переключение чатов.
+- **Ограничение:** это browser regression на синтетических данных, не замер Firestore latency, не нагрузочный тест сети и не доказательство производительности на реальном аккаунте. Virtual feed остаётся opt-in до staging и ручной приёмки.
 
 ## Состояние релиза
 
