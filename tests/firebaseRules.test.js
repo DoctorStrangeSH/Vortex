@@ -1244,3 +1244,61 @@ test('concurrent same-ID message retries from two tabs commit one message and on
     assert.equal((await assertSucceeds(getDoc(bobMessageRef))).data().senderId, 'alice');
 
 });
+
+
+test('concurrent distinct message sends leave preview pointing to the latest committed message', { skip: !available }, async () => {
+    const aliceTabOne = environment.authenticatedContext('alice', { device: 'one' }).firestore();
+    const aliceTabTwo = environment.authenticatedContext('alice', { device: 'two' }).firestore();
+    const chatId = 'chat-a';
+    const messages = [
+        { id: 'concurrent-distinct-one', text: 'Сообщение из первой вкладки', firestore: aliceTabOne },
+        { id: 'concurrent-distinct-two', text: 'Сообщение из второй вкладки', firestore: aliceTabTwo }
+    ];
+
+    const send = ({ id, text, firestore }) => runTransaction(firestore, async transaction => {
+        const chatRef = doc(firestore, 'chats', chatId);
+        const messageRef = doc(firestore, 'chats', chatId, 'messages', id);
+        const [chatSnapshot, messageSnapshot] = await Promise.all([
+            transaction.get(chatRef),
+            transaction.get(messageRef)
+        ]);
+        assert.equal(chatSnapshot.exists(), true);
+        if (messageSnapshot.exists()) return false;
+
+        transaction.set(messageRef, {
+            senderId: 'alice',
+            senderName: 'Alice',
+            type: 'text',
+            text,
+            readBy: [],
+            createdAt: serverTimestamp()
+        });
+        transaction.update(chatRef, {
+            lastMessage: text,
+            lastMessageId: id,
+            lastMessageTime: serverTimestamp()
+        });
+        return true;
+    });
+
+    const outcomes = await Promise.all(messages.map(send));
+    assert.deepEqual(outcomes, [true, true]);
+
+    const savedMessages = await Promise.all(messages.map(async item =>
+        assertSucceeds(getDoc(doc(item.firestore, 'chats', chatId, 'messages', item.id)))
+    ));
+    assert.ok(savedMessages.every(snapshot => snapshot.exists()));
+
+    const chatSnapshot = await assertSucceeds(getDoc(doc(aliceTabOne, 'chats', chatId)));
+    const previewId = chatSnapshot.data().lastMessageId;
+    const previewIndex = messages.findIndex(item => item.id === previewId);
+    assert.notEqual(previewIndex, -1, 'preview must reference one of the committed messages');
+    assert.equal(chatSnapshot.data().lastMessage, savedMessages[previewIndex].data().text);
+    assert.equal(
+        chatSnapshot.data().lastMessageTime.toMillis(),
+        savedMessages[previewIndex].data().createdAt.toMillis()
+    );
+
+    const allMessages = await assertSucceeds(getDocs(collection(aliceTabTwo, 'chats', chatId, 'messages')));
+    assert.equal(allMessages.docs.filter(snapshot => messages.some(item => item.id === snapshot.id)).length, 2);
+});
