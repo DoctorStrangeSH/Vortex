@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="ru">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Vortex profile compact viewport fixture</title></head>
+<body>
+<div class="vortex-dialog-overlay" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.6)">
+  <section class="vortex-profile-modal" role="dialog" aria-modal="true" aria-label="Профиль" style="box-sizing:border-box;width:480px;max-width:94vw;border:1px solid var(--border-default);border-radius:24px;background:var(--bg-secondary);overflow:hidden">
+    <header class="vortex-profile-header" style="display:flex;justify-content:space-between;align-items:center;padding:1.25rem 1.5rem;border-bottom:1px solid var(--border-subtle)">
+      <div><div class="vortex-profile-eyebrow">VORTEX · ВАШЕ ПРОСТРАНСТВО</div><h3>Мой профиль</h3></div>
+      <button type="button" aria-label="Закрыть профиль">×</button>
+    </header>
+    <div class="vortex-profile-body" style="padding:1.5rem">
+      <div class="vortex-profile-hero"><div>V</div><h4>Пользователь</h4><p>@username</p></div>
+      <label for="name">Имя</label><input id="name" value="Пользователь">
+      <label for="bio">О себе</label><textarea id="bio" rows="3"></textarea>
+      <div style="height:700px"></div>
+      <button type="button">Сохранить изменения</button>
+    </div>
+  </section>
+</div>
+</body></html>
