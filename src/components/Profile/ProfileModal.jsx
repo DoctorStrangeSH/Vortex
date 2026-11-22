@@ -207,6 +207,9 @@ const styles = {
         borderRadius: '24px',
         width: '480px',
         maxWidth: '94vw',
+        maxHeight: 'min(760px, 90dvh)',
+        display: 'flex',
+        flexDirection: 'column',
         boxShadow: '0 30px 90px rgba(0, 0, 0, 0.55)',
         animation: 'slideUp 0.25s ease',
         overflow: 'hidden'
@@ -237,7 +240,11 @@ const styles = {
         justifyContent: 'center'
     },
     body: {
-        padding: '1.5rem'
+        padding: '1.5rem',
+        flex: '1 1 auto',
+        minHeight: 0,
+        overflowY: 'auto',
+        overscrollBehavior: 'contain'
     },
     avatarSection: {
         textAlign: 'center',

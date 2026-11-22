@@ -552,7 +552,8 @@ button:disabled { cursor: not-allowed !important; }
 .vortex-theme-preset.is-active .vortex-theme-choice { color:var(--vortex-secondary); }
 .vortex-settings-modal button:focus-visible { outline:2px solid var(--vortex-primary-light); outline-offset:3px; }
 @media (max-width:480px) { .vortex-settings-modal { max-width:calc(100vw - 20px) !important; } .vortex-settings-modal .vortex-theme-preset { padding:9px !important; } }
-.vortex-profile-modal { max-height: min(90dvh, 850px); overflow-y:auto !important; }
+.vortex-profile-modal { max-height: min(90dvh, 760px); display:flex; flex-direction:column; overflow:hidden !important; }
+.vortex-profile-body { flex:1 1 auto; min-height:0; overflow-y:auto; overscroll-behavior:contain; }
 .vortex-profile-header { background:linear-gradient(135deg,rgba(137,104,255,.14),rgba(66,90,169,.035)); }
 .vortex-profile-eyebrow { color:var(--vortex-primary-light); font-size:.63rem; letter-spacing:.15em; font-weight:800; margin-bottom:6px; }
 .vortex-profile-hero { position:relative; padding:24px 12px 20px; border:1px solid var(--border-subtle); border-radius:20px; background:radial-gradient(circle at 50% 0%,rgba(137,104,255,.15),transparent 72%); }
