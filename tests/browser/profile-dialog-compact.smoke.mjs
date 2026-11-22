@@ -37,7 +37,8 @@ try {
             return {
                 rect: { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom, height: rect.height },
                 body: { clientHeight: body.clientHeight, scrollHeight: body.scrollHeight, overflowY: getComputedStyle(body).overflowY },
-                dialogOverflow: getComputedStyle(dialog).overflow
+                dialogOverflow: getComputedStyle(dialog).overflow,
+                controls
             };
         });
         assert.ok(result.rect.left >= -1 && result.rect.right <= viewport.width + 1,
