@@ -1,75 +1,158 @@
-# Vortex Messenger 🌪️
+<div align="center">
 
-> **Единое ТЗ и границы версии 1.0:** [docs/PROJECT_SPEC.md](docs/PROJECT_SPEC.md). Это главный документ проекта. Каждая задача и PR должны ссылаться на требование из него. Новые идеи по умолчанию относятся к версии после 1.0.
+<img src="public/vortex-mark.svg" width="88" height="88" alt="Vortex logo">
 
-Vortex — адаптивный веб-мессенджер на **Preact + Vite + Firebase Authentication/Firestore**. Цель версии 1.0 — надёжная личная переписка, которую можно безопасно тестировать и выпускать. До завершения staging-проверки и публикации согласованных Security Rules приложение не предназначено для чувствительной переписки.
+# Vortex Messenger
 
-## Статус версии 1.0
+**Лаконичный веб-мессенджер для личного общения и небольших сообществ.**
 
-### Обязательный P0 scope
+Preact · Vite · Firebase Authentication · Cloud Firestore
 
-- Регистрация, вход, выход и восстановление пароля.
-- Уникальный @username и разделение приватного профиля и публичной карточки.
+[Открыть приложение](https://doctorstrangesh.github.io/Vortex/) · [Единое ТЗ](docs/PROJECT_SPEC.md) · [План релиза](ROADMAP.md) · [Проблемы](https://github.com/DoctorStrangeSH/Vortex/issues)
+
+[![Quality checks](https://github.com/DoctorStrangeSH/Vortex/actions/workflows/quality.yml/badge.svg?branch=main)](https://github.com/DoctorStrangeSH/Vortex/actions/workflows/quality.yml)
+[![Deploy to GitHub Pages](https://github.com/DoctorStrangeSH/Vortex/actions/workflows/pages.yml/badge.svg?branch=main)](https://github.com/DoctorStrangeSH/Vortex/actions/workflows/pages.yml)
+![Status](https://img.shields.io/badge/status-pre--1.0-8b7cf6)
+![Node.js](https://img.shields.io/badge/Node.js-22-43853d?logo=node.js&logoColor=white)
+
+</div>
+
+---
+
+## О проекте
+
+Vortex — адаптивный браузерный мессенджер с русскоязычным интерфейсом. Приоритет версии **1.0** — надёжная личная переписка: сообщения, история, статусы прочтения, восстановление после временной потери сети и безопасное разграничение доступа.
+
+Проект развивается в рамках зафиксированного scope. Новые идеи не расширяют релиз автоматически.
+
+## Текущий статус
+
+| Область | Состояние |
+|---|---|
+| Вход, регистрация и профиль | Реализация и автоматические проверки в репозитории |
+| Личная переписка и отправка текста | Работает; владелец подтвердил восстановление Production-отправки после синхронизации Firestore Rules |
+| Офлайн-очередь | Реализация и unit/browser regression tests |
+| Сообщения и реакции | Реализация; основные browser/unit проверки добавлены |
+| Firestore Security Rules | Синхронизированы владельцем с актуальным firestore.rules; Emulator tests проходят в CI |
+| GitHub Pages | Автоматическая публикация из main |
+| Полная приёмка Vortex 1.0 | Не завершена; staging и двухаккаунтная RC-матрица остаются обязательными |
+
+> **Важно:** зелёный CI подтверждает проверки кода и эмуляторов, но не заменяет staging-приёмку с двумя независимыми аккаунтами. До завершения релизной проверки не используйте Vortex для чувствительной переписки. Обычные сообщения не имеют end-to-end encryption.
+
+## Возможности текущего scope
+
+- Регистрация, вход, выход и восстановление доступа.
+- Уникальный публичный @username и разделение публичных/приватных данных профиля.
 - Личные чаты, realtime-сообщения и постраничная история.
-- Офлайн-очередь с повторной отправкой без дублирования.
-- Проверяемые состояния прочтения.
-- Защита профилей, чатов и сообщений серверными Security Rules.
-- Адаптивный интерфейс, понятные состояния загрузки и ошибок.
-- Автоматические тесты и воспроизводимая сборка.
+- Идемпотентная офлайн-очередь и повторная отправка.
+- Статусы прочтения с учётом участников.
+- Реакции, закрепление и базовые вложения в рамках подтверждённых ограничений.
+- Группы и каналы — при соблюдении утверждённых правил доступа и критериев качества.
+- Адаптивный интерфейс и тема Obsidian Iris.
 
-Группы, каналы и другие P1-возможности остаются в релизе только при прохождении тех же критериев качества и безопасности. Они не должны задерживать или ослаблять P0.
+Подробная матрица требований и критерии готовности находятся в [PROJECT_SPEC.md](docs/PROJECT_SPEC.md).
 
-### Ограничения и честный статус безопасности
+## Технологии
 
-- **Production Firestore Rules не обновлялись.** Репозиторий содержит более строгие правила и Emulator-тесты, но они ещё не прошли миграционную проверку на отдельном staging Firebase-проекте. Не публиковать правила из репозитория в production напрямую.
-- **Обычные сообщения не зашифрованы end-to-end.** Не считать наличие encryption-прототипа доказательством E2EE.
-- **2FA/MFA, голосовые и видеозвонки, серверные push-уведомления, секретные чаты и callable-backed group membership history не входят в Vortex 1.0.** Они не должны имитировать успешную работу.
-- Доступ к группам в 1.0 выполняется через Spark-совместимые Firestore Rules. Исторический callable backend в `functions/` оставлен как deferred reference/test fixture, но не подключён к клиенту и больше не зарегистрирован как Firebase CLI deployment target. Не развёртывать его и не менять тариф без отдельного решения владельца.
-- **Firebase Storage выключен.** Пока он не прошёл проверку тарифа, правил, CORS и upload/read/revocation в отдельном staging-проекте, базовый fallback — вложения в Firestore размером до 350 КБ.
-- Старые вложения, сохранённые через постоянные download URL с токенами, требуют отдельной инвентаризации и миграции. Новые Storage-загрузки не включаются в production.
-- Поиск пользователей выполняется по публичному @username; email-поиск выключен ради приватности.
-- Firebase Web API key в клиенте не является административным секретом. Service-account JSON, приватные ключи и административные токены запрещено помещать в клиентский bundle или Git.
-- Владелец зафиксировал **Firebase Spark (бесплатный тариф)**. Не включать Blaze, платные API, Cloud Functions или платную инфраструктуру без отдельного явного разрешения.
+| Слой | Технология |
+|---|---|
+| UI | Preact |
+| Сборка и dev server | Vite |
+| Авторизация | Firebase Authentication |
+| Данные и realtime | Cloud Firestore |
+| Доступ | Firestore / Storage Security Rules |
+| Тесты | Node.js Test Runner, Firebase Emulator Suite, Chromium + Playwright |
+| Публикация | GitHub Pages + GitHub Actions |
 
-Подробные риски, известные ограничения и порядок staging rollout описаны в [аудите Firebase Security](docs/FIREBASE_SECURITY_REVIEW.md) и [чек-листе Storage staging](docs/STORAGE_STAGING_CHECKLIST.md).
+## Быстрый старт
 
-## Разработка
+**Требования:** Node.js 22 и Java для Firebase Emulator Suite.
 
-Требуется Node.js 22 (как в CI) и Java для Firebase Emulator Suite.
+    git clone https://github.com/DoctorStrangeSH/Vortex.git
+    cd Vortex
+    npm ci
+    npm run dev
 
-```bash
-npm ci
-npm run dev
-npm test
-npm run test:browser
-npm run test:rules
-npm run test:auth
-npm run build
-```
+Локальная разработка использует текущую конфигурацию Firebase. Не создавайте тестовые аккаунты и переписки в Production. Для интеграционных проверок используйте отдельный Firebase staging-проект и конфигурацию .env.staging.local.
+
+### Проверки перед PR
+
+    npm test
+    npm run test:browser
+    npm run test:rules
+    npm run test:auth
+    npm run build
+
+Quality workflow выполняет эти команды автоматически на pull request и push в main.
+
+## Firebase и бюджетные ограничения
+
+- Владелец зафиксировал **Firebase Spark**. Не переключать проект на Blaze и не подключать платную инфраструктуру без отдельного явного разрешения.
+- Firebase Storage остаётся выключенным до отдельной проверки тарифа, CORS, правил и upload/read/revocation в staging. Документированный fallback — вложения в Firestore до 350 КБ.
+- Callable Cloud Functions не входят в текущий клиентский поток; каталог functions/ сохранён как отложенный reference/test fixture и не является целью Firebase CLI deployment.
+- Не публиковать Security Rules, не выполнять миграции и не менять Production-данные автоматически.
+- Web API key Firebase не является административным секретом. Service-account JSON, приватные ключи и токены нельзя помещать в Git или клиентский bundle.
 
 ### Изолированная staging-конфигурация
 
-1. Создайте отдельный тестовый Firebase-проект, не используйте production.
-2. Скопируйте `.env.example` в `.env.staging.local` и заполните все `VITE_FIREBASE_*` значениями staging-проекта.
-3. Запустите `npm run dev -- --mode staging`.
+1. Создайте отдельный тестовый Firebase-проект.
+2. Скопируйте .env.example в .env.staging.local.
+3. Заполните переменные VITE_FIREBASE_* значениями staging-проекта.
+4. Запустите npm run dev -- --mode staging.
+5. Проверьте регистрацию, личный чат, сообщения, offline/retry и отказ в доступе постороннему пользователю.
 
-Неполная конфигурация и совпадение project ID, Storage bucket или Auth domain с production отклоняются. Обычный `npm run dev` использует существующую production-конфигурацию; не используйте его для тестовых регистраций и переписок.
+Не используйте Production для staging-проверок. Перед любыми будущими Production-изменениями нужны резервная копия, план отката и явное подтверждение владельца.
 
-### Публикация на GitHub Pages
+## Структура репозитория
 
-Источник публикации в **Settings → Pages → Build and deployment → Source** должен быть **GitHub Actions**. Workflow `Deploy Vortex to GitHub Pages` собирает Vite-приложение в `dist` с базовым путём `/Vortex/` и публикует его по адресу:
+    .
+    ├── .github/workflows/   # CI и публикация GitHub Pages
+    ├── config/              # Примеры конфигурации
+    ├── docs/                # ТЗ, security review и технические решения
+    ├── functions/           # Отложенный backend reference/test fixture
+    ├── public/              # Публичные ресурсы и знак Vortex
+    ├── server/              # Чистые модели/адаптеры серверных событий
+    ├── src/
+    │   ├── components/      # Preact UI
+    │   ├── hooks/           # UI hooks
+    │   ├── services/        # Firebase и прикладная логика
+    │   ├── stores/          # Состояние приложения
+    │   ├── styles/          # Темы и глобальные стили
+    │   └── utils/           # Общие утилиты
+    ├── tests/               # Unit, Emulator и browser regression tests
+    ├── firestore.rules
+    ├── storage.rules
+    └── vite.config.js
 
-https://doctorstrangesh.github.io/Vortex/
+## Документация
 
-Не публикуйте исходный `index.html` без сборки Vite.
+- [Единое ТЗ Vortex 1.0](docs/PROJECT_SPEC.md) — единственный источник требований и границ релиза.
+- [ROADMAP](ROADMAP.md) — краткий статус этапов и ближайшие release gates.
+- [Firebase Security Review](docs/FIREBASE_SECURITY_REVIEW.md) — модель доступа, инциденты и ограничения.
+- [Storage staging checklist](docs/STORAGE_STAGING_CHECKLIST.md) — условия включения Storage.
+- [Unread counters design](docs/UNREAD_COUNTERS_DESIGN.md) — архитектура непрочитанных сообщений.
 
-## Порядок завершения 1.0
+## Процесс разработки
 
-1. Закрыть P0 реализацию и автоматические проверки; исправить регрессии.
-2. Подготовить отдельный Firebase staging-проект и проверить схему старых данных.
-3. Применить правила только в staging и проверить два независимых аккаунта: регистрацию, поиск, личный чат, сообщения, историю, offline/retry и запреты для постороннего.
-4. Подготовить резервную копию, план отката и подтверждение владельца перед любыми production-изменениями.
-5. Выпустить 1.0 только после выполнения приёмки из [PROJECT_SPEC.md](docs/PROJECT_SPEC.md).
+1. Каждая задача должна соответствовать разделу или требованию из PROJECT_SPEC.md.
+2. Исправления, тесты, безопасность, доступность и документация допустимы в рамках scope 1.0.
+3. Новые функции, расходы, миграции и изменение уровня приватности требуют отдельного решения владельца.
+4. PR должен описывать пользовательскую проблему, изменения, проверки и риски.
+5. Не объединять PR с красным обязательным CI.
+6. Не считать наличие компонента доказательством готовности функции.
 
-**Никаких production Rules, Storage, тарифов или миграций автоматически не менять.** Зелёный CI и тесты Emulator Suite не доказывают, что опубликованные Firebase Rules совместимы с существующими данными.
+## Публикация
 
+GitHub Actions собирает приложение с базовым путём /Vortex/ и публикует его на GitHub Pages:
+
+**https://doctorstrangesh.github.io/Vortex/**
+
+Источник публикации в GitHub Pages должен быть установлен в **Settings → Pages → Build and deployment → GitHub Actions**.
+
+---
+
+<div align="center">
+
+**Vortex — сначала надёжность. Потом масштаб.**
+
+</div>
