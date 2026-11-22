@@ -473,11 +473,9 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
 
     // Онлайн-статус + печатает
     useEffect(() => {
-        if (!chat) {
-            setOtherStatus({ isOnline: false, lastSeen: null });
-            setIsTyping(false);
-            return;
-        }
+        setOtherStatus({ isOnline: false, lastSeen: null });
+        setIsTyping(false);
+        if (!chat) return;
         const otherId = chat.participants?.find(id => id !== user.uid);
         const stopWatching = watchChatActivity({
             chatId: chat.id,
@@ -487,11 +485,7 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
             onPresenceChange: setOtherStatus,
             onTypingChange: setIsTyping
         });
-        return () => {
-            stopWatching();
-            setOtherStatus({ isOnline: false, lastSeen: null });
-            setIsTyping(false);
-        };
+        return stopWatching;
     }, [chat?.id, user.uid]);
 
     // Закрытие меню
