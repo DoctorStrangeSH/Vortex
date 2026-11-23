@@ -345,3 +345,12 @@
 - [x] New PR #164 head `b0dd36981a70def2fb3e1ac08b3aef763c6be255` adds exact `offlineQueue` getItem read traces (count/tail/IDs), in-memory queue snapshots after refresh, and queue contents at lock acquisition.
 - [ ] CI #45172877436 for the new head is queued; inspect exact in-lock read values before touching production code.
 - [ ] Production `OfflineService` remains unchanged; PR #164 remains open and unmerged. Release gate remains 200/200 durable and exactly-once reconnect delivery.
+
+
+### Offline Queue validation correction — 23.11.2026
+
+- [x] CI #45174437961 on head `1681dc6bed52269972e8a4fb4d0192ee99faa0ec` was fully green, but the browser suite at that head exercised the existing 8-round scenario, not 100 rounds. Do not count it as 100-round validation.
+- [x] After rebasing the PR onto current `main`, CI #45175197596 failed at round 2: durable queue had 3 entries instead of 4. The two tab traces show both writes had count 3 and only one round-2 message survived. This reproduces a lost update; production OfflineService remains unchanged.
+- [x] PR #164 head `01aef4aa10082aeaa990c2c961f72c2a5aa14ac4` restores the 100-round / 200-message stress scenario and detailed per-tab diagnostics.
+- [ ] CI #45176124259 is queued for this exact head. Release remains blocked until 100 rounds persist all 200 messages, reconnect delivers exactly once, and the complete workflow passes.
+- [ ] PR #164 remains open and unmerged. Test-only scope; no production Firebase or application changes.
