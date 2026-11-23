@@ -59,11 +59,11 @@
 
 ### Дополнение — PR #152, concurrent Offline Queue tabs (23.11.2026)
 
-- PR #152 добавляет Chromium-регрессию: две вкладки одного UID одновременно ставят разные сообщения в общую offline queue; после reconnect оба должны доставиться один раз с разными стабильными ID.
-- Первый CI выявил timeout на проверке синхронизации локального snapshot между вкладками. Unit suite прошёл; browser suite упал до Rules/Auth/build, поскольку workflow останавливается на первом failed step.
-- Исправление в тестовой фикстуре `tests/browser/offline-queue.jsx` заставило snapshot перечитывать durable storage, но повторный прогон показал, что одного этого недостаточно.
-- Последняя итерация PR `8ee2f49` перевела ожидание на прямую проверку общей durable `localStorage` очереди и добавила явную проверку Web Locks. CI run #45132563704 выполняется; результат пока не подтверждён.
-- PR остаётся открытым и не объединяется до полного Quality PASS. Runtime-код, Firebase Production, пользовательские данные и ветки не затрагивались.
+- PR #152 успешно объединён в `main` squash-коммитом `6320e89113cb61973930ac1eef10c5724a89cbd0`.
+- Финальный PR head `8ee2f49eb11704df112d736fd382d0b4885f6011` прошёл полный Quality CI #45132563704: `npm ci`, unit tests, Chromium browser tests, Firestore/Storage Rules Emulator, Auth Emulator и production build.
+- Добавлен Chromium regression: две вкладки одного UID одновременно записывают разные сообщения в общую Offline Queue; проверяется сохранность обеих записей, видимость durable queue и exactly-once delivery после reconnect.
+- Изменены только browser test fixture и smoke test; runtime-код и Firebase Production не затрагивались.
+- PR закрыт и merged. Cleanup веток остаётся отложенным по решению владельца.
 
 ## Текущий статус — 23.11.2026
 
