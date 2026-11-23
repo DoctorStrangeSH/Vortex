@@ -243,8 +243,17 @@ export class OfflineService {
             this.notifyQueue();
             return;
         }
-        this.queue = this.queue.filter(item => item.id !== id);
-        this.saveQueue();
+        const previousQueue = this.queue;
+        this.queue = previousQueue.filter(item => item.id !== id);
+        try {
+            this.saveQueue();
+        } catch (error) {
+            // Do not lose the in-memory copy when durable removal fails.
+            // The caller can then mark it failed and persist the same ID.
+            this.queue = previousQueue;
+            this.notifyQueue();
+            throw error;
+        }
     }
 
     saveQueue() {
