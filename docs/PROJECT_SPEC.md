@@ -1343,3 +1343,15 @@ Vortex 1.0 завершён, только когда одновременно:
 - [ ] Complete manual keyboard-only and screen-reader acceptance on the actual app.
 - [ ] Complete owner/colleague production acceptance in `docs/PRODUCTION_ACCEPTANCE.md`; emulator tests do not count as Production PASS.
 - [ ] Investigate the one-off Offline Queue cross-tab regression failure. It passed on subsequent full runs #45139550262 and #45139952610; root cause remains unknown and no production data loss has been established.
+
+
+### 13.44. Offline Queue cross-tab diagnostics — 23.11.2026
+
+- [x] PR #158 merged into `main` (squash `74d3a589816b426c7fe63182748054c53192098c`).
+- [x] Added explicit browser Web Locks probe: tab B cannot enter the same named lock while tab A holds it.
+- [x] Added per-tab ID and monotonic timestamps to lock acquisition/release diagnostics.
+- [x] Kept the concurrent same-account durable-enqueue assertion unchanged; Quality CI #45140951017 passed on exact PR head `da1601e3c670f12e10d26573ff654b32d3491f5c`.
+- [ ] Determine the root cause of intermittent missing-entry failures seen in #45140313873 and #45140569986. The new probe proves Web Locks serialization in its isolated scenario but does not yet explain the queue failure.
+- [ ] Do not mark Offline Queue multi-tab reliability as production-accepted until root cause is understood and repeated regression runs pass.
+- [ ] PR #157 responsive ChatScreen checks remain open and unaccepted; its CI failed earlier in the shared Offline Queue browser suite before those checks could complete.
+- [ ] Await main Quality CI #45141872274 and Pages build #45141872494 before treating the new main revision as fully verified.
