@@ -1394,3 +1394,20 @@ Vortex 1.0 завершён, только когда одновременно:
 - [x] Change is test-only. No runtime code, Production Firebase configuration, Rules or user data changed.
 - [ ] Root cause of earlier intermittent concurrent-enqueue failures remains unproven; repeated stress coverage is stronger evidence but does not close production acceptance.
 - [ ] Manual recovery checks after reload/browser restart and owner/colleague acceptance remain NOT RUN.
+
+
+### 13.49. Accessibility keyboard coverage — PR #161 — 23.11.2026
+
+- [x] Added `aria-haspopup="menu"` to the mobile ChatHeader overflow trigger.
+- [x] Extended real Chromium browser coverage for Enter and Space activation, `aria-expanded`, first-item focus, Escape close and focus restoration; retained existing arrow navigation and pointer tests.
+- [x] PR #161 opened from current main; head `6fc26ee805011f8102249e1824fee3ce4748aee5`.
+- [x] On PR CI #45154234026, dependency install and unit tests passed.
+- [ ] Full browser, Rules, Auth Emulator, authenticated ChatScreen E2E and production build gates are not yet confirmed; do not merge until full PASS.
+- [ ] Manual keyboard-only and screen-reader acceptance remain NOT RUN.
+
+### 13.50. Offline Queue regression reproduced on main — 23.11.2026
+
+- [x] Main Quality CI #45153549337 failed in `npm run test:browser`; unit tests passed, later gates were skipped.
+- [x] Failure reproduced at concurrent same-account Offline Queue enqueue round 4: expected 8 durable records, observed 7; diagnostics captured no held/pending Web Locks at failure time.
+- [ ] Root cause remains unresolved. Keep the strict data-preservation assertion; do not label the queue production-accepted.
+- [ ] This shared browser-suite failure blocks PR #161 full CI and the Vortex 1.0 RC gate until corrected and repeatedly verified.
