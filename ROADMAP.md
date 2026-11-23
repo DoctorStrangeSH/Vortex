@@ -223,3 +223,10 @@
 - The fixture's independent cross-tab Web Locks probe passed earlier in the same browser context, and both service instances report Web Locks support. Therefore the failure is not explained by missing Web Locks support. Available CI log is truncated during the second diagnostic snapshot, so it does not yet prove whether the missing entry was never written or overwritten afterward.
 - Do not change the expected count, weaken the assertion, or merge PR #161 while this shared browser suite fails. Next investigation should add compact per-operation trace records (tab, message text/ID, lock entry/exit, storage value before/after) and isolate addToQueue writes from unrelated queue processing/storage-event refreshes.
 - No production Firebase, Rules, or user data were changed.
+
+
+### Offline Queue diagnostic instrumentation — PR #161 follow-up (23.11.2026)
+
+- [x] Replaced oversized per-lock snapshots in the browser fixture with compact per-tab operation traces: lock acquired/released, queue count, last message text, localStorage write start/success/error.
+- [x] CI failure diagnostics now report bounded durable message summaries and recent trace events rather than full serialized queue payloads, preventing GitHub log truncation from hiding the root cause.
+- [ ] No production OfflineService behavior changed in this diagnostic commit. Await a new full CI run before deciding on a runtime fix.
