@@ -122,7 +122,7 @@ try {
     const lockProbeKey = 'vortex.browserTest.lockProbe';
     await sharedTabA.evaluate(() => {
         window.__releaseQueueLockProbe = null;
-        window.__queueLockProbe = navigator.locks.request('vortex-offline-queue-probe', async () => {
+        window.__queueLockProbe = navigator.locks.request('vortex-offline-queue', async () => {
             localStorage.setItem('vortex.browserTest.lockProbe', 'A-entered');
             await new Promise(resolve => { window.__releaseQueueLockProbe = resolve; });
             localStorage.setItem('vortex.browserTest.lockProbe', 'A-released');
@@ -130,7 +130,7 @@ try {
     });
     await sharedTabA.waitForFunction(() => localStorage.getItem('vortex.browserTest.lockProbe') === 'A-entered');
     const secondLockProbe = sharedTabB.evaluate(async () => {
-        await navigator.locks.request('vortex-offline-queue-probe', async () => {
+        await navigator.locks.request('vortex-offline-queue', async () => {
             localStorage.setItem('vortex.browserTest.lockProbe', 'B-entered');
         });
     });
@@ -156,30 +156,73 @@ try {
     // localStorage is the durable source of truth; wait for both writes before
     // starting the next round so failures are attributable to that exact race.
     const expectedConcurrentMessages = [];
-    for (let round = 0; round < 8; round++) {
+    for (let round = 0; round < 100; round++) {
+        await Promise.all([
+            sharedTabA.evaluate(round => localStorage.setItem('vortex.browserTest.currentRound', String(round)), round + 1),
+            sharedTabB.evaluate(round => localStorage.setItem('vortex.browserTest.currentRound', String(round)), round + 1)
+        ]);
+        const offlineState = await Promise.all([
+            sharedTabA.evaluate(() => window.offlineQueueQA.snapshot()),
+            sharedTabB.evaluate(() => window.offlineQueueQA.snapshot())
+        ]);
+        assert.ok(offlineState.every(state => state.isOnline === false), `both tabs must remain offline before round ${round + 1}`);
+        assert.ok(offlineState.every(state => state.remoteMessages.length === 0), `no messages may be delivered during offline enqueue round ${round + 1}`);
         const messageA = `Раунд ${round + 1}: сообщение из вкладки A`;
         const messageB = `Раунд ${round + 1}: сообщение из вкладки B`;
         expectedConcurrentMessages.push(messageA, messageB);
-        await Promise.all([
-            sharedTabA.evaluate(text => window.offlineQueueQA.enqueue('shared-account-user', text), messageA),
-            sharedTabB.evaluate(text => window.offlineQueueQA.enqueue('shared-account-user', text), messageB)
+        // Capture each tab's actual enqueue settlement and the durable queue
+        // observed immediately after that operation, instead of inferring success
+        // from the outer Playwright Promise.all alone.
+        const enqueueOutcomes = await Promise.all([
+            sharedTabA.evaluate(async text => {
+                try {
+                    await window.offlineQueueQA.enqueue('shared-account-user', text);
+                    const state = window.offlineQueueQA.snapshot();
+                    return {
+                        status: 'fulfilled',
+                        tabId: state.tabId,
+                        durableCount: state.queue.length,
+                        remoteCount: state.remoteMessages.length,
+                        deliveryAttempts: state.deliveryAttempts,
+                        isOnline: state.isOnline,
+                        tail: state.queue.slice(-3).map(item => item.text)
+                    };
+                } catch (error) {
+                    return { status: 'rejected', name: error.name, message: error.message };
+                }
+            }, messageA),
+            sharedTabB.evaluate(async text => {
+                try {
+                    await window.offlineQueueQA.enqueue('shared-account-user', text);
+                    const state = window.offlineQueueQA.snapshot();
+                    return {
+                        status: 'fulfilled',
+                        tabId: state.tabId,
+                        durableCount: state.queue.length,
+                        tail: state.queue.slice(-3).map(item => item.text)
+                    };
+                } catch (error) {
+                    return { status: 'rejected', name: error.name, message: error.message };
+                }
+            }, messageB)
         ]);
 
         const expectedCount = (round + 1) * 2;
         try {
-            await sharedTabA.waitForFunction(count => {
-                const queue = JSON.parse(localStorage.getItem('offlineQueue') || '[]');
-                return queue.length === count;
-            }, expectedCount, { timeout: 10000 });
+            await sharedTabA.waitForFunction(messages => {
+                const queue = window.offlineQueueQA.snapshot().queue;
+                const texts = new Set(queue.map(item => item.text));
+                return messages.every(message => texts.has(message));
+            }, [messageA, messageB], { timeout: 10000 });
         } catch (error) {
             const diagnostics = await Promise.all([
                 sharedTabA.evaluate(async () => {
                     const state = window.offlineQueueQA.snapshot();
                     return {
                         durableCount: state.queue.length,
-                        durableTexts: state.queue.map(item => item.text),
+                        durableTail: state.queue.slice(-4).map(item => item.text),
                         tabId: state.tabId,
-                        trace: state.operationTrace,
+                        trace: state.operationTrace.filter(entry => entry.round === Number(localStorage.getItem('vortex.browserTest.currentRound') || 0)),
                         locks: navigator.locks?.query ? await navigator.locks.query() : null
                     };
                 }),
@@ -189,19 +232,19 @@ try {
                         durableCount: state.queue.length,
                         durableTexts: state.queue.map(item => item.text),
                         tabId: state.tabId,
-                        trace: state.operationTrace,
+                        trace: state.operationTrace.filter(entry => entry.round === Number(localStorage.getItem('vortex.browserTest.currentRound') || 0)),
                         locks: navigator.locks?.query ? await navigator.locks.query() : null
                     };
                 })
             ]);
-            throw new Error(`Concurrent same-account enqueue round ${round + 1} did not persist both messages. Diagnostics: ${JSON.stringify(diagnostics)}`, { cause: error });
+            throw new Error(`Concurrent same-account enqueue round ${round + 1} did not persist both messages. Enqueue outcomes:\n${JSON.stringify(enqueueOutcomes, null, 2)}\nDiagnostics:\n${JSON.stringify(diagnostics, null, 2)}`, { cause: error });
         }
     }
 
     const queuedFromBothTabs = await sharedTabA.evaluate(() => window.offlineQueueQA.snapshot());
     const queuedFromSecondTab = await sharedTabB.evaluate(() => window.offlineQueueQA.snapshot());
-    assert.equal(queuedFromBothTabs.queue.length, 16, 'all 16 concurrent enqueues must be durable');
-    assert.equal(queuedFromSecondTab.queue.length, 16, 'both tabs must read the same durable queue');
+    assert.equal(queuedFromBothTabs.queue.length, expectedConcurrentMessages.length, 'all concurrent enqueues must be durable');
+    assert.equal(queuedFromSecondTab.queue.length, expectedConcurrentMessages.length, 'both tabs must read the same durable queue');
     assert.deepEqual(
         queuedFromBothTabs.queue.map(item => item.text).sort(),
         expectedConcurrentMessages.sort(),
@@ -211,7 +254,7 @@ try {
     await sharedAccountContext.setOffline(false);
     await sharedTabA.waitForFunction(() => {
         const state = window.offlineQueueQA.snapshot();
-        return state.queue.length === 0 && state.remoteMessages.length === 16;
+        return state.queue.length === 0 && state.remoteMessages.length === expectedConcurrentMessages.length;
     });
     await sharedTabB.waitForFunction(() => window.offlineQueueQA.snapshot().queue.length === 0);
     const sharedAccountDelivered = await sharedTabA.evaluate(() => window.offlineQueueQA.snapshot());
@@ -220,10 +263,10 @@ try {
         expectedConcurrentMessages.sort(),
         'all concurrently queued messages must be delivered exactly once'
     );
-    assert.equal(new Set(sharedAccountDelivered.remoteMessages.map(item => item.id)).size, 16);
+    assert.equal(new Set(sharedAccountDelivered.remoteMessages.map(item => item.id)).size, expectedConcurrentMessages.length);
     await sharedAccountContext.close();
     console.log('Concurrent same-account multi-tab queue stress test passed:', {
-        rounds: 8,
+        rounds: 100,
         queuedCount: queuedFromBothTabs.queue.length,
         deliveredCount: sharedAccountDelivered.remoteMessages.length
     });

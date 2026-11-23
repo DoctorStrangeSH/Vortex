@@ -43,7 +43,21 @@ async function register(page, user) {
     await page.getByLabel('Электронная почта').fill(user.email);
     await page.locator('#vortex-auth-password').fill(password);
     await page.getByRole('button', { name: 'Зарегистрироваться' }).click();
-    await page.locator('.vortex-sidebar').waitFor({ timeout: 20000 });
+    await page.waitForFunction(() => (
+        document.querySelector('.vortex-sidebar')
+        || document.querySelector('[role="alert"]')
+    ), { timeout: 20000 }).catch(() => {});
+    if (!await page.locator('.vortex-sidebar').isVisible().catch(() => false)) {
+        const state = await page.evaluate(() => ({
+            url: location.href,
+            authVisible: Boolean(document.querySelector('.vortex-auth-screen')),
+            alert: document.querySelector('[role="alert"]')?.textContent?.trim() || null,
+            status: document.querySelector('[role="status"]')?.textContent?.trim() || null,
+            body: document.body.innerText.slice(0, 1600),
+            localUser: localStorage.getItem('vortex-user')
+        }));
+        throw new Error(`Registration did not reach ChatScreen: ${JSON.stringify(state)}`);
+    }
 }
 async function login(page, user) {
     await page.getByLabel('Электронная почта').fill(user.email);
@@ -117,8 +131,19 @@ try {
     const pageA = await contextA.newPage();
     const pageB = await contextB.newPage();
     const pageErrors = [];
-    pageA.on('pageerror', error => pageErrors.push(`A: ${error.message}`));
-    pageB.on('pageerror', error => pageErrors.push(`B: ${error.message}`));
+    pageA.on('pageerror', error => pageErrors.push(`A pageerror: ${error.message}`));
+    pageB.on('pageerror', error => pageErrors.push(`B pageerror: ${error.message}`));
+    // External HTTPS requests are deliberately aborted below so the E2E stays
+    // isolated from third-party services. Chromium reports those intentional
+    // aborts as generic ERR_FAILED console errors; keep real page errors fatal.
+    pageA.on('console', message => {
+        if (message.type() !== 'error' || message.text().includes('net::ERR_FAILED')) return;
+        pageErrors.push(`A console: ${message.text()}`);
+    });
+    pageB.on('console', message => {
+        if (message.type() !== 'error' || message.text().includes('net::ERR_FAILED')) return;
+        pageErrors.push(`B console: ${message.text()}`);
+    });
     await pageA.route(/^https:\/\//, route => route.abort());
     await pageB.route(/^https:\/\//, route => route.abort());
 

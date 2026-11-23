@@ -1,5 +1,8 @@
 import { assertQueuedMessageOwner } from './queuedMessageOwner.js';
 
+const QUEUE_KEY = 'offlineQueue';
+const QUEUE_ITEM_PREFIX = 'offlineQueue:item:';
+
 export class OfflineService {
     constructor({ storage = globalThis.localStorage, network = globalThis.navigator, eventTarget = globalThis.window, visibilityTarget = globalThis.document, createId = () => globalThis.crypto.randomUUID(), locks = network?.locks } = {}) {
         this.storage = storage;
@@ -8,6 +11,12 @@ export class OfflineService {
         this.visibilityTarget = visibilityTarget;
         this.createId = createId;
         this.locks = locks;
+        this.usesItemStorage = Boolean(
+            storage
+            && typeof storage.key === 'function'
+            && typeof storage.removeItem === 'function'
+            && typeof storage.length === 'number'
+        );
         this.isOnline = network?.onLine ?? false;
         this.activeUid = undefined;
         this.listeners = [];
@@ -25,29 +34,36 @@ export class OfflineService {
         this.initialized = true;
         this.eventTarget?.addEventListener('online', () => this.goOnline());
         this.eventTarget?.addEventListener('offline', () => this.goOffline());
-        // A transient Firestore failure may clear without a browser 'online'
-        // transition. Retry when the user returns to this tab.
-        this.eventTarget?.addEventListener('focus', () => {
-            this.resumeOnReturn();
-        });
-        // Returning from a background tab does not always dispatch window focus
-        // (notably in mobile browsers). Resume pending writes when visible again.
+        this.eventTarget?.addEventListener('focus', () => this.resumeOnReturn());
         this.visibilityTarget?.addEventListener('visibilitychange', () => {
             if (this.visibilityTarget.visibilityState === 'visible') this.resumeOnReturn();
         });
         this.eventTarget?.addEventListener('storage', event => {
-            if (event.key !== 'offlineQueue') return;
+            if (this.usesItemStorage && event.key?.startsWith(QUEUE_ITEM_PREFIX)) {
+                const id = event.key.slice(QUEUE_ITEM_PREFIX.length);
+                if (event.newValue === null) {
+                    this.queue = this.queue.filter(item => item.id !== id);
+                } else {
+                    try {
+                        const item = JSON.parse(event.newValue);
+                        this.queue = [...this.queue.filter(entry => entry.id !== id), item]
+                            .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+                    } catch (error) {
+                        console.warn('Не удалось обработать изменение офлайн-очереди', error);
+                    }
+                }
+                this.notifyQueue();
+                if (this.isOnline && this.activeUid) this.processQueue();
+                return;
+            }
+            if (event.key !== QUEUE_KEY) return;
             this.refreshQueue();
-            // Another tab may have enqueued work for this signed-in user.
             if (this.isOnline && this.activeUid) this.processQueue();
         });
         if (this.isOnline && this.activeUid) this.processQueue();
     }
 
     resumeOnReturn() {
-        // Mobile browsers may miss the online event while suspended. The fresh
-        // navigator hint can restore delivery, but it is not a server health
-        // check: an offline hint must not cancel an already working connection.
         if (!this.isOnline && this.network?.onLine === true) {
             this.goOnline();
         } else if (this.isOnline && this.activeUid) {
@@ -59,7 +75,6 @@ export class OfflineService {
         const wasOnline = this.isOnline;
         this.isOnline = true;
         if (!wasOnline) this.listeners.forEach(fn => fn(true));
-        // Wait for an authenticated account before attempting queued writes.
         if (this.activeUid) this.processQueue();
     }
 
@@ -80,32 +95,119 @@ export class OfflineService {
         if (this.storageRecoveryBlocked) {
             throw new Error('Не удалось сохранить повреждённую офлайн-очередь. Освободите место в браузере и повторите попытку.');
         }
-        await this.withQueueLock(async () => {
-            this.refreshQueue();
-            const previousQueue = this.queue;
-            this.queue = [...previousQueue, { ...action, id: this.createId(), timestamp: Date.now() }];
+
+        if (this.usesItemStorage) {
+            const queuedAction = { ...action, id: this.createId(), timestamp: Date.now() };
             try {
-                // A queued message must be durable before the composer clears it.
-                this.saveQueue();
-            } catch (error) {
-                this.queue = previousQueue;
+                // Each message gets its own durable key. Concurrent tabs never
+                // overwrite a shared serialized array, even if their localStorage
+                // renderer caches briefly observe different snapshots.
+                this.persistQueueItem(queuedAction);
+                this.queue = [...this.queue.filter(item => item.id !== queuedAction.id), queuedAction]
+                    .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
                 this.notifyQueue();
+            } catch (error) {
                 throw new Error('Не удалось сохранить сообщение в офлайн-очереди. Освободите место в браузере и повторите отправку.', { cause: error });
             }
-        });
+        } else {
+            await this.withQueueLock(async () => {
+                this.refreshQueue();
+                const previousQueue = this.queue;
+                this.queue = [...previousQueue, { ...action, id: this.createId(), timestamp: Date.now() }];
+                try {
+                    this.saveQueue();
+                } catch (error) {
+                    this.queue = previousQueue;
+                    this.notifyQueue();
+                    throw new Error('Не удалось сохранить сообщение в офлайн-очереди. Освободите место в браузере и повторите отправку.', { cause: error });
+                }
+            });
+        }
+
         if (this.isOnline && this.activeUid) this.processQueue();
     }
 
     async withQueueLock(callback) {
-        // Web Locks serialize queue mutations across tabs of the same origin.
-        // Browsers without Web Locks retain only in-instance serialization.
         if (this.locks?.request) return this.locks.request('vortex-offline-queue', { mode: 'exclusive' }, callback);
         return callback();
     }
 
-    refreshQueue() {
+    getStoredQueueItems() {
+        const keys = [];
+        for (let index = 0; index < this.storage.length; index++) {
+            const key = this.storage.key(index);
+            if (key?.startsWith(QUEUE_ITEM_PREFIX)) keys.push(key);
+        }
+
+        const items = [];
+        for (const key of keys) {
+            try {
+                const item = JSON.parse(this.storage.getItem(key) || 'null');
+                if (item && typeof item.id === 'string') items.push(item);
+            } catch (error) {
+                this.storageRecoveryBlocked = true;
+                console.warn('Не удалось прочитать элемент офлайн-очереди', error);
+            }
+        }
+        return items;
+    }
+
+    migrateLegacyQueue() {
+        const raw = this.storage?.getItem(QUEUE_KEY);
+        if (raw === null || raw === undefined) return [];
+
+        let legacyItems;
         try {
-            const stored = JSON.parse(this.storage?.getItem('offlineQueue') || '[]');
+            legacyItems = JSON.parse(raw);
+            if (!Array.isArray(legacyItems)) throw new Error('Некорректный формат очереди');
+        } catch (error) {
+            console.warn('Не удалось прочитать очередь сообщений', error);
+            try {
+                const backupKey = 'offlineQueue.corruptBackup';
+                if (!this.storage.getItem(backupKey)) this.storage.setItem(backupKey, raw);
+                this.storage.removeItem(QUEUE_KEY);
+                return [];
+            } catch (backupError) {
+                this.storageRecoveryBlocked = true;
+                console.warn('Не удалось сохранить резервную копию повреждённой очереди', backupError);
+                return [];
+            }
+        }
+
+        try {
+            for (const item of legacyItems) {
+                if (!item || typeof item !== 'object') continue;
+                const id = item.id || this.createId();
+                const migrated = { ...item, id, timestamp: item.timestamp || Date.now() };
+                const key = `${QUEUE_ITEM_PREFIX}${id}`;
+                if (!this.storage.getItem(key)) this.storage.setItem(key, JSON.stringify(migrated));
+            }
+            this.storage.removeItem(QUEUE_KEY);
+            return legacyItems;
+        } catch (error) {
+            this.storageRecoveryBlocked = true;
+            console.warn('Не удалось перенести старую офлайн-очередь', error);
+            return legacyItems;
+        }
+    }
+
+    refreshQueue() {
+        if (this.usesItemStorage) {
+            const legacyItems = this.migrateLegacyQueue();
+            const storedItems = this.getStoredQueueItems();
+            const merged = new Map();
+            for (const item of [...legacyItems, ...storedItems]) {
+                if (item?.id) merged.set(item.id, item);
+            }
+            const nextQueue = [...merged.values()].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+            const changed = JSON.stringify(nextQueue) !== JSON.stringify(this.queue);
+            this.queue = nextQueue;
+            if (changed) this.notifyQueue();
+            return;
+        }
+
+        try {
+            const stored = JSON.parse(this.storage?.getItem(QUEUE_KEY) || '[]');
             if (Array.isArray(stored)) {
                 const changed = JSON.stringify(stored) !== JSON.stringify(this.queue);
                 this.queue = stored;
@@ -113,14 +215,12 @@ export class OfflineService {
             }
         } catch (error) {
             console.warn('Не удалось прочитать очередь сообщений', error);
-            // Preserve the exact corrupt payload before starting a fresh queue.
-            // Never silently overwrite the only remaining copy of queued data.
             try {
-                const raw = this.storage?.getItem('offlineQueue');
+                const raw = this.storage?.getItem(QUEUE_KEY);
                 if (raw !== null && raw !== undefined) {
                     const backupKey = 'offlineQueue.corruptBackup';
                     if (!this.storage.getItem(backupKey)) this.storage.setItem(backupKey, raw);
-                    this.storage.setItem('offlineQueue', '[]');
+                    this.storage.setItem(QUEUE_KEY, '[]');
                     this.queue = [];
                     this.storageRecoveryBlocked = false;
                 }
@@ -131,16 +231,35 @@ export class OfflineService {
         }
     }
 
-    saveQueue() {
+    persistQueueItem(action) {
         if (!this.storage?.setItem) throw new Error('Локальное хранилище недоступно');
-        this.storage.setItem('offlineQueue', JSON.stringify(this.queue));
+        this.storage.setItem(`${QUEUE_ITEM_PREFIX}${action.id}`, JSON.stringify(action));
+    }
+
+    removeQueueItem(id) {
+        if (this.usesItemStorage) {
+            this.storage.removeItem(`${QUEUE_ITEM_PREFIX}${id}`);
+            this.queue = this.queue.filter(item => item.id !== id);
+            this.notifyQueue();
+            return;
+        }
+        this.queue = this.queue.filter(item => item.id !== id);
+        this.saveQueue();
+    }
+
+    saveQueue() {
+        if (this.usesItemStorage) {
+            for (const action of this.queue) this.persistQueueItem(action);
+            this.notifyQueue();
+            return;
+        }
+        if (!this.storage?.setItem) throw new Error('Локальное хранилище недоступно');
+        this.storage.setItem(QUEUE_KEY, JSON.stringify(this.queue));
         this.notifyQueue();
     }
 
     async processQueue() {
         if (this.processingPromise) {
-            // Remember triggers arriving during a flush (e.g. account switch or
-            // another tab update) so they are not lost when this pass finishes.
             this.processRequested = true;
             return this.processingPromise;
         }
@@ -153,25 +272,28 @@ export class OfflineService {
                 if (this.activeUid !== undefined && action.user?.uid !== this.activeUid) continue;
                 try {
                     action.status = 'sending';
-                    this.notifyQueue();
+                    if (this.usesItemStorage) {
+                        this.persistQueueItem(action);
+                        this.notifyQueue();
+                    } else {
+                        this.notifyQueue();
+                    }
                     await this.executeAction(action);
-                    const previousQueue = this.queue;
-                    this.queue = previousQueue.filter(item => item.id !== action.id);
-                    try {
-                        this.saveQueue();
-                    } catch (error) {
-                        // A successful remote write is not enough to discard the
-                        // durable local entry if its removal could not be saved.
-                        // Retrying with the same message ID is idempotent.
-                        this.queue = previousQueue;
-                        throw error;
+                    if (this.usesItemStorage) {
+                        this.removeQueueItem(action.id);
+                    } else {
+                        this.removeQueueItem(action.id);
                     }
                 } catch (error) {
                     action.status = 'failed';
                     try {
-                        this.saveQueue();
+                        if (this.usesItemStorage) {
+                            this.persistQueueItem(action);
+                            this.notifyQueue();
+                        } else {
+                            this.saveQueue();
+                        }
                     } catch (storageError) {
-                        // Preserve the in-memory entry even if localStorage is full.
                         this.notifyQueue();
                         console.warn('Не удалось обновить офлайн-очередь', storageError);
                     }
