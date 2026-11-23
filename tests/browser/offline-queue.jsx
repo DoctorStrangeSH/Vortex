@@ -32,13 +32,14 @@ service.executeAction = async action => {
 // Capture lock acquisition and durable state in this fixture so a
 // cross-tab regression explains which tab entered the critical section.
 const lockTrace = [];
+const tabId = crypto.randomUUID();
 const originalWithQueueLock = service.withQueueLock.bind(service);
 service.withQueueLock = callback => originalWithQueueLock(async () => {
-    lockTrace.push({ event: 'lock-acquired', before: localStorage.getItem('offlineQueue') });
+    lockTrace.push({ tabId, at: performance.now(), event: 'lock-acquired', before: localStorage.getItem('offlineQueue') });
     try {
         return await callback();
     } finally {
-        lockTrace.push({ event: 'lock-released', after: localStorage.getItem('offlineQueue') });
+        lockTrace.push({ tabId, at: performance.now(), event: 'lock-released', after: localStorage.getItem('offlineQueue') });
     }
 });
 
@@ -57,6 +58,7 @@ window.offlineQueueQA = {
         // storage before exposing the shared queue to browser assertions.
         service.refreshQueue();
         return {
+            tabId,
             isOnline: service.isOnline,
             activeUid: service.activeUid,
             hasWebLocks: Boolean(service.locks?.request),

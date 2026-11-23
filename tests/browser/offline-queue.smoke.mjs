@@ -116,6 +116,35 @@ try {
         sharedTabA.waitForFunction(() => window.offlineQueueQA.snapshot().isOnline === false),
         sharedTabB.waitForFunction(() => window.offlineQueueQA.snapshot().isOnline === false)
     ]);
+
+    // Prove that Chromium shares the same Web Lock between two tabs in this
+    // browser context before attributing any queue failure to OfflineService.
+    const lockProbeKey = 'vortex.browserTest.lockProbe';
+    await sharedTabA.evaluate(() => {
+        window.__releaseQueueLockProbe = null;
+        window.__queueLockProbe = navigator.locks.request('vortex-offline-queue-probe', async () => {
+            localStorage.setItem('vortex.browserTest.lockProbe', 'A-entered');
+            await new Promise(resolve => { window.__releaseQueueLockProbe = resolve; });
+            localStorage.setItem('vortex.browserTest.lockProbe', 'A-released');
+        });
+    });
+    await sharedTabA.waitForFunction(() => localStorage.getItem('vortex.browserTest.lockProbe') === 'A-entered');
+    const secondLockProbe = sharedTabB.evaluate(async () => {
+        await navigator.locks.request('vortex-offline-queue-probe', async () => {
+            localStorage.setItem('vortex.browserTest.lockProbe', 'B-entered');
+        });
+    });
+    await delay(150);
+    assert.equal(
+        await sharedTabA.evaluate(() => localStorage.getItem('vortex.browserTest.lockProbe')),
+        'A-entered',
+        'Web Locks must serialize requests across tabs in one browser context'
+    );
+    await sharedTabA.evaluate(() => window.__releaseQueueLockProbe?.());
+    await Promise.all([sharedTabA.evaluate(() => window.__queueLockProbe), secondLockProbe]);
+    await sharedTabA.waitForFunction(() => localStorage.getItem('vortex.browserTest.lockProbe') === 'B-entered');
+    await sharedTabA.evaluate(() => localStorage.removeItem('vortex.browserTest.lockProbe'));
+
     await Promise.all([
         sharedTabA.evaluate(() => window.offlineQueueQA.enqueue('shared-account-user', 'Сообщение из вкладки A')),
         sharedTabB.evaluate(() => window.offlineQueueQA.enqueue('shared-account-user', 'Сообщение из вкладки B'))
