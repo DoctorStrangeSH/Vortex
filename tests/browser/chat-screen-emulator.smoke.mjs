@@ -112,19 +112,21 @@ try {
     await pageA.getByText(secondMessage, { exact: true }).waitFor({ timeout: 15000 });
 
     // Exercise the actual ChatScreen mobile navigation and breakpoint transitions.
+    const aliceChat = pageA.getByRole('button', { name: new RegExp(`Открыть чат ${bob.name}`) });
     await pageA.setViewportSize({ width: 375, height: 812 });
-    await pageA.getByRole('button', { name: 'Открыть чат' }).waitFor({ state: 'visible', timeout: 10000 }).catch(async () => {
-        await pageA.getByRole('button', { name: new RegExp(`Открыть чат ${bob.name}`) }).waitFor({ state: 'visible', timeout: 10000 });
-    });
+    await aliceChat.waitFor({ state: 'visible', timeout: 10000 });
+    await aliceChat.click();
     await pageA.getByRole('button', { name: 'Назад к списку чатов' }).waitFor({ state: 'visible', timeout: 10000 });
     await pageA.getByRole('button', { name: 'Назад к списку чатов' }).click();
-    await pageA.getByRole('button', { name: new RegExp(`Открыть чат ${bob.name}`) }).waitFor({ state: 'visible', timeout: 10000 });
+    await aliceChat.waitFor({ state: 'visible', timeout: 10000 });
     await pageA.setViewportSize({ width: 1024, height: 900 });
     await pageA.locator('.vortex-chat-header').waitFor({ state: 'visible', timeout: 10000 });
     await pageA.setViewportSize({ width: 769, height: 900 });
     await pageA.locator('.vortex-chat-header').waitFor({ state: 'visible', timeout: 10000 });
     await pageA.setViewportSize({ width: 768, height: 900 });
-    await pageA.getByRole('button', { name: 'Открыть чат' }).waitFor({ state: 'visible', timeout: 10000 }).catch(() => {});
+    await aliceChat.waitFor({ state: 'visible', timeout: 10000 });
+    await aliceChat.click();
+    await pageA.getByRole('button', { name: 'Назад к списку чатов' }).waitFor({ state: 'visible', timeout: 10000 });
 
     // Switch the same browser session to Bob. Account-keyed ChatScreen must reset selection.
     await pageA.getByRole('button', { name: 'Открыть меню' }).click();
