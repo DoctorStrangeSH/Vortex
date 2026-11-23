@@ -262,3 +262,13 @@
 - [ ] Post-merge main Quality CI and Pages workflows from PR #161 documentation/merge commits have newer runs; verify final outcomes separately.
 - [ ] Manual screen-reader and keyboard-only acceptance remain NOT RUN.
 - [ ] Offline Queue concurrency root cause remains an open RC blocker; keep the 16-message assertion unchanged.
+
+
+### Chat dialog keyboard accessibility — PR #162 merged (23.11.2026)
+
+- [x] PR #162 passed full Quality CI #45160673459 on exact head `5361b13e5f81a52088bbf4c105698d6bfb5ebce9`: npm ci, unit tests, browser suite, Firestore/Storage Rules Emulator, Auth Emulator, authenticated ChatScreen E2E and production build.
+- [x] Authenticated E2E verifies ChatInfoDialog and MediaGallery initial focus, forward/reverse Tab wrapping, Escape dismissal and focus restoration to their opener controls.
+- [x] PR #162 squash-merged into `main` as `faac0fed3ead75ed47f66604f2bb31149dce0baa`.
+- [ ] Post-merge Quality CI #45161006101 and Pages workflow #45161006117 are queued on the merge commit; await results.
+- [ ] Automated Screen Reader/accessible-name audit and manual screen-reader acceptance remain NOT DONE. Current package has no axe-core/pa11y dependency; do not claim a screen-reader audit has passed.
+- [ ] Offline Queue concurrent enqueue root cause remains an open RC blocker; do not relax the 16-message stress assertion.
