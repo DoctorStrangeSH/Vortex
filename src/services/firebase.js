@@ -1,7 +1,7 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
-import { getStorage } from 'firebase/storage';
+import { getAuth, connectAuthEmulator } from 'firebase/auth';
+import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
+import { getStorage, connectStorageEmulator } from 'firebase/storage';
 import { resolveFirebaseConfig } from './firebaseConfig.js';
 
 // Existing production configuration is kept for backward compatibility.
@@ -19,3 +19,14 @@ const app = initializeApp(resolveFirebaseConfig(import.meta.env, productionConfi
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
+
+// Emulator connections are opt-in and restricted to an explicit demo project.
+// Production defaults and existing deployments remain unchanged.
+if (import.meta.env.VITE_USE_FIREBASE_EMULATORS === 'true') {
+    if (import.meta.env.VITE_APP_ENV !== 'staging' || !app.options.projectId?.startsWith('demo-')) {
+        throw new Error('Firebase Emulators require an explicit demo staging project');
+    }
+    connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
+    connectFirestoreEmulator(db, '127.0.0.1', 8080);
+    connectStorageEmulator(storage, '127.0.0.1', 9199);
+}
