@@ -26,8 +26,9 @@ server.stdout.on('data', chunk => { serverOutput += chunk.toString(); });
 server.stderr.on('data', chunk => { serverOutput += chunk.toString(); });
 
 const unique = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-const alice = { name: 'Vortex Alice', username: `alice_${unique.replaceAll('-', '_')}`, email: `alice-${unique}@example.test` };
-const bob = { name: 'Vortex Bob', username: `bob_${unique.replaceAll('-', '_')}`, email: `bob-${unique}@example.test` };
+const usernameSuffix = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
+const alice = { name: 'Vortex Alice', username: `a${usernameSuffix}`, email: `alice-${unique}@example.test` };
+const bob = { name: 'Vortex Bob', username: `b${usernameSuffix}`, email: `bob-${unique}@example.test` };
 const password = 'Vortex-test-password-123!';
 const firstMessage = `Привет из настоящего ChatScreen ${unique}`;
 const secondMessage = `Ответ второго аккаунта ${unique}`;
