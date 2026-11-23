@@ -2,7 +2,7 @@
 
 > Архив исторических аудитов, PR и диагностических записей. Это журнал событий, а не текущий статус. Актуальные требования находятся в [PROJECT_SPEC.md](PROJECT_SPEC.md), текущие задачи — в [ROADMAP.md](../ROADMAP.md). При противоречии всегда руководствуйтесь этими двумя документами.
 
-### Appendix B. Historical engineering log
+## Historical engineering log
 
 ### 13.4. Repository-only progress update — 20.11.2026
 
