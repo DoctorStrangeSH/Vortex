@@ -1,0 +1,985 @@
+{
+  "repository": "DoctorStrangeSH/Vortex",
+  "generated_at": "2026-11-23",
+  "description": "Only branches whose current remote head SHA exactly matched the head SHA of a merged pull request at audit time. Script rechecks every SHA against origin before deletion.",
+  "protected_branches": [
+    "main",
+    "gh-pages"
+  ],
+  "count": 139,
+  "branches": [
+    {
+      "branch": "chore/disable-undeployed-callables-on-spark",
+      "expected_sha": "8b10d3c66b93dca3513adec48c3560ca812fd4a1",
+      "pull_request": 95,
+      "title": "chore(firebase): disable deferred Cloud Functions deploy target on Spark",
+      "merged_at": "2026-11-21T11:37:15Z"
+    },
+    {
+      "branch": "chore/remove-out-of-scope-prototypes-2026-11-20",
+      "expected_sha": "c8ef03a4a335f931057f8262e803d39c1a75f7ba",
+      "pull_request": 64,
+      "title": "chore: remove out-of-scope prototype UI",
+      "merged_at": "2026-11-20T14:45:27Z"
+    },
+    {
+      "branch": "chore/remove-unused-service-prototypes-2026-11-20",
+      "expected_sha": "f41c277b4b4e1dfc824c3dd28c5f9debaf83e74b",
+      "pull_request": 66,
+      "title": "chore: remove unused service prototypes",
+      "merged_at": "2026-11-20T16:32:34Z"
+    },
+    {
+      "branch": "chore/repository-readme-roadmap-cleanup",
+      "expected_sha": "25077411c9e68ae252817a13dd5d754440ff5238",
+      "pull_request": 143,
+      "title": "chore(repo): polish README, add roadmap and align security docs",
+      "merged_at": "2026-11-22T07:02:00Z"
+    },
+    {
+      "branch": "docs/close-production-firestore-send-incident",
+      "expected_sha": "3f79deadec691ba8fcc335896891c18d058d3393",
+      "pull_request": 139,
+      "title": "docs(firebase): close production message-send rules drift incident",
+      "merged_at": "2026-11-22T06:29:47Z"
+    },
+    {
+      "branch": "docs/confirmed-production-rules-incident",
+      "expected_sha": "5621d3fa7f4e29dab33aa541b4bcb6d421e4a9a1",
+      "pull_request": 6,
+      "title": "docs(security): подтверждённая причина 403 и критические доступы",
+      "merged_at": "2026-11-19T13:41:44Z"
+    },
+    {
+      "branch": "docs/consolidate-audit-records-2026-11-20",
+      "expected_sha": "0dc8d6601d4cdf15da44d3773d9b9b44cdd3381b",
+      "pull_request": 71,
+      "title": "docs: consolidate security and offline queue audits",
+      "merged_at": "2026-11-20T17:07:33Z"
+    },
+    {
+      "branch": "docs/consolidate-repository-audit-2026-11-20",
+      "expected_sha": "46e6156b2853e9e411cf03b242961b3b372ba5f1",
+      "pull_request": 65,
+      "title": "docs: consolidate repository audit and cleanup status",
+      "merged_at": "2026-11-20T14:49:15Z"
+    },
+    {
+      "branch": "docs/historical-branch-audit-followup",
+      "expected_sha": "a691e777e1b4d5edfc695e7e1a8d0fae654598f7",
+      "pull_request": 80,
+      "title": "docs: finish historical pull request and branch audit",
+      "merged_at": "2026-11-20T18:52:49Z"
+    },
+    {
+      "branch": "docs/legacy-profile-repair-audit",
+      "expected_sha": "9a7d32fb0b9bd1d1c230d257a5fe1a8939b5a3fc",
+      "pull_request": 82,
+      "title": "docs: record safe legacy public profile repair",
+      "merged_at": "2026-11-20T19:05:27Z"
+    },
+    {
+      "branch": "docs/offline-queue-release-progress",
+      "expected_sha": "9b73478dd7069b0545e487cf645097407130745e",
+      "pull_request": 79,
+      "title": "docs: record Offline Queue browser restart verification",
+      "merged_at": "2026-11-20T18:49:11Z"
+    },
+    {
+      "branch": "docs/reconcile-project-spec-history-2026-11-21",
+      "expected_sha": "ff34e7794c423071329b45294bc650079ed92b46",
+      "pull_request": 96,
+      "title": "docs(spec): reconcile historical PR statuses with current main",
+      "merged_at": "2026-11-21T11:40:30Z"
+    },
+    {
+      "branch": "docs/reconcile-release-roadmap-pr91-pr97-2026-11-21",
+      "expected_sha": "806baa3fe379346079b89144fe6bfd8e8f2c0639",
+      "pull_request": 98,
+      "title": "docs(spec): reconcile legacy DM and PR 95–97 release status",
+      "merged_at": "2026-11-21T11:46:58Z"
+    },
+    {
+      "branch": "docs/record-accessibility-pr109-112",
+      "expected_sha": "fc68a781e8de96de69bb7c556baa829dcb691b47",
+      "pull_request": 113,
+      "title": "docs: record accessibility progress through PR 112",
+      "merged_at": "2026-11-21T12:35:41Z"
+    },
+    {
+      "branch": "docs/record-accessibility-pr113-117",
+      "expected_sha": "ad004a2400699be59dfb1e54d6b1f862d0e1749c",
+      "pull_request": 118,
+      "title": "docs: record accessibility progress through PR 117",
+      "merged_at": "2026-11-21T13:02:36Z"
+    },
+    {
+      "branch": "docs/record-chat-navigation-pr131",
+      "expected_sha": "4ad9ca92a1bfe356227d97a71c10ac92eac9488a",
+      "pull_request": 132,
+      "title": "docs: record ChatScreen navigation coverage",
+      "merged_at": "2026-11-21T15:54:27Z"
+    },
+    {
+      "branch": "docs/record-dialog-focus-browser-ci-pr122",
+      "expected_sha": "851af690e3edfac576e954cc252f490d407f6a88",
+      "pull_request": 126,
+      "title": "docs: record dialog focus browser CI closure",
+      "merged_at": "2026-11-21T13:28:51Z"
+    },
+    {
+      "branch": "docs/record-dialog-focus-regressions-119-120",
+      "expected_sha": "00a4788846b005253342c4037b220690c8656349",
+      "pull_request": 121,
+      "title": "docs: record dialog focus regressions through PR 120",
+      "merged_at": "2026-11-21T13:13:39Z"
+    },
+    {
+      "branch": "docs/record-modal-accessibility-pr107-108",
+      "expected_sha": "353b3ba2040cbddb8fed6a0bbaa0348dfcf37c70",
+      "pull_request": 109,
+      "title": "docs: record modal accessibility work through PR 108",
+      "merged_at": "2026-11-21T12:26:34Z"
+    },
+    {
+      "branch": "docs/record-pr95-pr96-release-state-2026-11-21",
+      "expected_sha": "60b2e91855f165708aab21e86f5f5cdb316ffec0",
+      "pull_request": 97,
+      "title": "docs(spec): record PR 95–96 completion and remaining release gates",
+      "merged_at": "2026-11-21T11:42:44Z"
+    },
+    {
+      "branch": "docs/record-production-send-permission-gate",
+      "expected_sha": "ea00bc0e8e8b66e92ea5f6fa337f5df09e98655a",
+      "pull_request": 137,
+      "title": "docs(firebase): record production message-send permission gate",
+      "merged_at": "2026-11-22T06:21:09Z"
+    },
+    {
+      "branch": "docs/record-responsive-auth-matrix-pr127",
+      "expected_sha": "ae7c3ac3692b09db5372d1696a5dee00dccdab88",
+      "pull_request": 128,
+      "title": "docs: record responsive auth viewport matrix",
+      "merged_at": "2026-11-21T14:43:12Z"
+    },
+    {
+      "branch": "docs/record-responsive-chat-shell-pr129",
+      "expected_sha": "08d2cb5b3efb1b639f18e416067fd1e160499e53",
+      "pull_request": 130,
+      "title": "docs: record responsive chat shell CI closure",
+      "merged_at": "2026-11-21T14:53:39Z"
+    },
+    {
+      "branch": "docs/record-responsive-dialogs-pr135",
+      "expected_sha": "8da59df3044374e34370939da2a264d75942e73e",
+      "pull_request": 136,
+      "title": "docs: record responsive dialog fixes and quality CI",
+      "merged_at": "2026-11-22T06:17:14Z"
+    },
+    {
+      "branch": "docs/registration-resume-claim-fix",
+      "expected_sha": "b7f57d1254680917584b486f11371a1d9f7dbd1f",
+      "pull_request": 84,
+      "title": "docs: record safe registration resume claim behavior",
+      "merged_at": "2026-11-20T19:10:15Z"
+    },
+    {
+      "branch": "docs/roadmap-10k-stress-test",
+      "expected_sha": "b010469e3d494a343da21a6715518617eb0d32d8",
+      "pull_request": 146,
+      "title": "docs: update roadmap with listener cleanup and 10k history test",
+      "merged_at": "2026-11-22T07:29:20Z"
+    },
+    {
+      "branch": "docs/roadmap-concurrent-send-pass-v2",
+      "expected_sha": "a7ed87f55d28eaf5057308e357ac4271208424c7",
+      "pull_request": 150,
+      "title": "docs: record concurrent message preview validation",
+      "merged_at": "2026-11-22T08:00:16Z"
+    },
+    {
+      "branch": "docs/security-review-current-state-v2",
+      "expected_sha": "6a53098588eee11333073c0e540db3ea006a2f90",
+      "pull_request": 42,
+      "title": "docs: refresh Firebase security review",
+      "merged_at": "2026-11-20T10:18:17Z"
+    },
+    {
+      "branch": "docs/storage-emulator-repro",
+      "expected_sha": "0e790724314776b1b16da74b9f1d59d39fa9ed64",
+      "pull_request": 16,
+      "title": "docs(firebase): document Storage emulator access discrepancy",
+      "merged_at": "2026-11-19T14:38:10Z"
+    },
+    {
+      "branch": "docs/storage-emulator-status-clarification",
+      "expected_sha": "5443f7067550bbc174382a343e60ff2a15a2d926",
+      "pull_request": 94,
+      "title": "docs(storage): reconcile emulator coverage and staging gates",
+      "merged_at": "2026-11-21T11:19:44Z"
+    },
+    {
+      "branch": "docs/sync-v1-roadmap-status-2026-11-20",
+      "expected_sha": "e32d4685ea7e88a1e009696864be697002966a82",
+      "pull_request": 85,
+      "title": "docs: sync Vortex 1.0 roadmap with verified repository status",
+      "merged_at": "2026-11-20T19:13:57Z"
+    },
+    {
+      "branch": "docs/update-release-readiness-2026-11-20",
+      "expected_sha": "87e543a2cb6261014e403e928108c7848adc278c",
+      "pull_request": 59,
+      "title": "docs: update Vortex 1.0 release readiness after PRs 55-58",
+      "merged_at": "2026-11-20T12:31:40Z"
+    },
+    {
+      "branch": "docs/update-vortex-1-0-acceptance-status",
+      "expected_sha": "bbd57cbe65074502667fb6684273a91536a71360",
+      "pull_request": 140,
+      "title": "docs: refresh Vortex 1.0 acceptance status after production send fix",
+      "merged_at": "2026-11-22T06:36:40Z"
+    },
+    {
+      "branch": "docs/update-vortex-a11y-progress-final",
+      "expected_sha": "dabe812e7c0cc8ff7e3f289c46454be180502266",
+      "pull_request": 106,
+      "title": "docs: record accessibility progress through PR 104",
+      "merged_at": "2026-11-21T12:16:38Z"
+    },
+    {
+      "branch": "docs/vortex-v1-product-spec",
+      "expected_sha": "db36f5e0814ea3c3cfc96c46fac8fc645dbf7883",
+      "pull_request": 34,
+      "title": "docs: freeze Vortex 1.0 product and technical scope",
+      "merged_at": "2026-11-19T21:54:19Z"
+    },
+    {
+      "branch": "feat/chat-image-viewer",
+      "expected_sha": "15980253f5b7aab55eaf87462458d8597bda4c7c",
+      "pull_request": 2,
+      "title": "feat(ui): fullscreen image viewer for conversations",
+      "merged_at": "2026-11-19T13:29:19Z"
+    },
+    {
+      "branch": "feat/chat-list-onboarding-states",
+      "expected_sha": "00136b9b2f1633b9af7f3fd8f164a8778450be06",
+      "pull_request": 9,
+      "title": "feat(chat): понятные состояния списка и первый диалог",
+      "merged_at": "2026-11-19T13:54:02Z"
+    },
+    {
+      "branch": "feat/firestore-unread-counter-adapter",
+      "expected_sha": "baeb878a7dd5396690b0d9363208aabaa8f11388",
+      "pull_request": 25,
+      "title": "feat(unread): add Firestore transaction store adapter",
+      "merged_at": "2026-11-19T20:01:18Z"
+    },
+    {
+      "branch": "feat/message-queue-status-details",
+      "expected_sha": "1db44b9b8017893f137cb719972b565aea0520e4",
+      "pull_request": 19,
+      "title": "feat(chat): show status for each queued outgoing message",
+      "merged_at": "2026-11-19T17:36:32Z"
+    },
+    {
+      "branch": "feat/obsidian-iris-auth-experience",
+      "expected_sha": "21ffd1bd67d6ecd4369016fdfaefc8ceede6ac63",
+      "pull_request": 7,
+      "title": "feat(auth): экран входа в стиле Obsidian Iris",
+      "merged_at": "2026-11-19T13:45:15Z"
+    },
+    {
+      "branch": "feat/password-reset-flow",
+      "expected_sha": "289c24b7030ecca6858cd82391a1d7669cdc9bf5",
+      "pull_request": 48,
+      "title": "feat: add password recovery to authentication flow",
+      "merged_at": "2026-11-20T11:06:48Z"
+    },
+    {
+      "branch": "feat/profile-obsidian-iris-atomic-save",
+      "expected_sha": "1bce0772a247d6b794bc0c41c5cbbcab690fc977",
+      "pull_request": 10,
+      "title": "feat(profile): новый профиль и атомарное сохранение",
+      "merged_at": "2026-11-19T13:59:46Z"
+    },
+    {
+      "branch": "feat/theme-settings-obsidian-iris",
+      "expected_sha": "baef45d11559ac36de9048918cf7118eb744118c",
+      "pull_request": 11,
+      "title": "feat(settings): персонализация Obsidian Iris и единый выбор темы",
+      "merged_at": "2026-11-19T14:03:09Z"
+    },
+    {
+      "branch": "feat/trusted-group-membership-functions",
+      "expected_sha": "eaceadae4ccf38790bf5b5e308662be5da07cdaf",
+      "pull_request": 30,
+      "title": "feat(functions): add transactional group membership callables",
+      "merged_at": "2026-11-19T21:11:49Z"
+    },
+    {
+      "branch": "feat/unread-membership-history-model",
+      "expected_sha": "4990907de1fb67be7251694fe1e427bcf27e6088",
+      "pull_request": 29,
+      "title": "feat(unread): add timestamped membership history resolver",
+      "merged_at": "2026-11-19T20:42:31Z"
+    },
+    {
+      "branch": "feat/unread-trusted-chat-members",
+      "expected_sha": "21d4946616d811a02357896d4f0a68c966fda451",
+      "pull_request": 27,
+      "title": "feat(unread): resolve chat participants from trusted Firestore state",
+      "merged_at": "2026-11-19T20:11:28Z"
+    },
+    {
+      "branch": "feat/unread-trusted-event-mapper",
+      "expected_sha": "3b9174c7e4b0e1ee5eafafaa101320c0381285ce",
+      "pull_request": 28,
+      "title": "feat(unread): map message events from trusted chat snapshots",
+      "merged_at": "2026-11-19T20:21:02Z"
+    },
+    {
+      "branch": "fix/a11y-exclude-negative-tabindex-controls",
+      "expected_sha": "adb8a6e2564a4e687404091444ed43f96dbd14a4",
+      "pull_request": 125,
+      "title": "fix(a11y): exclude negative tabindex controls from focus order",
+      "merged_at": "2026-11-21T13:18:24Z"
+    },
+    {
+      "branch": "fix/app-modal-focus-management",
+      "expected_sha": "3c5bdf06322d63086518a0052b3b6500a4cd5f1b",
+      "pull_request": 108,
+      "title": "fix(a11y): standardize focus management across app modals",
+      "merged_at": "2026-11-21T12:22:11Z"
+    },
+    {
+      "branch": "fix/atomic-idempotent-message-send",
+      "expected_sha": "50abd165d7c44d9602fdddc57b999d4d555b67c7",
+      "pull_request": 62,
+      "title": "fix(sync): make offline message retries atomically idempotent",
+      "merged_at": "2026-11-20T12:59:15Z"
+    },
+    {
+      "branch": "fix/atomic-message-delete",
+      "expected_sha": "c4a7d7d0640ceeffd583c2ae02bf711830cb5ec9",
+      "pull_request": 50,
+      "title": "fix: atomically delete messages and pinned references",
+      "merged_at": "2026-11-20T11:18:41Z"
+    },
+    {
+      "branch": "fix/atomic-message-preview-delete",
+      "expected_sha": "8ee29e6566aa37f44c5fffea21bc22d72f6b2cff",
+      "pull_request": 54,
+      "title": "fix: keep chat preview consistent during concurrent message deletion",
+      "merged_at": "2026-11-20T11:35:18Z"
+    },
+    {
+      "branch": "fix/auth-init-presence-after-e2ee-disabled",
+      "expected_sha": "3680b69bc923568741d384c58ec6915761189eef",
+      "pull_request": 46,
+      "title": "fix: restore presence initialization after disabling E2EE",
+      "merged_at": "2026-11-20T10:59:01Z"
+    },
+    {
+      "branch": "fix/auth-scroll-and-production-preloads",
+      "expected_sha": "3feda020ea418dbfdf9e3e8bc764eac18853ccc4",
+      "pull_request": 12,
+      "title": "fix: registration scrolling and production asset preloads",
+      "merged_at": "2026-11-19T14:12:18Z"
+    },
+    {
+      "branch": "fix/auth-tabs-keyboard-accessibility-final",
+      "expected_sha": "1a0f339cf0b49c9bbb5bfbf4262bb807c5bcacfd",
+      "pull_request": 101,
+      "title": "fix(a11y): support keyboard navigation in auth tabs",
+      "merged_at": "2026-11-21T12:02:37Z"
+    },
+    {
+      "branch": "fix/auth-username-check-and-push-init",
+      "expected_sha": "510afaf7383d96f93fb838f24b28042c8f376a9f",
+      "pull_request": 8,
+      "title": "fix(auth): стабильная проверка логина без зависаний",
+      "merged_at": "2026-11-19T13:50:56Z"
+    },
+    {
+      "branch": "fix/block-active-content-in-legacy-attachments-2026-11-20",
+      "expected_sha": "4344e183be3a9d60ae49ac62d169f4b002124b3f",
+      "pull_request": 72,
+      "title": "security: block active web content in legacy attachments",
+      "merged_at": "2026-11-20T17:13:22Z"
+    },
+    {
+      "branch": "fix/browser-empty-dialog-focus-fixture",
+      "expected_sha": "eac7ebda431fdc91fccc2a8edc99ea1d04049e9e",
+      "pull_request": 123,
+      "title": "test(browser): fix empty dialog focus fixture",
+      "merged_at": "2026-11-21T13:15:22Z"
+    },
+    {
+      "branch": "fix/browser-empty-dialog-native-fixture",
+      "expected_sha": "5a372e6790c94189b00d1ca29c56ecfc9413bf9d",
+      "pull_request": 124,
+      "title": "test(browser): use native dialog for empty focus fallback",
+      "merged_at": "2026-11-21T13:17:30Z"
+    },
+    {
+      "branch": "fix/burger-menu-focus-management",
+      "expected_sha": "de7fd0b0728179a84dda427c0b6f0b8283ce46fe",
+      "pull_request": 110,
+      "title": "fix(a11y): manage focus in mobile navigation drawer",
+      "merged_at": "2026-11-21T12:26:44Z"
+    },
+    {
+      "branch": "fix/chat-activity-listener-cleanup",
+      "expected_sha": "b2b0a01bbecb1affa3cf2f520420491bda2a11b2",
+      "pull_request": 144,
+      "title": "fix(chat): release presence and typing listeners on chat change",
+      "merged_at": "2026-11-22T07:08:14Z"
+    },
+    {
+      "branch": "fix/chat-header-menu-keyboard-accessibility",
+      "expected_sha": "24a0a64967e6e2afb1dcf1c16ebe7cf766f759af",
+      "pull_request": 111,
+      "title": "fix(a11y): add keyboard navigation to chat header menu",
+      "merged_at": "2026-11-21T12:30:43Z"
+    },
+    {
+      "branch": "fix/chat-info-nested-dialog-focus",
+      "expected_sha": "75025e8d2d253ebe252b36f7418dab61caea077f",
+      "pull_request": 116,
+      "title": "fix(a11y): avoid stealing focus during nested chat dialogs",
+      "merged_at": "2026-11-21T12:55:53Z"
+    },
+    {
+      "branch": "fix/context-menu-focus-restoration",
+      "expected_sha": "42e492916336a41bfb740caafdb1d66c19e9e114",
+      "pull_request": 115,
+      "title": "fix(a11y): restore focus after context menu actions",
+      "merged_at": "2026-11-21T12:49:02Z"
+    },
+    {
+      "branch": "fix/dialog-focus-hidden-elements",
+      "expected_sha": "85faa4ad9ca56b5cf7423db7aa1e1f5df3e92fc7",
+      "pull_request": 117,
+      "title": "fix(a11y): skip hidden controls in dialog focus traps",
+      "merged_at": "2026-11-21T12:57:18Z"
+    },
+    {
+      "branch": "fix/disable-legacy-self-destruct-metadata-2026-11-20",
+      "expected_sha": "baf6a35fe786c9ca1c2396d590dd0d86f03492fa",
+      "pull_request": 67,
+      "title": "security: disable legacy self-destruct metadata in 1.0",
+      "merged_at": "2026-11-20T16:45:27Z"
+    },
+    {
+      "branch": "fix/disable-post-1-0-prototypes",
+      "expected_sha": "667cdd4443f9e536f8a48726ac597f2e1ac7ac9b",
+      "pull_request": 45,
+      "title": "fix: disable unfinished post-1.0 security prototypes",
+      "merged_at": "2026-11-20T10:56:11Z"
+    },
+    {
+      "branch": "fix/disable-secret-chat-creation",
+      "expected_sha": "801d149e843e4e0c440926dbd1c46db7b59f2083",
+      "pull_request": 41,
+      "title": "fix: disable secret chat creation in Vortex 1.0",
+      "merged_at": "2026-11-20T10:14:54Z"
+    },
+    {
+      "branch": "fix/durable-online-text-messages",
+      "expected_sha": "8615ca8e29fd9c16bcce6d19c1fba81e0ddd2c15",
+      "pull_request": 18,
+      "title": "fix(chat): send online text through durable message queue",
+      "merged_at": "2026-11-19T15:44:15Z"
+    },
+    {
+      "branch": "fix/github-pages-deployment",
+      "expected_sha": "d9b4ff750f0c6bfd5f033e4712ac7698951d3d4a",
+      "pull_request": 3,
+      "title": "fix(deploy): publish Vite build to GitHub Pages",
+      "merged_at": "2026-11-19T13:25:58Z"
+    },
+    {
+      "branch": "fix/group-admin-self-leave",
+      "expected_sha": "cd8280f6214f8969a348bfd911e27f358458e568",
+      "pull_request": 38,
+      "title": "fix: allow group admins to leave safely",
+      "merged_at": "2026-11-20T10:10:11Z"
+    },
+    {
+      "branch": "fix/group-admin-self-leave-ui-2026-11-21",
+      "expected_sha": "b7ff3dd87eea8df4605c072384aaeb1b6b35ac0e",
+      "pull_request": 89,
+      "title": "fix(groups): let delegated admins leave from the member panel",
+      "merged_at": "2026-11-21T10:24:43Z"
+    },
+    {
+      "branch": "fix/group-members-dialog-focus-management",
+      "expected_sha": "7d88861f756720b3677bf9078297a8a852170908",
+      "pull_request": 100,
+      "title": "fix(a11y): manage keyboard focus in group members dialog",
+      "merged_at": "2026-11-21T11:59:30Z"
+    },
+    {
+      "branch": "fix/group-membership-history-actions",
+      "expected_sha": "69c0450522b43f6c8c892bbedae3c58f86c1f0ae",
+      "pull_request": 33,
+      "title": "fix(groups): preserve accurate membership history actions",
+      "merged_at": "2026-11-19T21:35:46Z"
+    },
+    {
+      "branch": "fix/group-membership-service-guards",
+      "expected_sha": "03a9af3cccd31a1404c0d226083da7c6e2f73231",
+      "pull_request": 58,
+      "title": "fix: enforce group owner and admin invariants in client service",
+      "merged_at": "2026-11-20T12:25:24Z"
+    },
+    {
+      "branch": "fix/idempotent-channel-membership",
+      "expected_sha": "330ff555dc56b4563fb93e6d9a68fdea8c336f34",
+      "pull_request": 57,
+      "title": "fix: make channel subscriptions transactional and idempotent",
+      "merged_at": "2026-11-20T12:17:19Z"
+    },
+    {
+      "branch": "fix/idempotent-read-receipts",
+      "expected_sha": "ad84920e66090b25140ea084e1f6b4bee2a8c703",
+      "pull_request": 51,
+      "title": "fix: make read receipts idempotent across sessions",
+      "merged_at": "2026-11-20T11:25:55Z"
+    },
+    {
+      "branch": "fix/image-viewer-focus-trap",
+      "expected_sha": "8cac63c279ad36727092064e33445faa36da55d2",
+      "pull_request": 104,
+      "title": "fix(a11y): keep keyboard focus inside image viewer",
+      "merged_at": "2026-11-21T12:13:35Z"
+    },
+    {
+      "branch": "fix/legacy-private-chat-send-rules-2026-11-21",
+      "expected_sha": "42ba1ffbdd1a4114dbc07aa1227c443051941c2d",
+      "pull_request": 91,
+      "title": "fix(security): keep legacy private chats writable for members",
+      "merged_at": "2026-11-21T10:50:03Z"
+    },
+    {
+      "branch": "fix/legacy-public-profile-claim-repair",
+      "expected_sha": "8bdc92a6b5d8dd22c3369c0db5a6df1d3092b4ec",
+      "pull_request": 81,
+      "title": "fix(auth): preserve username ownership during legacy profile repair",
+      "merged_at": "2026-11-20T19:01:13Z"
+    },
+    {
+      "branch": "fix/message-context-menu-keyboard-accessibility",
+      "expected_sha": "4dcc42c88f5cbde1112a10a161093817fb74a703",
+      "pull_request": 103,
+      "title": "fix(a11y): make message context menu keyboard accessible",
+      "merged_at": "2026-11-21T12:10:38Z"
+    },
+    {
+      "branch": "fix/offline-queue-local-storage-warning",
+      "expected_sha": "e047b05cb5b2611e6722e3d8809db991bde4b1b5",
+      "pull_request": 77,
+      "title": "fix: warn before clearing local offline queue data",
+      "merged_at": "2026-11-20T18:32:39Z"
+    },
+    {
+      "branch": "fix/poll-creator-dialog-accessibility",
+      "expected_sha": "ee6e253732d4afffb0bfddd7af5f914bbeb70706",
+      "pull_request": 112,
+      "title": "fix(a11y): make poll creator an accessible modal",
+      "merged_at": "2026-11-21T12:31:54Z"
+    },
+    {
+      "branch": "fix/presence-session-cleanup",
+      "expected_sha": "313f3960c2a691d93b9028971cbe092a90a7feeb",
+      "pull_request": 47,
+      "title": "fix: clean up presence tracking across auth sessions",
+      "merged_at": "2026-11-20T11:03:31Z"
+    },
+    {
+      "branch": "fix/preserve-corrupt-offline-queue",
+      "expected_sha": "7bd87c909e72d9591806daa57e2e7c79755db6eb",
+      "pull_request": 55,
+      "title": "fix: preserve damaged offline queue before recovery",
+      "merged_at": "2026-11-20T12:03:52Z"
+    },
+    {
+      "branch": "fix/private-email-message-fallback",
+      "expected_sha": "29e6aa3d7ac9b52a20329f795fb42eccc9ac025a",
+      "pull_request": 39,
+      "title": "fix: keep private email out of message sender labels",
+      "merged_at": "2026-11-20T10:09:52Z"
+    },
+    {
+      "branch": "fix/profile-dialog-compact-height",
+      "expected_sha": "051893999a39fc328de9f7f4dfc117a23b11b3a5",
+      "pull_request": 134,
+      "title": "fix(profile): keep profile dialog usable on short screens",
+      "merged_at": "2026-11-22T05:48:06Z"
+    },
+    {
+      "branch": "fix/reaction-picker-keyboard-accessibility",
+      "expected_sha": "44dee987c7e3c9a9e86272d01d0afa6033a53075",
+      "pull_request": 114,
+      "title": "fix(a11y): make reaction picker keyboard accessible",
+      "merged_at": "2026-11-21T12:39:57Z"
+    },
+    {
+      "branch": "fix/registration-profile-draft",
+      "expected_sha": "14e4237d55d95a4af1fd83ca763a0669f2e5b452",
+      "pull_request": 4,
+      "title": "fix(auth): сохранять имя и @username при незавершённой регистрации",
+      "merged_at": "2026-11-19T13:35:15Z"
+    },
+    {
+      "branch": "fix/registration-resume-owned-username-claim",
+      "expected_sha": "ce0020ccd49a7a4b5df970f657df76c1235b4ee3",
+      "pull_request": 83,
+      "title": "fix(auth): allow registration resume with an owned username claim",
+      "merged_at": "2026-11-20T19:07:09Z"
+    },
+    {
+      "branch": "fix/registration-username-auth-order",
+      "expected_sha": "759df68c1c9b4b6e80593cce1837d83698706721",
+      "pull_request": 14,
+      "title": "fix(auth): defer username availability checks until signed in",
+      "merged_at": "2026-11-19T14:19:09Z"
+    },
+    {
+      "branch": "fix/remaining-dialog-focus-traps",
+      "expected_sha": "21b5fef5e8dcc11a91cc4939921108690ec7e1ff",
+      "pull_request": 107,
+      "title": "fix(a11y): unify focus handling in remaining chat dialogs",
+      "merged_at": "2026-11-21T12:20:51Z"
+    },
+    {
+      "branch": "fix/responsive-dialogs-viewport",
+      "expected_sha": "d9150ad90982d1ebea8f64501e4a5de79d4917c4",
+      "pull_request": 135,
+      "title": "fix(dialogs): keep chat panels within short viewports",
+      "merged_at": "2026-11-22T06:12:53Z"
+    },
+    {
+      "branch": "fix/sanitize-legacy-public-profiles-2026-11-21",
+      "expected_sha": "2c96eb2a47d1a636c3d1b1ab1306c622c1cc9fa7",
+      "pull_request": 92,
+      "title": "fix(privacy): sanitize legacy public profile projections",
+      "merged_at": "2026-11-21T10:58:42Z"
+    },
+    {
+      "branch": "fix/security-prevent-self-read-receipts",
+      "expected_sha": "a29d1a17e4bdb4accd6fdd9a95655b778713de19",
+      "pull_request": 20,
+      "title": "fix(security): prevent authors from marking own messages read",
+      "merged_at": "2026-11-19T17:45:27Z"
+    },
+    {
+      "branch": "fix/security-protect-unread-projections",
+      "expected_sha": "4498a22f65627ffb4ee142811863ebfbb7ab8796",
+      "pull_request": 21,
+      "title": "fix(security): protect server-owned unread counters",
+      "merged_at": "2026-11-19T19:19:26Z"
+    },
+    {
+      "branch": "fix/sidebar-chat-menu-keyboard-navigation",
+      "expected_sha": "9a3a3ecb37cb552dcbb81e651a4efdf985af4bb6",
+      "pull_request": 102,
+      "title": "fix(a11y): add keyboard navigation to chat options menu",
+      "merged_at": "2026-11-21T12:06:51Z"
+    },
+    {
+      "branch": "fix/sidebar-chat-row-accessibility",
+      "expected_sha": "b2a3a65dee67b55792ec8db0d9dd2bd8ae02ae1f",
+      "pull_request": 99,
+      "title": "fix(a11y): make chat list rows keyboard and screen-reader safe",
+      "merged_at": "2026-11-21T11:54:39Z"
+    },
+    {
+      "branch": "fix/storage-content-policy-tests-2026-11-21",
+      "expected_sha": "bcdd49a773d37d2123e830f54727d54a59616b50",
+      "pull_request": 93,
+      "title": "test(storage): cover MIME policy and anonymous access",
+      "merged_at": "2026-11-21T11:07:49Z"
+    },
+    {
+      "branch": "fix/validate-registration-before-auth",
+      "expected_sha": "3eb96b167d219320925f59dece17b8c698432e25",
+      "pull_request": 61,
+      "title": "fix: validate registration profile before creating Auth account",
+      "merged_at": "2026-11-20T12:43:10Z"
+    },
+    {
+      "branch": "fix/virtual-feed-scroll-state-main",
+      "expected_sha": "e50492b216fcfb1ffc841a232c824cf48a698a72",
+      "pull_request": 53,
+      "title": "fix: preserve historical scroll position after virtual feed updates",
+      "merged_at": "2026-11-20T11:31:26Z"
+    },
+    {
+      "branch": "refactor/messaging-foundation",
+      "expected_sha": "3ba16d2b3c00bc9392cb72268514e55590ad09af",
+      "pull_request": 1,
+      "title": "refactor: first messaging reliability and security foundation",
+      "merged_at": "2026-11-19T13:09:09Z"
+    },
+    {
+      "branch": "security/orphaned-storage-object-deletion-2026-11-20",
+      "expected_sha": "863efa6f367245edf839006594c914162ef23615",
+      "pull_request": 73,
+      "title": "security: clean up orphaned Storage attachments safely",
+      "merged_at": "2026-11-20T17:26:58Z"
+    },
+    {
+      "branch": "security/vortex-group-membership-uniqueness",
+      "expected_sha": "37cd3a6b80648c09450156cc46fc00a996d10d79",
+      "pull_request": 37,
+      "title": "security: enforce unique group membership lists",
+      "merged_at": "2026-11-20T10:04:48Z"
+    },
+    {
+      "branch": "security/vortex-stage1-canonical-private-chat",
+      "expected_sha": "63e1621793b18887e4324015a676e6e64ac7f69d",
+      "pull_request": 36,
+      "title": "security: enforce canonical private chat identity",
+      "merged_at": "2026-11-20T09:52:26Z"
+    },
+    {
+      "branch": "security/vortex-stage1-group-delete-guard",
+      "expected_sha": "54c3882d2fb0e1222a06b125bce1cbdb7c13ac53",
+      "pull_request": 35,
+      "title": "security: prevent orphaning group subcollections",
+      "merged_at": "2026-11-19T21:59:41Z"
+    },
+    {
+      "branch": "test/a11y-inert-focus-control-2026-11-21",
+      "expected_sha": "8b5da6f2298374f8632a94fbcb7473e660425169",
+      "pull_request": 120,
+      "title": "test(a11y): cover inert dialog focus control",
+      "merged_at": "2026-11-21T13:10:13Z"
+    },
+    {
+      "branch": "test/auth-emulator-integration",
+      "expected_sha": "de40feb8f1e1ce40c12fa6fb9d292dd4ac1ca811",
+      "pull_request": 49,
+      "title": "test: add Firebase Auth Emulator integration coverage",
+      "merged_at": "2026-11-20T11:10:03Z"
+    },
+    {
+      "branch": "test/auth-small-screen-scroll",
+      "expected_sha": "9a0a783245b39e8ab8111dd32ab10e7b98520ce4",
+      "pull_request": 13,
+      "title": "test(browser): проверка прокрутки регистрации на маленьком экране",
+      "merged_at": "2026-11-19T14:15:32Z"
+    },
+    {
+      "branch": "test/browser-dialog-focus-visibility-2026-11-21",
+      "expected_sha": "fd3ba137d096e8dd456f5d17ba434087f997072d",
+      "pull_request": 122,
+      "title": "fix(a11y): exclude visually hidden dialog focus targets",
+      "merged_at": "2026-11-21T13:21:14Z"
+    },
+    {
+      "branch": "test/browser-responsive-auth-viewport-matrix",
+      "expected_sha": "34271887981205b03930a75252ed42aaa41b45ea",
+      "pull_request": 127,
+      "title": "test(browser): add responsive auth viewport matrix",
+      "merged_at": "2026-11-21T14:39:33Z"
+    },
+    {
+      "branch": "test/browser-responsive-chat-shell",
+      "expected_sha": "7a4b3c378567c91d69c9620ae6d3a7d05349be76",
+      "pull_request": 129,
+      "title": "test(browser): add responsive chat shell viewport matrix",
+      "merged_at": "2026-11-21T14:50:45Z"
+    },
+    {
+      "branch": "test/channel-schema-integrity-2026-11-21",
+      "expected_sha": "4a0b569e15d67778ff9bf6209c5226b4a4e81971",
+      "pull_request": 90,
+      "title": "test(security): cover channel schema and membership invariants",
+      "merged_at": "2026-11-21T10:27:53Z"
+    },
+    {
+      "branch": "test/chat-composer-browser-interactions",
+      "expected_sha": "5be881f921905a476e5551820a4c95be0ff40a90",
+      "pull_request": 141,
+      "title": "test(chat): cover real composer keyboard interactions",
+      "merged_at": "2026-11-22T06:54:52Z"
+    },
+    {
+      "branch": "test/chat-screen-navigation-state",
+      "expected_sha": "b83590097cef887af0497e8836fd58b05c56cd3e",
+      "pull_request": 131,
+      "title": "test(chat): cover responsive mobile navigation transitions",
+      "merged_at": "2026-11-21T15:26:02Z"
+    },
+    {
+      "branch": "test/delegated-group-admin-boundaries-2026-11-21",
+      "expected_sha": "6e894bfde766a7a7d75809b71581f2ce76366f52",
+      "pull_request": 88,
+      "title": "test(security): cover delegated group admin boundaries",
+      "merged_at": "2026-11-21T10:18:26Z"
+    },
+    {
+      "branch": "test/dialog-focus-hidden-ancestor-regressions-2026-11-21",
+      "expected_sha": "ea0bdacd2445cf28aa64ca1e942fc23d65c03ae8",
+      "pull_request": 119,
+      "title": "test(a11y): cover hidden dialog focus ancestors",
+      "merged_at": "2026-11-21T13:08:06Z"
+    },
+    {
+      "branch": "test/firebase-environment-isolation",
+      "expected_sha": "41f5465138bb7850213305c649457edd73ecac68",
+      "pull_request": 60,
+      "title": "test: verify Firebase staging cannot target production",
+      "merged_at": "2026-11-20T12:36:51Z"
+    },
+    {
+      "branch": "test/firestore-concurrent-distinct-message-preview",
+      "expected_sha": "b9afc0aa54713dd39a83619ef2898a9ef8ff4825",
+      "pull_request": 149,
+      "title": "test(firestore): verify concurrent distinct message preview consistency",
+      "merged_at": "2026-11-22T07:53:10Z"
+    },
+    {
+      "branch": "test/firestore-concurrent-message-idempotency",
+      "expected_sha": "85e27c1728d0d9611d71a0b2f7c4c2bfcfa3ab53",
+      "pull_request": 147,
+      "title": "test(firestore): verify concurrent message idempotency in emulator",
+      "merged_at": "2026-11-22T07:39:44Z"
+    },
+    {
+      "branch": "test/firestore-registration-security",
+      "expected_sha": "8ae9df55f5991597220b9496f148f2dbe14fdbc0",
+      "pull_request": 5,
+      "title": "test(firebase): контроль атомарной регистрации и план устранения 403",
+      "merged_at": "2026-11-19T13:40:04Z"
+    },
+    {
+      "branch": "test/firestore-unread-adapter-invalid-state",
+      "expected_sha": "9b496af2132a56076a0eee5669181c8b4f9cc7ae",
+      "pull_request": 26,
+      "title": "test(unread): cover Firestore adapter rollback and invalid state",
+      "merged_at": "2026-11-19T20:04:22Z"
+    },
+    {
+      "branch": "test/legacy-private-chat-reuse",
+      "expected_sha": "8c44558fa6d1ea43afd6a6a5083c556e3c334b0a",
+      "pull_request": 44,
+      "title": "test: harden legacy private chat reuse matching",
+      "merged_at": "2026-11-20T10:29:13Z"
+    },
+    {
+      "branch": "test/message-bubble-browser-interactions",
+      "expected_sha": "0d585e63db0ca9038f518122a5d4437e567f01e4",
+      "pull_request": 142,
+      "title": "test(chat): cover real message bubble interactions",
+      "merged_at": "2026-11-22T06:58:18Z"
+    },
+    {
+      "branch": "test/offline-message-idempotency",
+      "expected_sha": "ca4cda22f2665e57e4bfb33368646741387c370a",
+      "pull_request": 56,
+      "title": "test: cover idempotent offline message delivery",
+      "merged_at": "2026-11-20T12:09:21Z"
+    },
+    {
+      "branch": "test/offline-queue-browser-process-restart-v2",
+      "expected_sha": "b17963af2fec935e755e2e347effd8243c1b5fac",
+      "pull_request": 78,
+      "title": "test: verify Offline Queue across full browser restart",
+      "merged_at": "2026-11-20T18:45:30Z"
+    },
+    {
+      "branch": "test/offline-queue-no-web-locks-2026-11-20",
+      "expected_sha": "322e6c2edd34fc6fbf6131409202bf6204b87b1b",
+      "pull_request": 75,
+      "title": "test: cover Offline Queue without Web Locks",
+      "merged_at": "2026-11-20T17:45:21Z"
+    },
+    {
+      "branch": "test/offline-queue-tab-restart-2026-11-20",
+      "expected_sha": "9cc570486813ceefc85c09fc9a8f6da7e8a7fef7",
+      "pull_request": 76,
+      "title": "test: verify Offline Queue recovery after tab reopen",
+      "merged_at": "2026-11-20T17:51:14Z"
+    },
+    {
+      "branch": "test/offline-queue-two-account-browser-2026-11-20",
+      "expected_sha": "1aee798f544e021a81e3662c33a7af56b18e9e87",
+      "pull_request": 74,
+      "title": "test: verify offline queue reconnect across two accounts",
+      "merged_at": "2026-11-20T17:35:20Z"
+    },
+    {
+      "branch": "test/privacy-legacy-profile-access",
+      "expected_sha": "a564ea9fad5c686c31b2e1cbde24821b7f911d70",
+      "pull_request": 151,
+      "title": "test(security): verify legacy profile and username privacy boundaries",
+      "merged_at": "2026-11-23T06:42:13Z"
+    },
+    {
+      "branch": "test/private-chat-compatibility-races",
+      "expected_sha": "aba66ebd2cb403773417b2176d2c8946685309a8",
+      "pull_request": 43,
+      "title": "test: cover legacy private chats and concurrent creation",
+      "merged_at": "2026-11-20T10:23:12Z"
+    },
+    {
+      "branch": "test/private-dialog-first-message",
+      "expected_sha": "d2d8d615f8c015e18e5862ff00750d5b779f8c3a",
+      "pull_request": 17,
+      "title": "test(chat): verify first message in a newly created private dialog",
+      "merged_at": "2026-11-19T14:46:19Z"
+    },
+    {
+      "branch": "test/read-receipt-identity-boundaries-2026-11-21",
+      "expected_sha": "06c938702712cecacc6398b0330c4f81979c16e1",
+      "pull_request": 86,
+      "title": "test(security): cover read receipt identity and append-only rules",
+      "merged_at": "2026-11-21T10:12:37Z"
+    },
+    {
+      "branch": "test/registration-auth-gating",
+      "expected_sha": "56cec4000897fef93e9399c37d3c408caf2ad17d",
+      "pull_request": 15,
+      "title": "test(auth): cover username access before login",
+      "merged_at": "2026-11-19T14:25:31Z"
+    },
+    {
+      "branch": "test/reproduce-production-dm-send-commit",
+      "expected_sha": "56e0069dd78e67218989072678df0b37f97a8178",
+      "pull_request": 138,
+      "title": "test(firebase): reproduce production-shaped direct message commit",
+      "merged_at": "2026-11-22T06:28:50Z"
+    },
+    {
+      "branch": "test/unread-counter-concurrent-delivery",
+      "expected_sha": "be21c203403e5accfa6971be5aeece0ef58d5d2c",
+      "pull_request": 23,
+      "title": "test(unread): cover concurrent event delivery",
+      "merged_at": "2026-11-19T19:20:06Z"
+    },
+    {
+      "branch": "test/unread-counter-out-of-order-events",
+      "expected_sha": "494855f9d9ad7536e74bd604e7eef47ccf640420",
+      "pull_request": 22,
+      "title": "test(unread): verify out-of-order event convergence",
+      "merged_at": "2026-11-19T17:54:55Z"
+    },
+    {
+      "branch": "test/unread-idempotency-conflicting-retry",
+      "expected_sha": "7f5d3b7bf1b563480316be501ce1107d15261059",
+      "pull_request": 24,
+      "title": "test(unread): reject conflicting retries for processed event IDs",
+      "merged_at": "2026-11-19T19:51:35Z"
+    },
+    {
+      "branch": "test/virtual-feed-ten-thousand-messages",
+      "expected_sha": "0227abc7a1c35b0095cd1fad3a4e28f42f2bfc3d",
+      "pull_request": 145,
+      "title": "test(chat): stress virtualized history with 10,000 messages",
+      "merged_at": "2026-11-22T07:23:33Z"
+    }
+  ]
+}
