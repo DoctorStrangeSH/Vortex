@@ -367,12 +367,12 @@ Storage выключен до положительного staging-теста up
 
 **Правило статусов:** галочка означает, что требование реализовано и покрыто доступными автоматическими проверками в репозитории. Она не означает production/staging-приёмку. Все ручные и внешние проверки отмечаются отдельными пунктами и остаются открытыми до фактического выполнения.
 
-**Сводка на 22.11.2026 (актуализирована после PR #134–#139):**
+**Сводка на 23.11.2026 (актуализирована после PR #155–#156):**
 | Этап | Реализация в репозитории | Внешняя/ручная приёмка |
 | --- | --- | --- |
 | 0. Scope freeze | Зафиксирован; новые функции до выпуска 1.0 не добавлять; PR #133 закрыт как superseded, PR #134–#139 объединены | Инвентаризация исторических refs и безопасная очистка веток не завершены |
 | 1. Безопасность и регистрация | Legacy DM, public profile sanitization, username claims и access Rules покрыты unit/Emulator tests; Production Firestore Rules синхронизированы владельцем с `main`, после публикации владелец подтвердил восстановление отправки | Staging, реальные legacy accounts, rollback и полная проверка приватных полей/read receipts ещё не пройдены |
-| 2. Личная переписка | Стабильный DM, текст, история, scroll position, offline queue и restart покрыты тестами; PR #138 добавил production-shaped атомарную send+preview регрессию; Quality CI #783 зелёный; владелец подтвердил Production send работает после обновления Rules | Полная двухаккаунтная RC-матрица, offline queue recovery на реальных сессиях, edits/deletes/read receipts и staging не завершены |
+| 2. Личная переписка | Стабильный DM, текст, история, scroll position, offline queue/restart покрыты тестами; PR #138 добавил production-shaped атомарную send+preview регрессию; PR #156 добавил авторизованный two-user ChatScreen E2E через Firebase Emulator; Quality CI #45139952610 полностью зелёный | Полная Production/staging RC-матрица, edits/deletes/read receipts и offline recovery на реальных сессиях не завершены |
 | 3. Группы и каналы | Spark-совместимые membership/admin/channel rules и schema Emulator tests в main; UI self-leave исправлен PR #89 | Staging и двухаккаунтная проверка не пройдены; журнал действий отложен |
 | 4. Интерфейс и вложения | Obsidian Iris; responsive auth/chat/dialog/profile smoke coverage; Storage Rules Emulator покрывает доступ/отзыв; PR #99–#112 добавили keyboard/focus improvements | Полная ручная мобильная матрица, keyboard/screen-reader и реальный Storage staging не пройдены |
 | 5–6. RC и выпуск | Подготовительные тесты и документация продолжаются; RC не объявлен | Release gates остаются открытыми |
@@ -1274,7 +1274,7 @@ Vortex 1.0 завершён, только когда одновременно:
 - [x] Исправить desktop flex sizing для chat pane (PR #129).
 - [x] Добавить responsive chat shell browser matrix (PR #129).
 - [x] Подтвердить полный Quality CI #44915598608.
-- [ ] Добавить/выполнить E2E проверку реального `ChatScreen`: переход sidebar → chat → back на mobile viewport и resize через breakpoint.
+- [x] Добавить/выполнить E2E проверку реального `ChatScreen`: переход sidebar → chat → back на mobile viewport и resize через breakpoint (PR #156, Quality CI #45139952610).
 - [ ] Проверить реальную ширину composer, header actions, long messages и меню на 320/375/768/769/1024/1440 CSS px.
 - [ ] Провести ручную адаптивную проверку профиля, настроек, галереи, контекстных меню и диалогов.
 - [ ] Провести ручную keyboard-only и screen-reader приёмку.
@@ -1292,7 +1292,7 @@ Vortex 1.0 завершён, только когда одновременно:
 
 - [x] Покрыть мобильные и desktop transitions ChatScreen unit tests (PR #131).
 - [x] Подтвердить полный Quality CI #44916368575: npm ci, unit, browser, Rules/Auth emulators, production build.
-- [ ] Добавить авторизованный браузерный сценарий ChatScreen с управляемым Firebase Emulator: sidebar → chat → back, resize и смена пользователя.
+- [x] Добавить авторизованный браузерный сценарий ChatScreen с управляемым Firebase Emulator: sidebar → chat → back, resize и смена пользователя (PR #156, две независимые Auth sessions).
 - [ ] Проверить реальные header actions, composer, длинные сообщения и контекстные меню на 320/375/768/769/1024/1440 CSS px.
 - [ ] Провести ручную адаптивную проверку профиля, настроек, галереи и диалогов.
 - [ ] Провести ручную keyboard-only и screen-reader приёмку.
@@ -1316,8 +1316,8 @@ Vortex 1.0 завершён, только когда одновременно:
 - [x] Исправить границы окна информации о чате на коротких экранах.
 - [x] Добавить browser viewport matrix для пяти типов диалогов.
 - [x] Подтвердить полный Quality CI #44992534121 / run 777.
-- [ ] Добавить авторизованный браузерный E2E реального `ChatScreen` с двумя тестовыми пользователями через Firebase Emulator.
-- [ ] Проверить sidebar → chat → back, resize и смену пользователя в настоящем приложении.
+- [x] Добавить авторизованный браузерный E2E реального `ChatScreen` с двумя тестовыми пользователями через Firebase Emulator (PR #156).
+- [x] Проверить sidebar → chat → back, resize и смену пользователя в настоящем приложении (PR #156; 375/768/769/1024 CSS px).
 - [ ] Проверить header actions, composer, длинные сообщения, меню и диалоги на 320/375/768/769/1024/1440 CSS px.
 - [ ] Провести ручную keyboard-only и screen-reader приёмку.
 - [ ] Выполнить отдельную staging и двухаккаунтную ручную матрицу перед RC.
@@ -1331,3 +1331,15 @@ Vortex 1.0 завершён, только когда одновременно:
 - [x] Quality CI #783 прошёл: unit tests, browser tests, Firestore/Storage Rules Emulator, Auth Emulator и production build.
 - [x] Зафиксировано: Production Rules необходимо публиковать отдельно; успешный Emulator CI сам по себе не обновляет правила в Firebase Production.
 - [ ] Завершить общую RC-приёмку с двумя тестовыми аккаунтами на staging/production-safe сценариях, включая offline queue recovery и read receipts.
+
+
+### 13.43. Authenticated ChatScreen E2E and release status — 23.11.2026
+
+- [x] PR #156 merged into `main` (squash `19add018db14a32d250a9f28fa3ef38b7b5f115f`).
+- [x] Full Quality CI #45139952610 passed on exact PR head `1e946051ba53a6ec5d1751c60f3eac8359def8d8`: unit, browser smoke, Firestore/Storage Rules Emulator, Auth Emulator, authenticated two-user ChatScreen E2E and production build.
+- [x] Real `App` E2E covers independent Alice/Bob registrations, username discovery, DM creation, bidirectional realtime text, mobile Sidebar → Chat → Back, viewport resize and logout/login account switch with selection reset.
+- [x] Emulator-only Firebase config is opt-in and guarded by explicit staging flag plus `demo-*` project ID; Production Firebase defaults and data remain untouched.
+- [ ] Expand responsive authenticated E2E to composer/header-actions/long-message/context-menu geometry at 320/390/1440 CSS px; current authenticated flow covers 375/768/769/1024 CSS px.
+- [ ] Complete manual keyboard-only and screen-reader acceptance on the actual app.
+- [ ] Complete owner/colleague production acceptance in `docs/PRODUCTION_ACCEPTANCE.md`; emulator tests do not count as Production PASS.
+- [ ] Investigate the one-off Offline Queue cross-tab regression failure. It passed on subsequent full runs #45139550262 and #45139952610; root cause remains unknown and no production data loss has been established.
