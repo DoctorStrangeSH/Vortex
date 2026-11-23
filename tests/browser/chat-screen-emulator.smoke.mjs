@@ -180,7 +180,7 @@ try {
     // forward/reverse focus wrapping, Escape dismissal and focus restoration.
     const infoTrigger = pageA.getByRole('button', { name: 'Информация о чате' });
     await infoTrigger.click();
-    const infoDialog = pageA.getByRole('dialog', { name: 'Информация о чате' });
+    const infoDialog = pageA.locator('.vortex-info-dialog');
     await infoDialog.waitFor({ state: 'visible' });
     const infoClose = pageA.getByRole('button', { name: 'Закрыть информацию о чате' });
     const infoExport = pageA.getByRole('button', { name: 'Экспорт переписки' });
