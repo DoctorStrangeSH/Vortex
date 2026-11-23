@@ -29,17 +29,40 @@ service.executeAction = async action => {
     }
 };
 
-// Capture lock acquisition and durable state in this fixture so a
-// cross-tab regression explains which tab entered the critical section.
-const lockTrace = [];
+// Keep compact per-tab diagnostics. Never serialize the full queue into
+// CI failure output: the log truncation previously hid the decisive events.
+const operationTrace = [];
 const tabId = crypto.randomUUID();
+const trace = (event, details = {}) => {
+    operationTrace.push({ tabId, at: Math.round(performance.now() * 10) / 10, event, ...details });
+    if (operationTrace.length > 80) operationTrace.shift();
+};
+const originalSetItem = service.storage.setItem.bind(service.storage);
+service.storage = {
+    getItem: key => window.localStorage.getItem(key),
+    setItem: (key, value) => {
+        if (key === 'offlineQueue') {
+            const queue = JSON.parse(value || '[]');
+            trace('storage-write-start', { count: queue.length, lastText: queue.at(-1)?.text || null });
+            try {
+                originalSetItem(key, value);
+                trace('storage-write-ok', { count: queue.length, lastText: queue.at(-1)?.text || null });
+            } catch (error) {
+                trace('storage-write-error', { name: error.name, message: error.message });
+                throw error;
+            }
+            return;
+        }
+        originalSetItem(key, value);
+    }
+};
 const originalWithQueueLock = service.withQueueLock.bind(service);
 service.withQueueLock = callback => originalWithQueueLock(async () => {
-    lockTrace.push({ tabId, at: performance.now(), event: 'lock-acquired', before: localStorage.getItem('offlineQueue') });
+    trace('lock-acquired', { countBefore: JSON.parse(localStorage.getItem('offlineQueue') || '[]').length });
     try {
         return await callback();
     } finally {
-        lockTrace.push({ tabId, at: performance.now(), event: 'lock-released', after: localStorage.getItem('offlineQueue') });
+        trace('lock-released', { countAfter: JSON.parse(localStorage.getItem('offlineQueue') || '[]').length });
     }
 });
 
@@ -62,7 +85,7 @@ window.offlineQueueQA = {
             isOnline: service.isOnline,
             activeUid: service.activeUid,
             hasWebLocks: Boolean(service.locks?.request),
-            lockTrace: [...lockTrace],
+            operationTrace: [...operationTrace],
             deliveryAttempts: Number(localStorage.getItem('vortex.browserTest.deliveryAttempts') || 0),
             queue: service.getQueue(),
             remoteMessages: JSON.parse(localStorage.getItem('vortex.browserTest.remoteMessages') || '[]')

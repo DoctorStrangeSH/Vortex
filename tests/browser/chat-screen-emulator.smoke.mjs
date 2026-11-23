@@ -200,6 +200,13 @@ try {
     await messageMenu.waitFor({ state: 'visible' });
     await pageA.getByRole('menuitem', { name: /Редактировать/ }).waitFor({ state: 'visible' });
     await pageA.getByRole('menuitem', { name: /Удалить/ }).waitFor({ state: 'visible' });
+    // ContextMenu focuses its first item in an effect after mounting. Wait
+    // for that focus before sending Escape so the key reaches the menu handler.
+    await pageA.waitForFunction(() => {
+        const active = document.activeElement;
+        return active?.getAttribute('role') === 'menuitem'
+            && active.closest('[aria-label="Действия с сообщением"]');
+    });
     await pageA.keyboard.press('Escape');
     await messageMenu.waitFor({ state: 'hidden' });
 

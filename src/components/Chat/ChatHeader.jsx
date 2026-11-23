@@ -65,7 +65,7 @@ export function ChatHeader({ chat, user, other, avatarColor, otherStatus, isTypi
                 <button type="button" class="vortex-icon-button" style={s.btn} onClick={onShowInfo} title="Информация о чате" aria-label="Информация о чате"><Icon name="info" /></button>
                 <button type="button" class="vortex-icon-button" style={s.btn} onClick={onShowGallery} title="Галерея" aria-label="Открыть галерею"><Icon name="image" /></button>
                 {!isMobile && extraActions.map(action => <button key={action.title} type="button" class="vortex-icon-button" style={s.btn} onClick={action.handler} title={action.title} aria-label={action.title}><Icon name={action.icon} /></button>)}
-                {isMobile && <button ref={menuButtonRef} type="button" class="vortex-icon-button" style={s.btn} onClick={() => setMenuOpen(value => !value)} aria-label="Дополнительные действия" aria-expanded={menuOpen} aria-controls="vortex-header-menu"><Icon name="menu" /></button>}
+                {isMobile && <button ref={menuButtonRef} type="button" class="vortex-icon-button" style={s.btn} onClick={() => setMenuOpen(value => !value)} aria-label="Дополнительные действия" aria-haspopup="menu" aria-expanded={menuOpen} aria-controls="vortex-header-menu"><Icon name="menu" /></button>}
             </div>
             {isMobile && menuOpen && <div ref={menuRef} id="vortex-header-menu" class="vortex-header-menu" role="menu" aria-label="Дополнительные действия с чатом" onKeyDown={handleMenuKeyDown}>
                 {extraActions.map(action => <button key={action.title} type="button" role="menuitem" class="vortex-header-menu-item" onClick={() => runAction(action.handler)}><Icon name={action.icon} size={18} /><span>{action.title}</span></button>)}
