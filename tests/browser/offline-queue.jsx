@@ -39,14 +39,19 @@ window.offlineQueueQA = {
         text,
         user: { uid }
     }),
-    snapshot: () => ({
-        isOnline: service.isOnline,
-        activeUid: service.activeUid,
-        hasWebLocks: Boolean(service.locks?.request),
-        deliveryAttempts: Number(localStorage.getItem('vortex.browserTest.deliveryAttempts') || 0),
-        queue: service.getQueue(),
-        remoteMessages: JSON.parse(localStorage.getItem('vortex.browserTest.remoteMessages') || '[]')
-    })
+    snapshot: () => {
+        // A tab does not receive its own storage event. Refresh from durable
+        // storage before exposing the shared queue to browser assertions.
+        service.refreshQueue();
+        return {
+            isOnline: service.isOnline,
+            activeUid: service.activeUid,
+            hasWebLocks: Boolean(service.locks?.request),
+            deliveryAttempts: Number(localStorage.getItem('vortex.browserTest.deliveryAttempts') || 0),
+            queue: service.getQueue(),
+            remoteMessages: JSON.parse(localStorage.getItem('vortex.browserTest.remoteMessages') || '[]')
+        };
+    }
 };
 
 document.querySelector('#status').textContent = 'Готово';
