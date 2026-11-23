@@ -96,6 +96,14 @@ try {
     const menuItems = page.getByRole('menuitem');
     await menuItems.first().waitFor();
     assert.equal(await menuItems.count(), 4, 'group menu must expose members, theme, status and export');
+    await page.waitForFunction(() => {
+        const active = document.activeElement;
+        return active?.getAttribute('role') === 'menuitem'
+            && active.querySelector('span')?.textContent.trim() === 'Участники группы';
+    });
+    const focusedMenuLabel = () => page.evaluate(() =>
+        document.activeElement?.querySelector('span')?.textContent.trim() || ''
+    );
     assert.equal(await focusedMenuLabel(), 'Участники группы');
 
     await page.keyboard.press('ArrowDown');
@@ -103,7 +111,7 @@ try {
     await page.keyboard.press('End');
     assert.equal(await focusedMenuLabel(), 'Экспорт переписки');
     await page.keyboard.press('ArrowDown');
-    assert.equal(await page.evaluate(() => document.activeElement?.textContent?.trim()), 'Участники группы');
+    assert.equal(await focusedMenuLabel(), 'Участники группы');
     await page.keyboard.press('Escape');
     await page.getByRole('menu').waitFor({ state: 'detached' });
     assert.equal(await menuTrigger.evaluate(element => element === document.activeElement),
