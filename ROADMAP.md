@@ -230,3 +230,14 @@
 - [x] Replaced oversized per-lock snapshots in the browser fixture with compact per-tab operation traces: lock acquired/released, queue count, last message text, localStorage write start/success/error.
 - [x] CI failure diagnostics now report bounded durable message summaries and recent trace events rather than full serialized queue payloads, preventing GitHub log truncation from hiding the root cause.
 - [ ] No production OfflineService behavior changed in this diagnostic commit. Await a new full CI run before deciding on a runtime fix.
+
+
+### Accessibility keyboard menu + bounded Offline Queue diagnostics — PR #161 merged (23.11.2026)
+
+- [x] PR #161 passed full Quality CI #45156725643 on exact head `7065de8b744d49541ebb052739f17a28d28f6a2b`: npm ci, unit tests, Chromium browser suite, Firestore/Storage Rules Emulator, Auth Emulator, authenticated ChatScreen E2E and production build.
+- [x] PR #161 squash-merged into `main` as `0ec1894f5fd1c28c20a74cfff367d827acc231ef`.
+- [x] Mobile ChatHeader overflow trigger now exposes `aria-haspopup="menu"`; browser tests cover Enter/Space, `aria-expanded`, initial focus, Escape dismissal and focus restoration.
+- [x] Offline Queue browser fixture now captures compact per-tab lock/storage operation traces and bounded failure snapshots. This is test-only instrumentation; production OfflineService behavior is unchanged.
+- [ ] Post-merge Quality CI #45160451606 and companion workflow #45160451369 are queued on the merge commit; await results.
+- [ ] Manual keyboard-only and screen-reader acceptance remain NOT RUN.
+- [ ] Offline Queue concurrency root cause remains unresolved. The passing PR stress run does not erase prior intermittent main failures; continue investigating without relaxing the 16-message assertion.
