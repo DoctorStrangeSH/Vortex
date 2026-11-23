@@ -127,6 +127,8 @@ try {
     await aliceChat.waitFor({ state: 'visible', timeout: 10000 });
     await aliceChat.click();
     await pageA.getByRole('button', { name: 'Назад к списку чатов' }).waitFor({ state: 'visible', timeout: 10000 });
+    await pageA.getByRole('button', { name: 'Назад к списку чатов' }).click();
+    await pageA.setViewportSize({ width: 1024, height: 900 });
 
     // Switch the same browser session to Bob. Account-keyed ChatScreen must reset selection.
     await pageA.getByRole('button', { name: 'Открыть меню' }).click();
