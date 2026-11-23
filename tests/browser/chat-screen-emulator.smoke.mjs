@@ -41,13 +41,13 @@ async function register(page, user) {
     await page.getByLabel('Имя').fill(user.name);
     await page.getByLabel('Логин').fill(user.username);
     await page.getByLabel('Электронная почта').fill(user.email);
-    await page.getByLabel('Пароль').fill(password);
+    await page.locator('#vortex-auth-password').fill(password);
     await page.getByRole('button', { name: 'Зарегистрироваться' }).click();
     await page.locator('.vortex-sidebar').waitFor({ timeout: 20000 });
 }
 async function login(page, user) {
     await page.getByLabel('Электронная почта').fill(user.email);
-    await page.getByLabel('Пароль').fill(password);
+    await page.locator('#vortex-auth-password').fill(password);
     await page.getByRole('button', { name: 'Войти', exact: true }).click();
     await page.locator('.vortex-sidebar').waitFor({ timeout: 20000 });
 }
