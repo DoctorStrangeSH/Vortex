@@ -1381,5 +1381,16 @@ Vortex 1.0 завершён, только когда одновременно:
 - [x] PR #159 merged to `main`: `369381928b6c37ab5038eeaaaa1b876e78845c8b`.
 - [x] Full Quality CI #45150147297 passed on exact PR head `a9a34c9b843ef5b96ae401938e6060198a4cbd4a`.
 - [x] ChatWindow, ChatHeader and MessageInput constrained to available width; responsive E2E covers 320/375/390/768/769/1024/1440 px, long Unicode messages, mobile keyboard menu/focus restoration, info/gallery dialogs, desktop header actions, and message context menu.
-- [ ] Await post-merge Quality CI #45151865724 and Pages workflow #45151865667 on the merge commit.
-- [ ] Offline Queue intermittent concurrent enqueue remains unresolved and continues to block final RC acceptance.
+- [x] Post-merge responsive ChatScreen work is included in main; PR #159 Quality CI #45150147297 passed on the exact PR head.
+- [x] Offline Queue multi-tab regression strengthened by PR #160; full Quality CI #45152851030 passed on the exact PR head and PR merged as `24f25d9c7b2aa933da58ba6959dcc08254763b99`.
+- [ ] Offline Queue root-cause investigation and manual recovery acceptance remain open; passing stress regression does not establish production acceptance.
+
+
+### 13.48. Offline Queue multi-tab stress regression — PR #160 — 23.11.2026
+
+- [x] PR #160 merged into `main` (squash commit `24f25d9c7b2aa933da58ba6959dcc08254763b99`).
+- [x] Full Quality CI #45152851030 passed on exact PR head `1909155200f8484ecf7bd0cc33b8cedd527e1b2e`: dependency install, unit tests, Chromium browser tests, Firestore/Storage Rules Emulator, Auth Emulator, authenticated ChatScreen E2E and production build.
+- [x] Increased same-account/two-tab Offline Queue race coverage to 8 synchronized rounds and 16 durable messages; both tabs must observe the complete queue and reconnect must deliver every message exactly once with unique IDs.
+- [x] Change is test-only. No runtime code, Production Firebase configuration, Rules or user data changed.
+- [ ] Root cause of earlier intermittent concurrent-enqueue failures remains unproven; repeated stress coverage is stronger evidence but does not close production acceptance.
+- [ ] Manual recovery checks after reload/browser restart and owner/colleague acceptance remain NOT RUN.
