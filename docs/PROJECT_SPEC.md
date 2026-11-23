@@ -1419,3 +1419,12 @@ Vortex 1.0 завершён, только когда одновременно:
 - [ ] Firestore/Storage Rules Emulator currently running; Auth Emulator, authenticated ChatScreen E2E and production build have not yet completed.
 - [ ] PR remains open and unmerged pending full Quality CI.
 - [ ] Manual keyboard-only and screen-reader acceptance remain NOT RUN.
+
+
+### PR #161 CI rerun — Offline Queue regression confirmed again (23.11.2026)
+
+- Quality CI #45155345677 on PR head `df00b1c4b85425cd1df53cc6bed50b7cb4784ade`: `npm ci` PASS, unit tests PASS, browser suite FAIL; Rules/Auth/Chat E2E/build were skipped.
+- Failure is again in same-account two-tab Offline Queue stress, now round 8: expected 16 durable records, observed 15. The durable snapshot includes round 8 from tab B but not the matching enqueue from tab A.
+- The fixture's independent cross-tab Web Locks probe passed earlier in the same browser context, and both service instances report Web Locks support. Therefore the failure is not explained by missing Web Locks support. Available CI log is truncated during the second diagnostic snapshot, so it does not yet prove whether the missing entry was never written or overwritten afterward.
+- Do not change the expected count, weaken the assertion, or merge PR #161 while this shared browser suite fails. Next investigation should add compact per-operation trace records (tab, message text/ID, lock entry/exit, storage value before/after) and isolate addToQueue writes from unrelated queue processing/storage-event refreshes.
+- No production Firebase, Rules, or user data were changed.
