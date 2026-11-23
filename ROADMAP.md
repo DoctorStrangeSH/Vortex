@@ -3,7 +3,7 @@
 > Краткая операционная сводка. Полные требования, acceptance criteria и границы scope находятся в [PROJECT_SPEC.md](docs/PROJECT_SPEC.md). При расхождении приоритет всегда у PROJECT_SPEC.
 
 **Версия:** 1.0  
-**Последняя актуализация:** 22.11.2026  
+**Последняя актуализация:** 23.11.2026  
 **Релиз:** не объявлен — RC gates открыты.
 
 ## Принципы
@@ -37,6 +37,7 @@
 - **PR #145:** Chromium stress test виртуализированного списка на 10 000 сообщений; менее 50 строк в DOM при навигации, prepend, mobile и keyboard сценариях.
 - **PR #147:** Firestore Emulator test конкурентных retry одного стабильного message ID из двух независимых сессий одного UID; создаётся одна запись и согласованный preview.
 - **PR #149:** Firestore Emulator test конкурентной отправки двух разных message ID из двух сессий; обе записи сохраняются, preview ссылается на существующее сообщение и согласован с его текстом и server timestamp.
+- **PR #151:** Firestore Emulator privacy regression для legacy private profiles, email-bearing username claims и запрета private/unknown полей в public profile; Quality checks #813 прошёл на точном PR head, PR объединён в main.
 
 ## Ближайшие задачи
 
@@ -61,5 +62,5 @@
 - **PR #151:** объединён в `main` (squash commit `aaa0ba5aec01f00a1ddfd1f750b5363437c3c442`). Quality checks run #813 успешно прошёл на точном head `a564ea9fad5c686c31b2e1cbde24821b7f911d70`: `npm ci`, unit, Chromium browser, Firestore/Storage Rules Emulator, Auth Emulator и production build. Тестовая фикстура создаёт валидный owner document до негативных попыток записи, поэтому отказы проверяют запрещённые поля, а не отсутствующую зависимость.
 - **Staging runbook:** добавлен `docs/STAGING_ACCEPTANCE.md`. Это подготовленная матрица ручной приёмки; все сценарии имеют статус NOT RUN. Реальный staging Firebase не создан и не проверен.
 - **Границы безопасности:** production Firebase, тариф, Storage enablement и пользовательские данные не менялись.
-- **Следующий шаг:** получить CI для точного head PR #151; затем подготовить отдельный Firebase staging на Spark и выполнить двухаккаунтную матрицу. До этого RC gate остаётся открытым.
+- **Следующий шаг:** владелец создаёт отдельный Firebase staging project на Spark и передаёт web-конфигурацию для локального staging build. Затем выполняется двухаккаунтная матрица из `docs/STAGING_ACCEPTANCE.md`. До этого RC gate остаётся открытым.
 
