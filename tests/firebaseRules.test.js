@@ -1345,6 +1345,10 @@ test('legacy private profile and email-bearing username claim stay owner-only wh
 });
 
 test('public profile creation cannot copy private email or unknown fields into the searchable projection', { skip: !available }, async () => {
+    await seedDocument('users/alice', {
+        uid: { stringValue: 'alice' },
+        username: { stringValue: '' }
+    });
     const alice = environment.authenticatedContext('alice').firestore();
     await assertFails(setDoc(doc(alice, 'publicProfiles/alice'), {
         uid: 'alice',
