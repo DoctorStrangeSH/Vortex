@@ -145,3 +145,12 @@
 - Это подтверждает, что браузерный Web Locks API действительно сериализует межвкладочные запросы и что сценарий прошёл в данном запуске. Первопричина прежних intermittent failures остаётся неустановленной; production data loss не доказана. Не отключать тест и не закрывать RC gate.
 - PR #157 остаётся открытым: его Quality CI #45140569986 повторно упал в concurrent Offline Queue assertion до запуска остальных gates. Responsive ChatScreen проверки из PR #157 пока не приняты.
 - После merge #158 main: `74d3a589816b426c7fe63182748054c53192098c`. На момент обновления выполняются main Quality CI #45141872274 и GitHub Pages build #45141872494; их результаты ещё не получены.
+
+
+### Responsive ChatScreen E2E rebased after Offline Queue diagnostics (23.11.2026)
+
+- Main Quality CI #45141872274 и Pages build #45142022534 завершились PASS на `main` после PR #158; текущий код main и production build проверены.
+- PR #157 закрыт как superseded: его head был основан на старом main, а CI остановился в Offline Queue browser test до выполнения новых responsive assertions.
+- Те же responsive/authenticated ChatScreen проверки перенесены без ослабления на новую ветку от актуального main; открыт PR #159 (`01e4326a55bb520e21f6d0d6b368b29273064d53`).
+- PR #159 использует обновлённую fixture из PR #158 с tab ID и monotonic lock trace; текущий Quality CI #45142850877 выполняется.
+- Offline Queue: isolated Web Locks probe проходит, но intermittent concurrent enqueue failure пока не имеет установленной первопричины. Production data loss не доказана; тест оставлен строгим, RC gate открыт.
