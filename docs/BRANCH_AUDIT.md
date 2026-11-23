@@ -81,3 +81,12 @@ All 139 exact matches are candidates for deletion after the owner reviews the li
 - Quality checks and GitHub Pages deployment both passed on current `main` SHA `1751c3e22032daf0b310c9ab8874ca3e56992051` (23.11.2026).
 
 **Decision:** do not merge the 16 unresolved refs into `main`. No code is waiting to be merged from the 139 merged-PR candidates. Keep the three callable branches outside 1.0 due to the Spark constraint; review the two security/ChatWindow-related unassociated branches before cleanup.
+
+## 7. Массовая очистка подтверждённых merged refs
+
+- Подготовлен полный машиночитаемый список из **139** веток: `docs/branch-cleanup-manifest.json`. Каждая запись содержит имя ветки, ожидаемый SHA, номер merged PR и дату объединения.
+- Добавлен `scripts/cleanup-merged-branches.ps1`: проверяет репозиторий `origin`, обновляет refs, сверяет фактический SHA каждой ветки с manifest и удаляет только точные совпадения через `--force-with-lease`. Если ветка изменилась после аудита — она автоматически пропускается.
+- `main` и `gh-pages` явно исключены. Скрипт запрашивает одно общее подтверждение, поэтому вручную выбирать/удалять ветки по одной не нужно.
+- Предварительный просмотр: `powershell -ExecutionPolicy Bypass -File .\\scripts\\cleanup-merged-branches.ps1 -WhatIf`.
+- Массовое удаление: `powershell -ExecutionPolicy Bypass -File .\\scripts\\cleanup-merged-branches.ps1`, затем ввести `yes`.
+- Удаление refs не выполнялось этим аудитом: доступная GitHub-интеграция не предоставляет delete-ref операцию. Скрипт подготовлен для однократного запуска в локальном clone с правом push.
