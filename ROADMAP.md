@@ -272,3 +272,22 @@
 - [ ] Post-merge Quality CI #45161006101 and Pages workflow #45161006117 are queued on the merge commit; await results.
 - [ ] Automated Screen Reader/accessible-name audit and manual screen-reader acceptance remain NOT DONE. Current package has no axe-core/pa11y dependency; do not claim a screen-reader audit has passed.
 - [ ] Offline Queue concurrent enqueue root cause remains an open RC blocker; do not relax the 16-message stress assertion.
+
+
+### Offline Queue race — deeper per-operation diagnostics (23.11.2026)
+
+- [x] CI failure confirmed in PR #163 browser suite: same-account concurrent enqueue round 5 leaves 9 durable messages instead of 10.
+- [x] Both tab traces show successful `localStorage.setItem` calls based on a queue length of 8; each writes a 9-item snapshot, and one round-5 message is absent from the final durable queue.
+- [x] Expanded the PR #163 browser fixture trace to capture enqueue start/completion/error, queue refresh before/after, processQueue start/finish, lock boundaries, and each durable write including message IDs.
+- [ ] Root cause is NOT YET PROVEN. The new trace must establish whether stale in-memory state is introduced by queue processing/storage events or whether the browser lock callback boundaries are not serializing the actual mutations.
+- [ ] Do not change production OfflineService until the expanded trace identifies the losing writer; do not relax the 16-message assertion.
+- [ ] PR #163 remains unmerged; all Firebase/Production state untouched.
+
+
+### Cross-tab trace clock correction — PR #163 (23.11.2026)
+
+- [x] CI #45163213458 reproduced the race at round 5: durable queue has 9 entries, with the round-5 message from tab B present and tab A's missing.
+- [x] Both tabs logged successful 9-entry writes. Earlier trace timestamps used `performance.now()`, whose origin is per-tab and therefore cannot establish a cross-tab event order.
+- [x] Updated the fixture to include epoch-based `Date.now()` timestamps plus monotonic timestamps, and to log lock-requested separately from lock-acquired.
+- [ ] Await a fresh CI run on the latest PR head `a7c3c0a811bc332a7764b5cf235e8be1737cac2a`; the earlier run predates this clock correction.
+- [ ] Root cause still unproven; no production OfflineService change made. Keep the concurrency assertion unchanged.
