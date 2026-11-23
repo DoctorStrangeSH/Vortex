@@ -176,13 +176,39 @@ try {
     await headerMenu.waitFor({ state: 'hidden' });
     assert.equal(await pageA.evaluate(() => document.activeElement?.getAttribute('aria-label')), 'Дополнительные действия');
 
-    // Verify both primary header dialogs open and close from the real chat.
-    await pageA.getByRole('button', { name: 'Информация о чате' }).click();
-    await pageA.locator('.vortex-info-dialog').waitFor({ state: 'visible' });
-    await pageA.getByRole('button', { name: 'Закрыть информацию о чате' }).click();
-    await pageA.getByRole('button', { name: 'Открыть галерею' }).click();
-    await pageA.getByRole('dialog', { name: 'Медиа и файлы' }).waitFor({ state: 'visible' });
-    await pageA.getByRole('button', { name: 'Закрыть галерею' }).click();
+    // Verify the chat information dialog is keyboard-operable: initial focus,
+    // forward/reverse focus wrapping, Escape dismissal and focus restoration.
+    const infoTrigger = pageA.getByRole('button', { name: 'Информация о чате' });
+    await infoTrigger.click();
+    const infoDialog = pageA.getByRole('dialog', { name: 'Информация о чате' });
+    await infoDialog.waitFor({ state: 'visible' });
+    const infoClose = pageA.getByRole('button', { name: 'Закрыть информацию о чате' });
+    const infoExport = pageA.getByRole('button', { name: 'Экспорт переписки' });
+    await pageA.waitForFunction(() => document.activeElement?.getAttribute('aria-label') === 'Закрыть информацию о чате');
+    await infoExport.focus();
+    await pageA.keyboard.press('Tab');
+    await pageA.waitForFunction(() => document.activeElement?.getAttribute('aria-label') === 'Закрыть информацию о чате');
+    await pageA.keyboard.press('Shift+Tab');
+    await pageA.waitForFunction(() => document.activeElement?.textContent?.includes('Экспорт переписки'));
+    await pageA.keyboard.press('Escape');
+    await infoDialog.waitFor({ state: 'hidden' });
+    assert.equal(await infoTrigger.evaluate(element => element === document.activeElement), true,
+        'closing chat information with Escape must restore focus to its opener');
+
+    // The gallery is also a modal dialog. Verify its focus boundary and Escape path.
+    const galleryTrigger = pageA.getByRole('button', { name: 'Открыть галерею' });
+    await galleryTrigger.click();
+    const galleryDialog = pageA.getByRole('dialog', { name: 'Медиа и файлы' });
+    await galleryDialog.waitFor({ state: 'visible' });
+    await pageA.waitForFunction(() => document.activeElement?.getAttribute('aria-label') === 'Закрыть галерею');
+    await pageA.keyboard.press('Shift+Tab');
+    await pageA.waitForFunction(() => document.activeElement?.getAttribute('aria-label') === 'Вложения');
+    await pageA.keyboard.press('Tab');
+    await pageA.waitForFunction(() => document.activeElement?.getAttribute('aria-label') === 'Закрыть галерею');
+    await pageA.keyboard.press('Escape');
+    await galleryDialog.waitFor({ state: 'hidden' });
+    assert.equal(await galleryTrigger.evaluate(element => element === document.activeElement), true,
+        'closing the gallery with Escape must restore focus to its opener');
 
     // Check real composer/header geometry at every important narrow and wide breakpoint.
     for (const width of [320, 375, 390, 768, 769, 1024, 1440]) {
