@@ -252,10 +252,10 @@ try {
     );
 
     await sharedAccountContext.setOffline(false);
-    await sharedTabA.waitForFunction(() => {
+    await sharedTabA.waitForFunction(expectedCount => {
         const state = window.offlineQueueQA.snapshot();
-        return state.queue.length === 0 && state.remoteMessages.length === expectedConcurrentMessages.length;
-    });
+        return state.queue.length === 0 && state.remoteMessages.length === expectedCount;
+    }, expectedConcurrentMessages.length);
     await sharedTabB.waitForFunction(() => window.offlineQueueQA.snapshot().queue.length === 0);
     const sharedAccountDelivered = await sharedTabA.evaluate(() => window.offlineQueueQA.snapshot());
     assert.deepEqual(
