@@ -372,3 +372,17 @@
 - [x] Added unit coverage for 200 concurrent independent records and legacy queue migration; browser stress coverage remains 100 rounds / 200 messages, reconnect exactly-once and no-Web-Locks fallback.
 - [ ] CI #45179161905 validates commit `e1f9b3d297edc328935f807f19f897d6188cae6a`; release remains blocked until the complete workflow passes.
 - [ ] PR #164 remains open and unmerged. No production Firebase configuration, Security Rules or production data changed.
+
+
+### Offline Queue 1.0 acceptance — 23.11.2026
+
+- [x] Root cause confirmed: sequential Web Locks did not prevent a second tab from reading a stale serialized localStorage array snapshot and overwriting the first tab's enqueue.
+- [x] Replaced shared-array enqueue with independent durable records `offlineQueue:item:<id>`; retained legacy array migration and stable message IDs.
+- [x] Added recovery when durable removal fails: restore the in-memory queue before reporting failure.
+- [x] CI #45181260085 passed on PR head `79d8d39dca83c7b1ffc4b24d523bb70e02860a60`: 296 unit tests passed, 57 intentionally skipped, 0 failed; 55 Firebase Rules tests passed; 2 Auth Emulator tests passed; Chat E2E and production build passed.
+- [x] Browser validation passed: 100 concurrent rounds, 200/200 messages persisted and delivered; no-Web-Locks fallback; full browser-context restart recovery; tab close/reopen recovery; two-account offline-to-online delivery.
+- [x] PR #164 merged via squash. Merge commit: `a2936bd4f9224a2420c4527eca2f475d11284dcd`.
+- [ ] Post-merge push CI #45182788336 and #45182788227 are queued; verify both against the merge commit before closing the release gate.
+- [ ] Manual production smoke test: two real accounts, two tabs, offline send/reconnect, account switching, and legacy queue migration on a controlled test account.
+
+No Firebase production configuration, Security Rules, or production data were changed by this PR. Treat the offline-queue code as merged to main, but keep the final release gate open until post-merge CI and production smoke validation complete.
