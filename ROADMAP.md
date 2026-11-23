@@ -154,3 +154,11 @@
 - Те же responsive/authenticated ChatScreen проверки перенесены без ослабления на новую ветку от актуального main; открыт PR #159 (`01e4326a55bb520e21f6d0d6b368b29273064d53`).
 - PR #159 использует обновлённую fixture из PR #158 с tab ID и monotonic lock trace; текущий Quality CI #45142850877 выполняется.
 - Offline Queue: isolated Web Locks probe проходит, но intermittent concurrent enqueue failure пока не имеет установленной первопричины. Production data loss не доказана; тест оставлен строгим, RC gate открыт.
+
+
+### Responsive ChatScreen: mobile overflow and keyboard focus regression — 23.11.2026
+
+- PR #159 exposed a real 320px overflow: ChatWindow root and its header/composer flex children could retain intrinsic content width (369px). The branch now constrains the chat window, header flex content, and composer to available width; the latest E2E run passed the 320px geometry and long-message assertions before reaching keyboard navigation.
+- The same E2E run then failed because the test sent ArrowDown immediately after menu visibility, before ChatHeader's post-render focus effect had moved focus into the first menu item. The test now waits for the active element to become a menu item before sending the key; no accessibility assertion was removed.
+- New PR head `a9a34c9b843ef5b96ae401938e6060198a4cbd4a`; its Quality CI is pending at the time of this update. Do not merge until full Quality CI passes on this exact head.
+- PR #159 remains open; production Firebase and deployed main are unchanged. Offline Queue investigation remains a separate open RC gate.
