@@ -43,10 +43,10 @@ service.storage = {
     setItem: (key, value) => {
         if (key === 'offlineQueue') {
             const queue = JSON.parse(value || '[]');
-            trace('storage-write-start', { count: queue.length, lastText: queue.at(-1)?.text || null });
+            trace('storage-write-start', { count: queue.length, lastText: queue.at(-1)?.text || null, lastId: queue.at(-1)?.id || null, ids: queue.map(item => item.id) });
             try {
                 originalSetItem(key, value);
-                trace('storage-write-ok', { count: queue.length, lastText: queue.at(-1)?.text || null });
+                trace('storage-write-ok', { count: queue.length, lastText: queue.at(-1)?.text || null, lastId: queue.at(-1)?.id || null, ids: queue.map(item => item.id) });
             } catch (error) {
                 trace('storage-write-error', { name: error.name, message: error.message });
                 throw error;
@@ -56,6 +56,38 @@ service.storage = {
         originalSetItem(key, value);
     }
 };
+// Trace every queue boundary, not only successful writes. The intermittent
+// race previously showed two successful writes based on the same queue size.
+const originalRefreshQueue = service.refreshQueue.bind(service);
+service.refreshQueue = () => {
+    const before = service.queue.length;
+    trace('refresh-start', { memoryCount: before, durableCount: JSON.parse(localStorage.getItem('offlineQueue') || '[]').length });
+    const result = originalRefreshQueue();
+    trace('refresh-end', { memoryCount: service.queue.length, durableCount: JSON.parse(localStorage.getItem('offlineQueue') || '[]').length });
+    return result;
+};
+const originalAddToQueue = service.addToQueue.bind(service);
+service.addToQueue = async action => {
+    trace('enqueue-start', { text: action.text, memoryCount: service.queue.length, durableCount: JSON.parse(localStorage.getItem('offlineQueue') || '[]').length });
+    try {
+        const result = await originalAddToQueue(action);
+        trace('enqueue-complete', { text: action.text, memoryCount: service.queue.length, durableCount: JSON.parse(localStorage.getItem('offlineQueue') || '[]').length });
+        return result;
+    } catch (error) {
+        trace('enqueue-error', { text: action.text, name: error.name, message: error.message });
+        throw error;
+    }
+};
+const originalProcessQueue = service.processQueue.bind(service);
+service.processQueue = async () => {
+    trace('process-start', { online: service.isOnline, activeUid: service.activeUid, memoryCount: service.queue.length, durableCount: JSON.parse(localStorage.getItem('offlineQueue') || '[]').length });
+    try {
+        return await originalProcessQueue();
+    } finally {
+        trace('process-finish', { online: service.isOnline, memoryCount: service.queue.length, durableCount: JSON.parse(localStorage.getItem('offlineQueue') || '[]').length });
+    }
+};
+
 const originalWithQueueLock = service.withQueueLock.bind(service);
 service.withQueueLock = callback => originalWithQueueLock(async () => {
     trace('lock-acquired', { countBefore: JSON.parse(localStorage.getItem('offlineQueue') || '[]').length });
