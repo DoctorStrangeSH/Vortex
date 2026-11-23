@@ -67,11 +67,11 @@
 
 ### Дополнение — PR #153, read receipt UI regression (23.11.2026)
 
-- Создан PR #153: Chromium-проверка настоящего `MessageBubble` для состояний «отправлено», частично прочитано в группе (`1/2`) и прочитано всеми.
-- Проверяются также accessible labels и визуальное представление счётчика.
-- Изменены только `tests/browser/message-bubble.jsx` и `tests/browser/message-bubble.smoke.mjs`; runtime и Firebase не затронуты.
-- Quality CI #838 поставлен в очередь/выполняется; PASS пока не подтверждён. PR не объединять до полного прохождения CI.
-- Эта автоматизация проверяет отображение статусов, но не заменяет ручную проверку realtime read receipts между двумя независимыми Production-сессиями.
+- PR #153 успешно объединён в `main` squash-коммитом `4826bd2a6673eb966483df4c8acf3d4661c6bd57`.
+- Quality CI #838 прошёл на точном PR head `f9b2f8d0578c2f84cdaa69461d0539637798930f`: `npm ci`, unit tests, Chromium browser tests, Firestore/Storage Rules Emulator, Auth Emulator и production build.
+- Chromium проверяет настоящий `MessageBubble` в состояниях «отправлено», частично прочитано в группе (`1/2`) и прочитано всеми; проверяются accessible labels.
+- Изменены только browser test fixture и smoke test; runtime-код, Firestore Rules и Firebase Production не затронуты.
+- Проверка UI не заменяет ручную проверку realtime read receipts между двумя независимыми Production-сессиями; PROD-DM-04 остаётся NOT RUN до подтверждения владельцем/коллегой.
 
 ## Текущий статус — 23.11.2026
 
@@ -82,6 +82,7 @@
 - **ТЗ / Production:** `docs/PROJECT_SPEC.md` уточнён: ограниченная ручная smoke-приёмка с коллегами в отдельных тестовых чатах разрешена по решению владельца; автоматические/нагрузочные тесты, проверки чужих приватных данных, миграции и изменения Production Rules по-прежнему запрещены без staging и отдельного плана.
 - **Ветки:** из 155 не-default refs 139 точно совпадают по SHA с head merged PR; для них подготовлены `docs/branch-cleanup-manifest.json` и SHA-guarded `scripts/cleanup-merged-branches.ps1`. Ещё 16 веток требуют отдельного решения. `main` и `gh-pages` исключены. Удаление ещё не запускалось: коннектор не предоставляет delete-ref, скрипт рассчитан на однократный запуск в локальном clone. Детали — `docs/BRANCH_AUDIT.md`.
 - **CI:** Quality checks и GitHub Pages deployment прошли успешно на `main` SHA `1751c3e22032daf0b310c9ab8874ca3e56992051`.
+- **PR #153:** объединён в `main` (squash `4826bd2a6673eb966483df4c8acf3d4661c6bd57`); Quality CI #838 прошёл на точном PR head `f9b2f8d0578c2f84cdaa69461d0539637798930f` по всем этапам. Добавлены Chromium assertions для sent/partial-read/read-all UI и accessible labels. Реальные двухаккаунтные read receipts остаются ручным production acceptance gate.
 - **PR #152:** объединён в `main` (squash `6320e89113cb61973930ac1eef10c5724a89cbd0`). Quality checks #45132563704 прошёл на точном PR head `8ee2f49eb11704df112d736fd382d0b4885f6011`: npm ci, unit, Chromium browser, Rules Emulator, Auth Emulator и build. Добавлен сценарий конкурентной записи в Offline Queue из двух вкладок одного UID и exactly-once delivery после reconnect.
 - **Очистка refs:** отложена по решению владельца; 139 merged refs manifest/script сохранены, ничего не удалять до отдельного запроса. Automatically delete head branches включён владельцем для будущих PR.
 - **Следующий шаг:** продолжить оставшиеся проверки Vortex 1.0 по `docs/PROJECT_SPEC.md` и `docs/PRODUCTION_ACCEPTANCE.md`; отдельно настроить protection/required Quality checks для `main` вручную в GitHub Settings. RC gate остаётся открытым.
