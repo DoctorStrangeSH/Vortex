@@ -180,3 +180,12 @@
 - Browser regression расширен до 8 синхронных race rounds между двумя вкладками одного UID: 16 сообщений должны оставаться durable в localStorage, быть видимыми из обеих вкладок и доставляться ровно один раз с уникальными ID после reconnect.
 - Изменён только browser test fixture; runtime-код, Production Firebase, Rules и пользовательские данные не затрагивались.
 - Это усиливает автоматическое покрытие конкурентной записи, но не закрывает ручной staging/Production acceptance и не доказывает поведение после перезапуска браузера. RC gate остаётся открытым.
+
+
+### Accessibility keyboard regression — PR #161 (23.11.2026)
+
+- PR #161 открыт: `test/accessibility-chat-menu-keyboard`, head `6fc26ee805011f8102249e1824fee3ce4748aee5`.
+- Mobile ChatHeader overflow trigger announces `aria-haspopup="menu"`; Chromium checks keyboard activation with Enter/Space, `aria-expanded`, initial menu focus, Escape close and focus restoration. Existing arrow-key, wraparound, pointer and desktop action checks remain.
+- PR Quality CI #45154234026: npm ci and unit tests passed; browser suite is running. No merge until every gate passes.
+- Main Quality CI #45153549337 failed in the pre-existing Offline Queue browser concurrency regression before Rules/Auth/E2E/build gates. Failure: round 4 did not persist both concurrent enqueue operations; durable queue contained 7 rather than expected 8 entries, while lock diagnostics showed no held/pending locks at capture. The root cause is still unresolved; do not weaken the assertion or merge a PR whose full browser suite fails.
+- This failure is unrelated to the accessibility changes but blocks the shared Quality pipeline and RC. Production Firebase and user data were not touched.
