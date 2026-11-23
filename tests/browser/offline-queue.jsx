@@ -34,7 +34,7 @@ service.executeAction = async action => {
 const operationTrace = [];
 const tabId = crypto.randomUUID();
 const trace = (event, details = {}) => {
-    operationTrace.push({ tabId, at: Math.round(performance.now() * 10) / 10, event, ...details });
+    operationTrace.push({ tabId, at: Date.now(), monotonicAt: Math.round((performance.timeOrigin + performance.now()) * 10) / 10, event, ...details });
     if (operationTrace.length > 80) operationTrace.shift();
 };
 const originalSetItem = service.storage.setItem.bind(service.storage);
@@ -89,14 +89,17 @@ service.processQueue = async () => {
 };
 
 const originalWithQueueLock = service.withQueueLock.bind(service);
-service.withQueueLock = callback => originalWithQueueLock(async () => {
+service.withQueueLock = callback => {
+    trace('lock-requested', { countAtRequest: JSON.parse(localStorage.getItem('offlineQueue') || '[]').length });
+    return originalWithQueueLock(async () => {
     trace('lock-acquired', { countBefore: JSON.parse(localStorage.getItem('offlineQueue') || '[]').length });
     try {
         return await callback();
     } finally {
         trace('lock-released', { countAfter: JSON.parse(localStorage.getItem('offlineQueue') || '[]').length });
     }
-});
+    });
+};
 
 service.init();
 
