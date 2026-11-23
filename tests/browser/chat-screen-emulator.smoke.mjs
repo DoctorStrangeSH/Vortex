@@ -144,6 +144,13 @@ try {
     await sendMessage(pageB, secondMessage);
     await waitForMessage(pageA, secondMessage);
 
+    // On desktop, selecting a chat keeps the split view visible. When the viewport
+    // first crosses into mobile, ChatScreen intentionally returns to the sidebar;
+    // reopen the conversation through its real mobile navigation before measuring.
+    await pageA.setViewportSize({ width: 320, height: 812 });
+    await pageA.getByRole('button', { name: new RegExp(`Открыть чат ${bob.name}`) }).click();
+    await pageA.locator('.vortex-chat-header').waitFor({ state: 'visible' });
+
     // Verify a long Unicode message remains readable and does not force horizontal overflow.
     const longMessage = `Длинное сообщение для проверки переноса текста на узком экране. ${'Vortex_тест_сообщения_без_горизонтального_скролла '.repeat(24)}`;
     await assertResponsiveShell(pageA, 320, 812);
