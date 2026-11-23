@@ -17,10 +17,10 @@
 
 | Этап | Статус | Критерий закрытия |
 |---|---|---|
-| Scope freeze | <badge>DONE</badge> | Scope 1.0 зафиксирован в PROJECT_SPEC |
+| Scope freeze | **DONE** | Scope 1.0 зафиксирован в PROJECT_SPEC |
 | Регистрация и безопасность | Автотесты PASS; ручная проверка открыта | Два независимых аккаунта, legacy account и Production Rules review |
 | Личная переписка | Автотесты PASS; ручная проверка открыта | Realtime, история, edit/delete, read receipts, offline/reconnect |
-| Offline Queue | <badge>DONE</badge> | 100 раундов / 200 сообщений, restart recovery, no-Web-Locks fallback |
+| Offline Queue | **DONE** | 100 раундов / 200 сообщений, restart recovery, no-Web-Locks fallback |
 | Группы и каналы | Emulator coverage PASS; ручная проверка открыта | Роли, членство, публикации и выход на двух аккаунтах |
 | UI и доступность | Browser regression PASS; ручная проверка открыта | Телефон, desktop, клавиатура и screen reader |
 | Release Candidate | Не начат | Все P0 и включённые P1 критерии приняты |
