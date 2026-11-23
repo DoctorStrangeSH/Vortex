@@ -123,3 +123,14 @@
 - До получения логов повторного browser test не менять реализацию OfflineService наугад. PR #156 остаётся открытым и не готов к merge.
 
 - Повторный запуск #45139179562 после исправления password locator прошёл unit, browser (включая Offline Queue concurrency), Firestore/Storage Rules и Auth Emulator. Новый E2E дошёл до обмена сообщениями, затем остановился на неоднозначном `getByText`: текст сообщения одновременно отображается в bubble и Sidebar preview. Исправлено скоупированием проверки на `.vortex-message-text` (commit `4e338307352807ae13ea6243af7e57495702bb8f`). Ожидается следующий полный CI.
+
+
+### Итог PR #156 — authenticated ChatScreen E2E (23.11.2026)
+
+- PR #156 объединён в `main` squash-коммитом `19add018db14a32d250a9f28fa3ef38b7b5f115f`.
+- Полный Quality CI #45139952610 завершился PASS на точном PR head `1e946051ba53a6ec5d1751c60f3eac8359def8d8`: dependency install, unit tests, browser smoke (включая Offline Queue concurrency), Firestore/Storage Rules Emulator, Auth Emulator, authenticated two-user ChatScreen E2E и production build.
+- E2E проходит через настоящий `App` и две независимые Chromium/Auth сессии: регистрация, поиск по username, создание DM, двусторонняя realtime доставка сообщений, mobile sidebar/chat/back, breakpoint transitions и logout/login с проверкой сброса выбранного чата.
+- Firebase Emulator wiring включается только при явных `VITE_USE_FIREBASE_EMULATORS=true`, `VITE_APP_ENV=staging` и demo project ID; Production defaults не менялись. Production Firebase, реальные аккаунты и пользовательские данные не затрагивались.
+- Ранее зафиксированный единичный сбой concurrent Offline Queue не воспроизвёлся на последующих полных прогонах #45139550262 и #45139952610. Первопричина не установлена; это не доказательство production data loss. Регрессионный тест оставлен включённым.
+- Исторические записи выше описывают состояние на момент соответствующих запусков. Текущий статус PR #156: MERGED; текущий main SHA: `19add018db14a32d250a9f28fa3ef38b7b5f115f`. CI на новом main push ещё выполняется; до его результата RC gate не закрывать.
+- `docs/PRODUCTION_ACCEPTANCE.md` остаётся отдельной ручной приёмкой: emulator E2E не заменяет проверку двух реальных аккаунтов, уведомлений, read receipts и поведения на Production.
