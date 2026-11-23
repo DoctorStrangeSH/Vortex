@@ -119,6 +119,7 @@ service cloud.firestore {
         // The no-op is safe only when readBy remains byte-for-byte unchanged.
         (after == before && request.auth.uid in before) ||
         (after.size() == before.size() + 1 && after.hasAll(before) &&
+         after.toSet().size() == after.size() &&
          request.auth.uid in after && !(request.auth.uid in before))
       );
     }
