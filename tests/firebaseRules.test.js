@@ -413,6 +413,11 @@ test('read receipts are append-only and bound to the authenticated participant U
     await assertSucceeds(updateDoc(bobMessage, { readBy: arrayUnion('bob') }));
     assert.deepEqual((await assertSucceeds(getDoc(aliceMessage))).data().readBy, ['bob']);
 
+    // A participant cannot append duplicate reader IDs in one update.
+    await assertFails(updateDoc(doc(bob, 'chats/chat-a/messages/duplicate-reader-receipt'), {
+        readBy: ['bob', 'bob']
+    }));
+
     // A participant cannot forge another reader or replace the receipt history.
     await assertFails(updateDoc(bobMessage, { readBy: arrayUnion('alice') }));
     await assertFails(updateDoc(bobMessage, { readBy: ['bob', 'alice'] }));
