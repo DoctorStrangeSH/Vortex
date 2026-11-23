@@ -2,6 +2,68 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { OfflineService } from '../src/services/offlineService.js';
 
+
+
+test('independent durable item keys preserve concurrent writes from separate tabs', async () => {
+    const values = new Map();
+    const makeStorage = () => ({
+        get length() { return values.size; },
+        key: index => [...values.keys()][index] ?? null,
+        getItem: key => values.get(key) ?? null,
+        setItem: (key, value) => values.set(key, value),
+        removeItem: key => values.delete(key)
+    });
+    const storageA = makeStorage();
+    const storageB = makeStorage();
+    let idA = 0;
+    let idB = 0;
+    const a = new OfflineService({
+        storage: storageA,
+        network: { onLine: false },
+        createId: () => `tab-a-${++idA}`
+    });
+    const b = new OfflineService({
+        storage: storageB,
+        network: { onLine: false },
+        createId: () => `tab-b-${++idB}`
+    });
+
+    await Promise.all(Array.from({ length: 100 }, (_, index) => Promise.all([
+        a.addToQueue({ type: 'sendMessage', text: `A-${index}` }),
+        b.addToQueue({ type: 'sendMessage', text: `B-${index}` })
+    ])));
+
+    a.refreshQueue();
+    b.refreshQueue();
+    assert.equal(a.getQueue().length, 200);
+    assert.equal(b.getQueue().length, 200);
+    assert.equal(new Set(a.getQueue().map(item => item.id)).size, 200);
+    assert.equal(new Set(a.getQueue().map(item => item.text)).size, 200);
+    assert.equal(values.size, 200);
+});
+
+test('legacy array queue migrates to independent durable item records without changing IDs', async () => {
+    const values = new Map([['offlineQueue', JSON.stringify([
+        { id: 'legacy-1', type: 'sendMessage', text: 'Старое сообщение', timestamp: 1 }
+    ])]]);
+    const storage = {
+        get length() { return values.size; },
+        key: index => [...values.keys()][index] ?? null,
+        getItem: key => values.get(key) ?? null,
+        setItem: (key, value) => values.set(key, value),
+        removeItem: key => values.delete(key)
+    };
+    const service = new OfflineService({ storage, network: { onLine: false } });
+
+    assert.equal(storage.getItem('offlineQueue'), null);
+    assert.deepEqual(service.getQueue().map(item => item.id), ['legacy-1']);
+    assert.equal(JSON.parse(storage.getItem('offlineQueue:item:legacy-1')).text, 'Старое сообщение');
+
+    await service.addToQueue({ type: 'sendMessage', text: 'Новое сообщение' });
+    service.refreshQueue();
+    assert.equal(service.getQueue().length, 2);
+});
+
 function createService() {
     let nextId = 0;
     const values = new Map();
