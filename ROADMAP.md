@@ -171,3 +171,12 @@
 - В main вошли исправления ширины ChatWindow, ChatHeader и MessageInput, а также authenticated E2E-проверки 320/375/390/768/769/1024/1440 px, длинных Unicode-сообщений, мобильного меню/фокуса, информации о чате, галереи, desktop header actions и message context menu.
 - Новый main commit: `369381928b6c37ab5038eeaaaa1b876e78845c8b`. Post-merge Quality CI #45151865724 и Pages workflow #45151865667 выполняются; дождаться результатов.
 - Offline Queue intermittent concurrent enqueue failure остаётся отдельным незакрытым RC gate; PR #159 его не затрагивал и не ослаблял.
+
+
+### Offline Queue multi-tab stress regression — PR #160 (23.11.2026)
+
+- PR #160 успешно объединён в `main` squash-коммитом `24f25d9c7b2aa933da58ba6959dcc08254763b99`.
+- Полный Quality CI #45152851030 завершился PASS на точном PR head `1909155200f8484ecf7bd0cc33b8cedd527e1b2e`: `npm ci`, unit tests, Chromium browser tests, Firestore/Storage Rules Emulator, Auth Emulator, authenticated ChatScreen E2E и production build.
+- Browser regression расширен до 8 синхронных race rounds между двумя вкладками одного UID: 16 сообщений должны оставаться durable в localStorage, быть видимыми из обеих вкладок и доставляться ровно один раз с уникальными ID после reconnect.
+- Изменён только browser test fixture; runtime-код, Production Firebase, Rules и пользовательские данные не затрагивались.
+- Это усиливает автоматическое покрытие конкурентной записи, но не закрывает ручной staging/Production acceptance и не доказывает поведение после перезапуска браузера. RC gate остаётся открытым.
