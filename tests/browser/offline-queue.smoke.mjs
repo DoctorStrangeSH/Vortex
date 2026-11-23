@@ -92,6 +92,63 @@ try {
         messageId: afterRetry.remoteMessages[0].id
     });
 
+    // Two tabs enqueue separate messages for the same account at the same time.
+    // Web Locks must serialize read-modify-write so neither queue entry is lost.
+    const sharedAccountContext = await browser.newContext();
+    const sharedTabA = await sharedAccountContext.newPage();
+    const sharedTabB = await sharedAccountContext.newPage();
+    sharedTabA.on('pageerror', error => errors.push(`shared account tab A: ${error.message}`));
+    sharedTabB.on('pageerror', error => errors.push(`shared account tab B: ${error.message}`));
+    await Promise.all([
+        sharedTabA.goto(`${origin}/tests/browser/offline-queue.html`),
+        sharedTabB.goto(`${origin}/tests/browser/offline-queue.html`)
+    ]);
+    await Promise.all([
+        sharedTabA.waitForFunction(() => Boolean(window.offlineQueueQA)),
+        sharedTabB.waitForFunction(() => Boolean(window.offlineQueueQA))
+    ]);
+    await Promise.all([
+        sharedTabA.evaluate(() => window.offlineQueueQA.setActiveUser('shared-account-user')),
+        sharedTabB.evaluate(() => window.offlineQueueQA.setActiveUser('shared-account-user'))
+    ]);
+    await sharedAccountContext.setOffline(true);
+    await Promise.all([
+        sharedTabA.waitForFunction(() => window.offlineQueueQA.snapshot().isOnline === false),
+        sharedTabB.waitForFunction(() => window.offlineQueueQA.snapshot().isOnline === false)
+    ]);
+    await Promise.all([
+        sharedTabA.evaluate(() => window.offlineQueueQA.enqueue('shared-account-user', 'Сообщение из вкладки A')),
+        sharedTabB.evaluate(() => window.offlineQueueQA.enqueue('shared-account-user', 'Сообщение из вкладки B'))
+    ]);
+    await Promise.all([
+        sharedTabA.waitForFunction(() => window.offlineQueueQA.snapshot().queue.length === 2),
+        sharedTabB.waitForFunction(() => window.offlineQueueQA.snapshot().queue.length === 2)
+    ]);
+    const queuedFromBothTabs = await sharedTabA.evaluate(() => window.offlineQueueQA.snapshot());
+    assert.deepEqual(
+        queuedFromBothTabs.queue.map(item => item.text).sort(),
+        ['Сообщение из вкладки A', 'Сообщение из вкладки B'].sort(),
+        'concurrent same-account enqueues must both remain durable'
+    );
+    await sharedAccountContext.setOffline(false);
+    await sharedTabA.waitForFunction(() => {
+        const state = window.offlineQueueQA.snapshot();
+        return state.queue.length === 0 && state.remoteMessages.length === 2;
+    });
+    await sharedTabB.waitForFunction(() => window.offlineQueueQA.snapshot().queue.length === 0);
+    const sharedAccountDelivered = await sharedTabA.evaluate(() => window.offlineQueueQA.snapshot());
+    assert.deepEqual(
+        sharedAccountDelivered.remoteMessages.map(item => item.text).sort(),
+        ['Сообщение из вкладки A', 'Сообщение из вкладки B'].sort(),
+        'both concurrently queued messages must be delivered exactly once'
+    );
+    assert.equal(new Set(sharedAccountDelivered.remoteMessages.map(item => item.id)).size, 2);
+    await sharedAccountContext.close();
+    console.log('Concurrent same-account multi-tab queue test passed:', {
+        queuedCount: queuedFromBothTabs.queue.length,
+        deliveredCount: sharedAccountDelivered.remoteMessages.length
+    });
+
     // Repeat with Web Locks deliberately unavailable. Two tabs share one UID;
     // the stable Firestore message ID remains the final duplicate guard.
     const noLocksContext = await browser.newContext();
