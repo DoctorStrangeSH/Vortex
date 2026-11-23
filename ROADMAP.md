@@ -57,6 +57,14 @@
 
 **Vortex 1.0 пока не готов к объявлению.** Отправка сообщений восстановлена в Production после синхронизации Firestore Rules, но полноценная staging/двухаккаунтная приёмка ещё не завершена.
 
+### Дополнение — PR #152, concurrent Offline Queue tabs (23.11.2026)
+
+- PR #152 добавляет Chromium-регрессию: две вкладки одного UID одновременно ставят разные сообщения в общую offline queue; после reconnect оба должны доставиться один раз с разными стабильными ID.
+- Первый CI выявил timeout на проверке синхронизации локального snapshot между вкладками. Unit suite прошёл; browser suite упал до Rules/Auth/build, поскольку workflow останавливается на первом failed step.
+- Исправление в тестовой фикстуре `tests/browser/offline-queue.jsx` заставило snapshot перечитывать durable storage, но повторный прогон показал, что одного этого недостаточно.
+- Последняя итерация PR `8ee2f49` перевела ожидание на прямую проверку общей durable `localStorage` очереди и добавила явную проверку Web Locks. CI run #45132563704 выполняется; результат пока не подтверждён.
+- PR остаётся открытым и не объединяется до полного Quality PASS. Runtime-код, Firebase Production, пользовательские данные и ветки не затрагивались.
+
 ## Текущий статус — 23.11.2026
 
 - **PR #151:** объединён в `main` (squash commit `aaa0ba5aec01f00a1ddfd1f750b5363437c3c442`). Quality checks run #813 успешно прошёл на точном head `a564ea9fad5c686c31b2e1cbde24821b7f911d70`: `npm ci`, unit, Chromium browser, Firestore/Storage Rules Emulator, Auth Emulator и production build. Тестовая фикстура создаёт валидный owner document до негативных попыток записи, поэтому отказы проверяют запрещённые поля, а не отсутствующую зависимость.
