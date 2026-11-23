@@ -1411,3 +1411,11 @@ Vortex 1.0 завершён, только когда одновременно:
 - [x] Failure reproduced at concurrent same-account Offline Queue enqueue round 4: expected 8 durable records, observed 7; diagnostics captured no held/pending Web Locks at failure time.
 - [ ] Root cause remains unresolved. Keep the strict data-preservation assertion; do not label the queue production-accepted.
 - [ ] This shared browser-suite failure blocks PR #161 full CI and the Vortex 1.0 RC gate until corrected and repeatedly verified.
+
+
+### Accessibility PR #161 validation update — 23.11.2026
+
+- [x] PR CI retry #45154820637: dependency install PASS, unit tests PASS, complete browser suite PASS (including keyboard menu activation after focus synchronization).
+- [ ] Firestore/Storage Rules Emulator currently running; Auth Emulator, authenticated ChatScreen E2E and production build have not yet completed.
+- [ ] PR remains open and unmerged pending full Quality CI.
+- [ ] Manual keyboard-only and screen-reader acceptance remain NOT RUN.
