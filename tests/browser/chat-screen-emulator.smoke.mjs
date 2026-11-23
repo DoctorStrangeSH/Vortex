@@ -70,6 +70,33 @@ async function sendMessage(page, text) {
     await page.getByRole('button', { name: 'Отправить сообщение' }).click();
     await waitForMessage(page, text);
 }
+async function assertActiveMenuItem(page, expected) {
+    const active = await page.evaluate(() => document.activeElement?.textContent?.trim());
+    assert.equal(active, expected, `Expected focused menu item "${expected}", got "${active}"`);
+}
+async function assertResponsiveShell(page, width, height = 900) {
+    await page.setViewportSize({ width, height });
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    const geometry = await page.evaluate(() => {
+        const header = document.querySelector('.vortex-chat-header')?.getBoundingClientRect();
+        const composer = document.querySelector('.vortex-composer')?.getBoundingClientRect();
+        const input = document.querySelector('.vortex-composer-input')?.getBoundingClientRect();
+        return {
+            viewport: window.innerWidth,
+            documentWidth: document.documentElement.scrollWidth,
+            header: header && { left: header.left, right: header.right, width: header.width },
+            composer: composer && { left: composer.left, right: composer.right, width: composer.width },
+            input: input && { left: input.left, right: input.right, width: input.width }
+        };
+    });
+    assert.ok(geometry.header, `ChatHeader missing at ${width}px`);
+    assert.ok(geometry.composer, `Composer missing at ${width}px`);
+    assert.ok(geometry.input && geometry.input.width >= 48, `Composer input is too narrow at ${width}px: ${JSON.stringify(geometry)}`);
+    assert.ok(geometry.header.left >= 0 && geometry.header.right <= width + 1, `Header overflow at ${width}px: ${JSON.stringify(geometry)}`);
+    assert.ok(geometry.composer.left >= 0 && geometry.composer.right <= width + 1, `Composer overflow at ${width}px: ${JSON.stringify(geometry)}`);
+    assert.ok(geometry.documentWidth <= width + 1, `Document horizontal overflow at ${width}px: ${JSON.stringify(geometry)}`);
+    return geometry;
+}
 
 try {
     let ready = false;
@@ -117,6 +144,65 @@ try {
     await sendMessage(pageB, secondMessage);
     await waitForMessage(pageA, secondMessage);
 
+    // On desktop, selecting a chat keeps the split view visible. When the viewport
+    // first crosses into mobile, ChatScreen intentionally returns to the sidebar;
+    // reopen the conversation through its real mobile navigation before measuring.
+    await pageA.setViewportSize({ width: 320, height: 812 });
+    await pageA.getByRole('button', { name: new RegExp(`Открыть чат ${bob.name}`) }).click();
+    await pageA.locator('.vortex-chat-header').waitFor({ state: 'visible' });
+
+    // Verify a long Unicode message remains readable and does not force horizontal overflow.
+    const longMessage = `Длинное сообщение для проверки переноса текста на узком экране. ${'Vortex_тест_сообщения_без_горизонтального_скролла '.repeat(24)}`;
+    await assertResponsiveShell(pageA, 320, 812);
+    await sendMessage(pageA, longMessage);
+    await waitForMessage(pageB, longMessage);
+    const longBubble = await pageA.locator('.vortex-message-text').filter({ hasText: longMessage }).first().evaluate(element => {
+        const rect = element.getBoundingClientRect();
+        return { left: rect.left, right: rect.right, width: rect.width, scrollWidth: element.scrollWidth, clientWidth: element.clientWidth };
+    });
+    assert.ok(longBubble.left >= 0 && longBubble.right <= 321, `Long message exceeds 320px viewport: ${JSON.stringify(longBubble)}`);
+    assert.ok(longBubble.scrollWidth <= longBubble.clientWidth + 1, `Long message text overflows its bubble: ${JSON.stringify(longBubble)}`);
+
+    // Mobile header menu supports keyboard navigation and restores focus on Escape.
+    await pageA.getByRole('button', { name: 'Дополнительные действия' }).click();
+    const headerMenu = pageA.getByRole('menu', { name: 'Дополнительные действия с чатом' });
+    await headerMenu.waitFor({ state: 'visible' });
+    // Wait for ChatHeader's post-render effect to move focus into the menu
+    // before sending the navigation key; visibility can precede focus by a frame.
+    await pageA.waitForFunction(() => document.activeElement?.getAttribute('role') === 'menuitem');
+    await pageA.keyboard.press('ArrowDown');
+    await assertActiveMenuItem(pageA, 'Статус');
+    await pageA.keyboard.press('Escape');
+    await headerMenu.waitFor({ state: 'hidden' });
+    assert.equal(await pageA.evaluate(() => document.activeElement?.getAttribute('aria-label')), 'Дополнительные действия');
+
+    // Verify both primary header dialogs open and close from the real chat.
+    await pageA.getByRole('button', { name: 'Информация о чате' }).click();
+    await pageA.locator('.vortex-info-dialog').waitFor({ state: 'visible' });
+    await pageA.getByRole('button', { name: 'Закрыть информацию о чате' }).click();
+    await pageA.getByRole('button', { name: 'Открыть галерею' }).click();
+    await pageA.getByRole('dialog', { name: 'Медиа и файлы' }).waitFor({ state: 'visible' });
+    await pageA.getByRole('button', { name: 'Закрыть галерею' }).click();
+
+    // Check real composer/header geometry at every important narrow and wide breakpoint.
+    for (const width of [320, 375, 390, 768, 769, 1024, 1440]) {
+        await assertResponsiveShell(pageA, width, width === 320 ? 812 : 900);
+    }
+
+    // Desktop header exposes its actions without the mobile overflow menu.
+    await pageA.getByRole('button', { name: 'Оформление' }).waitFor({ state: 'visible' });
+    await pageA.getByRole('button', { name: 'Статус' }).waitFor({ state: 'visible' });
+    await pageA.getByRole('button', { name: 'Экспорт переписки' }).waitFor({ state: 'visible' });
+
+    // Message context menu is available from the actual message bubble.
+    await pageA.locator('.vortex-bubble-own').filter({ hasText: firstMessage }).click({ button: 'right' });
+    const messageMenu = pageA.getByRole('menu', { name: 'Действия с сообщением' });
+    await messageMenu.waitFor({ state: 'visible' });
+    await pageA.getByRole('menuitem', { name: /Редактировать/ }).waitFor({ state: 'visible' });
+    await pageA.getByRole('menuitem', { name: /Удалить/ }).waitFor({ state: 'visible' });
+    await pageA.keyboard.press('Escape');
+    await messageMenu.waitFor({ state: 'hidden' });
+
     // Exercise the actual ChatScreen mobile navigation and breakpoint transitions.
     const aliceChat = pageA.getByRole('button', { name: new RegExp(`Открыть чат ${bob.name}`) });
     await pageA.setViewportSize({ width: 375, height: 812 });
@@ -151,7 +237,10 @@ try {
         users: 2,
         realtimeMessages: 2,
         navigation: 'sidebar -> chat -> back',
-        viewports: [375, 768, 769, 1024],
+        viewports: [320, 375, 390, 768, 769, 1024, 1440],
+        longMessage: 'wrapped without horizontal overflow',
+        headerActions: 'mobile keyboard menu + info/gallery dialogs + desktop actions',
+        messageContextMenu: 'edit/delete actions available',
         accountSwitch: 'A -> sign out -> B; selection reset'
     });
 

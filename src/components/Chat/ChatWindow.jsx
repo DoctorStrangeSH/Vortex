@@ -931,7 +931,7 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
     const avatarColor = getAvatarColor(other.name);
 
     return (
-        <div style={{ ...s.container, opacity: isDragOver ? 0.8 : 1 }} onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}>
+        <div style={{ ...s.container, minWidth: 0, width: '100%', boxSizing: 'border-box', opacity: isDragOver ? 0.8 : 1 }} onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}>
             {!isOnline && (
                 <div style={s.offlineBar}>📴 Нет соединения. Текстовые сообщения сохраняются в очереди; вложения отправляйте после подключения.</div>
             )}
