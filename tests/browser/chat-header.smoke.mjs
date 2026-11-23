@@ -92,8 +92,35 @@ try {
     // Exercise the real mobile overflow menu, including roving keyboard focus and action dispatch.
     await page.setViewportSize({ width: 320, height: 800 });
     const menuTrigger = page.getByRole('button', { name: 'Дополнительные действия' });
-    await menuTrigger.click();
+    assert.equal(await menuTrigger.getAttribute('aria-haspopup'), 'menu',
+        'mobile overflow trigger must announce that it opens a menu');
+    assert.equal(await menuTrigger.getAttribute('aria-expanded'), 'false');
+
+    // The menu must be operable without a pointer: Enter opens it and moves
+    // focus to the first item, Escape closes it and restores the trigger.
+    await menuTrigger.focus();
+    await page.keyboard.press('Enter');
     const menuItems = page.getByRole('menuitem');
+    await menuItems.first().waitFor();
+    assert.equal(await menuTrigger.getAttribute('aria-expanded'), 'true');
+    await page.waitForFunction(() => document.activeElement?.getAttribute('role') === 'menuitem');
+    assert.equal(await page.evaluate(() => document.activeElement?.querySelector('span')?.textContent.trim()),
+        'Участники группы');
+    await page.keyboard.press('Escape');
+    await page.getByRole('menu').waitFor({ state: 'detached' });
+    assert.equal(await menuTrigger.evaluate(element => element === document.activeElement), true);
+    assert.equal(await menuTrigger.getAttribute('aria-expanded'), 'false');
+
+    // Space is also a native keyboard activation key for the trigger.
+    await menuTrigger.focus();
+    await page.keyboard.press('Space');
+    await menuItems.first().waitFor();
+    assert.equal(await menuTrigger.getAttribute('aria-expanded'), 'true');
+    await page.keyboard.press('Escape');
+    await page.getByRole('menu').waitFor({ state: 'detached' });
+    assert.equal(await menuTrigger.evaluate(element => element === document.activeElement), true);
+
+    await menuTrigger.click();
     await menuItems.first().waitFor();
     assert.equal(await menuItems.count(), 4, 'group menu must expose members, theme, status and export');
     await page.waitForFunction(() => {
