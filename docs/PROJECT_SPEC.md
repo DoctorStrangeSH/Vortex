@@ -1518,7 +1518,7 @@ Vortex 1.0 завершён, только когда одновременно:
 
 - [x] Rechecked PR #164: still OPEN, not merged. Main `OfflineService` remains unchanged.
 - [x] Existing main Quality CI #45166822734 failed in Browser Tests at same-account concurrent enqueue round 5; log confirms durable queue contains 9 entries and round-5 message from tab A is missing while tab B's is present.
-- [x] The two-tab Web Locks probe uses the exact production lock name and passes before the stress section; the failure occurs later during the service stress scenario.
+- [x] Updated the PR #164 two-tab Web Locks probe to use the exact production lock name; this specific updated probe has not yet been run in CI.
 - [ ] Latest PR #164 head `1d62fd9020a626caf86bcf8ab1e87bafbf65575b` has no associated workflow run yet. The last failed stress run #45166073892 tested an earlier head, so current 100-round/assertion/trace edits are NOT CI-validated.
 - [ ] Do not infer a production root cause from the current evidence. Keep production queue implementation unchanged until a deterministic failing trace or isolated regression test proves the cause.
 - [ ] Release remains blocked until 100 concurrent rounds persist 200 messages and reconnect delivers each exactly once.
