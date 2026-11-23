@@ -95,3 +95,11 @@
 - Quality checks #45134260984 полностью прошёл на точном PR head `60ef6efe25e19bbeea04efc490705e7c3894fe98`: `npm ci`, unit tests, Chromium browser tests, Firestore/Storage Rules Emulator, Auth Emulator и production build.
 - Firestore Rules теперь требуют уникальности UID в `readBy` после добавления читателя; добавлен негативный Rules Emulator test на дублирующий UID.
 - Production Rules не публиковались; Firebase Production и пользовательские данные не менялись.
+
+
+### Дополнение — main verification after PR #154 (23.11.2026)
+
+- PR #154 merged successfully; full Quality CI #45134260984 passed on exact PR head `60ef6efe25e19bbeea04efc490705e7c3894fe98`.
+- Documentation-only follow-up is on `main` SHA `4edb87f09e3111801f6f8d1ec4684609f505cb4e`; Quality checks #45134623882 and GitHub Pages deployment #45134623777 both completed successfully.
+- No open PRs remain. `main` is still reported as unprotected; branch protection/required checks must be configured in GitHub Settings by a repository admin.
+- Scope Freeze remains open by explicit owner decision: the 139 merged-PR branch cleanup candidates are prepared but not deleted; the 16 historical refs remain preserved for now.
