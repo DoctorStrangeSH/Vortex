@@ -75,10 +75,10 @@ export function ChatHeader({ chat, user, other, avatarColor, otherStatus, isTypi
 }
 
 const s = {
-    header: { display:'flex', alignItems:'center', justifyContent:'space-between', minHeight:'74px', padding:'0.75rem 1.25rem', borderBottom:'1px solid var(--border-subtle)', background:'var(--surface-glass)', backdropFilter:'blur(20px)', zIndex:10 },
-    left: { display:'flex', alignItems:'center', gap:'0.6rem' },
+    header: { display:'flex', alignItems:'center', justifyContent:'space-between', width:'100%', minWidth:0, boxSizing:'border-box', minHeight:'74px', padding:'0.75rem 1.25rem', borderBottom:'1px solid var(--border-subtle)', background:'var(--surface-glass)', backdropFilter:'blur(20px)', zIndex:10 },
+    left: { display:'flex', alignItems:'center', gap:'0.6rem', minWidth:0, flex:'1 1 auto' },
     avatar: { width:'44px', height:'44px', borderRadius:'16px', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontWeight:700, fontSize:'1rem', flexShrink:0 },
-    info: { display:'flex', flexDirection:'column' },
+    info: { display:'flex', flexDirection:'column', minWidth:0 },
     name: { fontWeight:750, fontSize:'1rem' },
     status: { fontSize:'0.75rem', color:'var(--text-secondary)', display:'flex', alignItems:'center', gap:'5px' },
     dot: { width:'7px', height:'7px', borderRadius:'50%', display:'inline-block' },
