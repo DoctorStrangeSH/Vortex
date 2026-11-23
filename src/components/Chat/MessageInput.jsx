@@ -56,7 +56,7 @@ export function MessageInput({ text, onTextChange, onSend, sending = false, onTy
 }
 
 const s = {
-    container: { padding:'0.8rem 1rem', borderTop:'1px solid var(--border-subtle)', background:'var(--surface-glass)', backdropFilter:'blur(20px)' },
+    container: { width:'100%', minWidth:0, boxSizing:'border-box', padding:'0.8rem 1rem', borderTop:'1px solid var(--border-subtle)', background:'var(--surface-glass)', backdropFilter:'blur(20px)' },
     wrapper: { display:'flex', alignItems:'center', gap:'8px' },
     btn: { width:'40px', height:'40px', borderRadius:'13px', background:'transparent', border:'none', color:'var(--text-secondary)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'1rem', flexShrink:0 },
     input: { flex:1, padding:'0.85rem 1rem', background:'var(--bg-tertiary)', border:'1px solid var(--border-default)', borderRadius:'15px', color:'var(--text-primary)', fontSize:'16px', outline:'none', fontFamily:'inherit', minWidth:0 },
