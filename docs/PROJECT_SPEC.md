@@ -1501,3 +1501,14 @@ Vortex 1.0 завершён, только когда одновременно:
 - [ ] Post-merge main Quality CI #45165919202 and Pages build #45165919183 were queued/running at documentation update; verify final outcomes.
 - [ ] Offline Queue same-account multi-tab race remains an open reliability investigation. The corrected diagnostic run passed, but no production OfflineService fix has been made and the earlier intermittent failure is not considered resolved. Keep the 16-message assertion.
 - [ ] Screen Reader manual acceptance and full accessible-name audit remain NOT DONE.
+
+
+### 100-round Offline Queue stress — PR #164 CI result (23.11.2026)
+
+- [x] PR #164 increased same-account two-tab concurrent enqueue stress from 8 to 100 rounds (200 messages).
+- [x] Unit suite PASS on PR #164 head `761a5a73e35a33cd48a6bc8be845c5bfc26d51a4`.
+- [ ] Browser suite FAIL: race reproduced at round 18; durable queue had 35 entries rather than expected 36. Tab B's round-18 message is present; tab A's round-18 message is missing. Rules/Auth/Chat E2E/Build were skipped due browser failure.
+- [x] GitHub Pages build/deploy on main commit `2f9a231daf406cfa157c8cf3930763d8ab54582d` passed.
+- [ ] Main Quality CI on the same commit also failed in Browser Tests for the same queue race; main remains CI-red until fixed.
+- [ ] PR #164 remains OPEN and MUST NOT be merged. No production OfflineService fix has been made.
+- [ ] Next diagnostic improvement: bound failure logs (remove full queue ID arrays from every write event; keep compact last-N events and IDs only for the failing round) so cross-tab lock order can be inspected without GitHub log truncation. Then identify and fix the production mutation race before rerunning 100 rounds.
