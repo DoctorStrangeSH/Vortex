@@ -197,3 +197,11 @@
 - That PR run failed later in `chat-header.smoke.mjs`: the second Escape assertion ran immediately after Space opened the menu, before the menu focus-management effect had attached its document Escape listener. This was a browser-test timing race, not evidence of a production menu regression.
 - PR branch was updated at `e478463ff74bf5e8bbfb371295b5dbf26ee96b1c` to wait for the first menu item to receive focus before pressing Escape. New PR Quality CI #45154820637 is running; result not yet confirmed.
 - Separately, main Quality CI #45154489033 did fail in Offline Queue round 4 (7 durable messages instead of 8). The issue remains intermittent and unresolved; the successful PR run does not close this blocker.
+
+
+### Accessibility PR #161 validation update — 23.11.2026
+
+- [x] PR CI retry #45154820637: dependency install PASS, unit tests PASS, complete browser suite PASS (including keyboard menu activation after focus synchronization).
+- [ ] Firestore/Storage Rules Emulator currently running; Auth Emulator, authenticated ChatScreen E2E and production build have not yet completed.
+- [ ] PR remains open and unmerged pending full Quality CI.
+- [ ] Manual keyboard-only and screen-reader acceptance remain NOT RUN.
