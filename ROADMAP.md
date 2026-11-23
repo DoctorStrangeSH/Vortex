@@ -354,3 +354,12 @@
 - [x] PR #164 head `01aef4aa10082aeaa990c2c961f72c2a5aa14ac4` restores the 100-round / 200-message stress scenario and detailed per-tab diagnostics.
 - [ ] CI #45176124259 is queued for this exact head. Release remains blocked until 100 rounds persist all 200 messages, reconnect delivers exactly once, and the complete workflow passes.
 - [ ] PR #164 remains open and unmerged. Test-only scope; no production Firebase or application changes.
+
+
+### Offline Queue round-54 investigation — 23.11.2026
+
+- [x] CI #45176124259 on head `01aef4aa10082aeaa990c2c961f72c2a5aa14ac4`: Unit PASS; 100-round browser test failed at round 54 (107 durable entries instead of 108).
+- [x] Both enqueue promises fulfilled. Immediately after each operation, one tab observed its own round-54 message; the final durable snapshots later showed only the B message. Current trace does not establish whether A was overwritten or processed/drained, so do not claim a production root cause.
+- [x] PR #164 head `ec81f35f54843e70067451b3aa82b2cdafe7ee18` adds per-round offline assertions, zero remote-delivery assertions, delivery counters, and round-correlated traces to distinguish queue loss from unexpected processing.
+- [ ] CI #45176888948 is queued for this exact head.
+- [ ] Production OfflineService unchanged; PR #164 open and unmerged. Release gate remains 200/200 persisted while offline and exactly-once reconnect delivery.
