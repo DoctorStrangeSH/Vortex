@@ -60,10 +60,15 @@ async function openChatFromSearch(page, user) {
     await page.locator('.vortex-chat-header').waitFor({ state: 'visible', timeout: 15000 });
     await page.getByRole('textbox', { name: 'Текст сообщения' }).waitFor({ state: 'visible' });
 }
+async function waitForMessage(page, text) {
+    // The same content is also rendered in the Sidebar preview; assert the
+    // actual message body to avoid matching both the preview and the bubble.
+    await page.locator('.vortex-message-text').filter({ hasText: text }).first().waitFor({ timeout: 15000 });
+}
 async function sendMessage(page, text) {
     await page.getByRole('textbox', { name: 'Текст сообщения' }).fill(text);
     await page.getByRole('button', { name: 'Отправить сообщение' }).click();
-    await page.getByText(text, { exact: true }).waitFor({ timeout: 15000 });
+    await waitForMessage(page, text);
 }
 
 try {
@@ -108,9 +113,9 @@ try {
     const bobChat = pageB.getByRole('button', { name: new RegExp(`Открыть чат ${alice.name}`) });
     await bobChat.waitFor({ timeout: 15000 });
     await bobChat.click();
-    await pageB.getByText(firstMessage, { exact: true }).waitFor({ timeout: 15000 });
+    await waitForMessage(pageB, firstMessage);
     await sendMessage(pageB, secondMessage);
-    await pageA.getByText(secondMessage, { exact: true }).waitFor({ timeout: 15000 });
+    await waitForMessage(pageA, secondMessage);
 
     // Exercise the actual ChatScreen mobile navigation and breakpoint transitions.
     const aliceChat = pageA.getByRole('button', { name: new RegExp(`Открыть чат ${bob.name}`) });
@@ -138,8 +143,8 @@ try {
     await login(pageA, bob);
     await pageA.locator('.vortex-chat-header').waitFor({ state: 'hidden', timeout: 10000 });
     await pageA.getByRole('button', { name: new RegExp(`Открыть чат ${alice.name}`) }).click();
-    await pageA.getByText(firstMessage, { exact: true }).waitFor({ timeout: 15000 });
-    await pageA.getByText(secondMessage, { exact: true }).waitFor({ timeout: 15000 });
+    await waitForMessage(pageA, firstMessage);
+    await waitForMessage(pageA, secondMessage);
 
     assert.deepEqual(pageErrors, [], 'real authenticated ChatScreen must have no uncaught browser errors');
     console.log('Authenticated ChatScreen Emulator E2E passed:', {
