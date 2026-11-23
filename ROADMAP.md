@@ -189,3 +189,11 @@
 - PR Quality CI #45154234026: npm ci and unit tests passed; browser suite is running. No merge until every gate passes.
 - Main Quality CI #45153549337 failed in the pre-existing Offline Queue browser concurrency regression before Rules/Auth/E2E/build gates. Failure: round 4 did not persist both concurrent enqueue operations; durable queue contained 7 rather than expected 8 entries, while lock diagnostics showed no held/pending locks at capture. The root cause is still unresolved; do not weaken the assertion or merge a PR whose full browser suite fails.
 - This failure is unrelated to the accessibility changes but blocks the shared Quality pipeline and RC. Production Firebase and user data were not touched.
+
+
+### CI diagnosis correction — PR #161 retry (23.11.2026)
+
+- PR CI #45154234026 did **not** fail in Offline Queue: its browser log shows the two-account delivery, 8-round/16-message concurrent stress, no-Web-Locks fallback, browser restart recovery and tab close/reopen recovery all passed.
+- That PR run failed later in `chat-header.smoke.mjs`: the second Escape assertion ran immediately after Space opened the menu, before the menu focus-management effect had attached its document Escape listener. This was a browser-test timing race, not evidence of a production menu regression.
+- PR branch was updated at `e478463ff74bf5e8bbfb371295b5dbf26ee96b1c` to wait for the first menu item to receive focus before pressing Escape. New PR Quality CI #45154820637 is running; result not yet confirmed.
+- Separately, main Quality CI #45154489033 did fail in Offline Queue round 4 (7 durable messages instead of 8). The issue remains intermittent and unresolved; the successful PR run does not close this blocker.
