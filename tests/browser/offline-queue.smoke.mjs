@@ -173,16 +173,26 @@ try {
             }, expectedCount, { timeout: 10000 });
         } catch (error) {
             const diagnostics = await Promise.all([
-                sharedTabA.evaluate(async () => ({
-                    durableQueue: localStorage.getItem('offlineQueue'),
-                    tabState: window.offlineQueueQA.snapshot(),
-                    locks: navigator.locks?.query ? await navigator.locks.query() : null
-                })),
-                sharedTabB.evaluate(async () => ({
-                    durableQueue: localStorage.getItem('offlineQueue'),
-                    tabState: window.offlineQueueQA.snapshot(),
-                    locks: navigator.locks?.query ? await navigator.locks.query() : null
-                }))
+                sharedTabA.evaluate(async () => {
+                    const state = window.offlineQueueQA.snapshot();
+                    return {
+                        durableCount: state.queue.length,
+                        durableTexts: state.queue.map(item => item.text),
+                        tabId: state.tabId,
+                        trace: state.operationTrace,
+                        locks: navigator.locks?.query ? await navigator.locks.query() : null
+                    };
+                }),
+                sharedTabB.evaluate(async () => {
+                    const state = window.offlineQueueQA.snapshot();
+                    return {
+                        durableCount: state.queue.length,
+                        durableTexts: state.queue.map(item => item.text),
+                        tabId: state.tabId,
+                        trace: state.operationTrace,
+                        locks: navigator.locks?.query ? await navigator.locks.query() : null
+                    };
+                })
             ]);
             throw new Error(`Concurrent same-account enqueue round ${round + 1} did not persist both messages. Diagnostics: ${JSON.stringify(diagnostics)}`, { cause: error });
         }
