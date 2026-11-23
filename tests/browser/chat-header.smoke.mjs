@@ -116,6 +116,9 @@ try {
     await page.keyboard.press('Space');
     await menuItems.first().waitFor();
     assert.equal(await menuTrigger.getAttribute('aria-expanded'), 'true');
+    // Wait until the menu's focus-management effect has attached its Escape
+    // listener; the menu can mount one frame before that effect runs.
+    await page.waitForFunction(() => document.activeElement?.getAttribute('role') === 'menuitem');
     await page.keyboard.press('Escape');
     await page.getByRole('menu').waitFor({ state: 'detached' });
     assert.equal(await menuTrigger.evaluate(element => element === document.activeElement), true);
