@@ -1374,3 +1374,12 @@ Vortex 1.0 завершён, только когда одновременно:
 - [ ] Run full Quality CI on exact PR head `a9a34c9b843ef5b96ae401938e6060198a4cbd4a` and resolve any remaining real failures.
 - [ ] Merge PR #159 only after full PASS. Production Firebase remains untouched.
 - [ ] Offline Queue concurrent enqueue intermittent failure remains a separate unresolved RC gate.
+
+
+### 13.47. Responsive ChatScreen — PR #159 merged — 23.11.2026
+
+- [x] PR #159 merged to `main`: `369381928b6c37ab5038eeaaaa1b876e78845c8b`.
+- [x] Full Quality CI #45150147297 passed on exact PR head `a9a34c9b843ef5b96ae401938e6060198a4cbd4a`.
+- [x] ChatWindow, ChatHeader and MessageInput constrained to available width; responsive E2E covers 320/375/390/768/769/1024/1440 px, long Unicode messages, mobile keyboard menu/focus restoration, info/gallery dialogs, desktop header actions, and message context menu.
+- [ ] Await post-merge Quality CI #45151865724 and Pages workflow #45151865667 on the merge commit.
+- [ ] Offline Queue intermittent concurrent enqueue remains unresolved and continues to block final RC acceptance.
