@@ -103,3 +103,13 @@
 - Documentation-only follow-up is on `main` SHA `4edb87f09e3111801f6f8d1ec4684609f505cb4e`; Quality checks #45134623882 and GitHub Pages deployment #45134623777 both completed successfully.
 - No open PRs remain. `main` is still reported as unprotected; branch protection/required checks must be configured in GitHub Settings by a repository admin.
 - Scope Freeze remains open by explicit owner decision: the 139 merged-PR branch cleanup candidates are prepared but not deleted; the 16 historical refs remain preserved for now.
+
+
+### Дополнение — PR #155 и авторизованный ChatScreen E2E (23.11.2026)
+
+- PR #155 объединён в `main` squash-коммитом `7150ce23f92d7a3b05190390ad61160fdbdc2d24`; полный PR Quality CI #45137389471 прошёл на точном head `5fc56b0defbc849589b2f34ce2b2cedbc3240612` (unit, browser, Rules Emulator, Auth Emulator, build).
+- Добавлена реальная browser regression coverage для `ChatHeader`: 320/360/375/390/768/769/1024/1440 CSS px, mobile group menu, keyboard navigation, Escape focus restoration и action handlers.
+- После merge новый Quality CI на `main` (#45137847388) упал в существующем тесте конкурентной записи Offline Queue. Диагностика показала, что после двух параллельных enqueue из двух вкладок одного UID в durable `localStorage` осталась только запись вкладки A; запись вкладки B потеряна. Это считается реальным data-loss blocker, не flaky-тестом; merge не скрывает и не ослабляет проверку.
+- PR #156 открыт: добавляет opt-in Firebase Emulator wiring, ограниченный explicit demo staging config и настоящий `App`/ `ChatScreen` E2E с двумя независимыми Chromium Auth sessions. Сценарий проверяет регистрацию, поиск пользователя, создание DM, двусторонний realtime обмен, mobile sidebar/chat/back, breakpoint resize и account switch. Production Firebase не используется.
+- В PR #156 также добавлена диагностика lock acquisition в offline browser fixture для выяснения причины потери второй записи. Полный CI ещё выполняется; PR не объединять до исправления Offline Queue blocker и PASS нового authenticated E2E.
+- `docs/PRODUCTION_ACCEPTANCE.md` остаётся отдельной ручной матрицей: Emulator E2E не переводит реальные Production сценарии из NOT RUN в PASS.
