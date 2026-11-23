@@ -167,6 +167,9 @@ try {
     await pageA.getByRole('button', { name: 'Дополнительные действия' }).click();
     const headerMenu = pageA.getByRole('menu', { name: 'Дополнительные действия с чатом' });
     await headerMenu.waitFor({ state: 'visible' });
+    // Wait for ChatHeader's post-render effect to move focus into the menu
+    // before sending the navigation key; visibility can precede focus by a frame.
+    await pageA.waitForFunction(() => document.activeElement?.getAttribute('role') === 'menuitem');
     await pageA.keyboard.press('ArrowDown');
     await assertActiveMenuItem(pageA, 'Статус');
     await pageA.keyboard.press('Escape');
