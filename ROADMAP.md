@@ -1,10 +1,10 @@
 # Vortex — Roadmap
 
-> Краткая операционная сводка. Полные требования и acceptance criteria находятся в [PROJECT_SPEC.md](docs/PROJECT_SPEC.md). История решений и диагностики — в [PROJECT_HISTORY.md](docs/PROJECT_HISTORY.md).
+> Краткая операционная сводка. Полные требования — в [PROJECT_SPEC.md](docs/PROJECT_SPEC.md), матрица проверки — в [RELEASE_CANDIDATE_CHECKLIST.md](docs/RELEASE_CANDIDATE_CHECKLIST.md), история — в [PROJECT_HISTORY.md](docs/PROJECT_HISTORY.md).
 
 **Версия:** 1.0  
 **Дата статуса:** 23.11.2026  
-**Релиз:** Release Candidate ещё не принят.
+**Релиз:** Release Candidate ещё не принят — решение NO-GO до ручной приёмки.
 
 ## Принципы
 - Не расширять scope Vortex 1.0 новыми функциями.
@@ -31,11 +31,16 @@
 - **CI #45181260085:** полный Quality workflow прошёл на PR head: 296 unit PASS, 57 intentional skips, 55 Rules PASS, 2 Auth PASS, browser/E2E/build PASS.
 - **Browser stress:** 100 конкурентных раундов, 200/200 сообщений сохранены и доставлены; подтверждены no-Web-Locks fallback, tab reopen и полный browser-context restart.
 - **Post-merge CI #45182788336:** PASS на merge commit.
-- **CI #45182857956:** PASS на актуальном main.
-- **GitHub Pages #45182857974:** build и deploy PASS.
+- **CI #45182857956:** PASS после PR #164.
+- **GitHub Pages #45182857974:** build и deploy PASS после PR #164.
+- **CI #45195181299:** PASS на main SHA `bbbb9a3569416baf0c917c95f28a05ad595b4c9d`.
+- **GitHub Pages #45195181874:** build и deploy PASS на том же SHA.
+- **RC checklist:** создан [docs/RELEASE_CANDIDATE_CHECKLIST.md](docs/RELEASE_CANDIDATE_CHECKLIST.md); ручные и staging-gates пока NOT TESTED.
 - **PR:** открытых PR нет на момент проверки.
 
 ## Следующие задачи — без расширения scope
+
+**Контроль:** все ручные результаты заносить в [RC checklist](docs/RELEASE_CANDIDATE_CHECKLIST.md) со статусом PASS / FAIL / BLOCKED / NOT TESTED; ничего не считать пройденным без наблюдения.
 1. Ручная smoke-проверка на двух независимых аккаунтах в специально созданных временных тестовых чатах.
 2. Проверка offline → reconnect, повторного открытия вкладки, переключения аккаунтов и legacy queue migration.
 3. Ручная проверка legacy registration/profile recovery.
