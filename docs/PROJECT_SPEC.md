@@ -1355,3 +1355,12 @@ Vortex 1.0 завершён, только когда одновременно:
 - [ ] Do not mark Offline Queue multi-tab reliability as production-accepted until root cause is understood and repeated regression runs pass.
 - [ ] PR #157 responsive ChatScreen checks remain open and unaccepted; its CI failed earlier in the shared Offline Queue browser suite before those checks could complete.
 - [ ] Await main Quality CI #45141872274 and Pages build #45141872494 before treating the new main revision as fully verified.
+
+
+### 13.45. Responsive ChatScreen E2E rebased — 23.11.2026
+
+- [x] Main Quality CI #45141872274 passed after PR #158 merge; GitHub Pages build #45142022534 passed.
+- [x] Superseded stale PR #157 and closed it after transferring its responsive E2E changes to a branch based on current main.
+- [x] Opened PR #159 with the same responsive authenticated ChatScreen checks on current main: 320/375/390/768/769/1024/1440 CSS px, long Unicode message wrapping, mobile keyboard menu/focus restoration, chat info/gallery, desktop header actions and message context menu.
+- [ ] Await full Quality CI #45142850877 on exact PR #159 head before merge.
+- [ ] Offline Queue cross-tab concurrent enqueue intermittent failure remains under investigation. The explicit Web Locks probe passes, but it does not yet explain the intermittent lost-entry result. Keep the regression assertion enabled and RC gate open.
