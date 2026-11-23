@@ -1439,3 +1439,14 @@ Vortex 1.0 завершён, только когда одновременно:
 - [ ] Post-merge Quality CI #45160451606 and companion workflow #45160451369 are queued on the merge commit; await results.
 - [ ] Manual keyboard-only and screen-reader acceptance remain NOT RUN.
 - [ ] Offline Queue concurrency root cause remains unresolved. The passing PR stress run does not erase prior intermittent main failures; continue investigating without relaxing the 16-message assertion.
+
+
+### Chat dialog keyboard acceptance — PR #162 (23.11.2026)
+
+- [x] Opened PR #162 from `test/a11y-chat-dialog-keyboard`, head `5361b13e5f81a52088bbf4c105698d6bfb5ebce9`.
+- [x] Authenticated ChatScreen Chromium E2E now checks ChatInfoDialog and MediaGallery initial focus, forward/reverse Tab wrapping, Escape dismissal, and focus restoration to each opener.
+- [x] Test-only change; no runtime component, Firebase, Rules, or production data modified.
+- [ ] PR Quality CI #45160673459 is queued; no merge until full CI PASS.
+- [ ] Manual keyboard-only and screen-reader acceptance remain NOT RUN.
+- [ ] Post-merge checks after PR #161 are running again on the latest documentation commit; verify latest main Quality CI and Pages before release acceptance.
+- [ ] Offline Queue concurrency root cause remains an open RC blocker despite successful PR #161 CI; retain all 16-message assertions and use compact trace instrumentation to diagnose any recurrence.
