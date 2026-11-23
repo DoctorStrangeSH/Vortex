@@ -65,6 +65,14 @@
 - Изменены только browser test fixture и smoke test; runtime-код и Firebase Production не затрагивались.
 - PR закрыт и merged. Cleanup веток остаётся отложенным по решению владельца.
 
+### Дополнение — PR #153, read receipt UI regression (23.11.2026)
+
+- Создан PR #153: Chromium-проверка настоящего `MessageBubble` для состояний «отправлено», частично прочитано в группе (`1/2`) и прочитано всеми.
+- Проверяются также accessible labels и визуальное представление счётчика.
+- Изменены только `tests/browser/message-bubble.jsx` и `tests/browser/message-bubble.smoke.mjs`; runtime и Firebase не затронуты.
+- Quality CI #838 поставлен в очередь/выполняется; PASS пока не подтверждён. PR не объединять до полного прохождения CI.
+- Эта автоматизация проверяет отображение статусов, но не заменяет ручную проверку realtime read receipts между двумя независимыми Production-сессиями.
+
 ## Текущий статус — 23.11.2026
 
 - **PR #151:** объединён в `main` (squash commit `aaa0ba5aec01f00a1ddfd1f750b5363437c3c442`). Quality checks run #813 успешно прошёл на точном head `a564ea9fad5c686c31b2e1cbde24821b7f911d70`: `npm ci`, unit, Chromium browser, Firestore/Storage Rules Emulator, Auth Emulator и production build. Тестовая фикстура создаёт валидный owner document до негативных попыток записи, поэтому отказы проверяют запрещённые поля, а не отсутствующую зависимость.
