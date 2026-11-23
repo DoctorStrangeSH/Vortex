@@ -25,6 +25,18 @@ try {
     assert.match(await bubble.textContent(), /Проверка настоящего компонента сообщения/);
     assert.match(await bubble.textContent(), /изм\./);
     assert.equal(await page.getByText('📌', { exact: true }).count(), 1, 'pinned state should be visible');
+
+    const readStatus = page.locator('.vortex-message-meta [aria-label]');
+    assert.equal(await readStatus.getAttribute('aria-label'), 'Отправлено · прочтение не подтверждено');
+    assert.equal(await readStatus.textContent(), '✓', 'unread outgoing message should show one check');
+
+    await page.getByRole('button', { name: 'Отметить прочитанным' }).click();
+    assert.equal(await readStatus.getAttribute('aria-label'), 'Прочитали 1 из 2');
+    assert.equal((await readStatus.textContent()).replace(/\\s/g, ''), '✓✓1/2', 'group partial read should show progress');
+
+    await page.getByRole('button', { name: 'Прочитано всеми' }).click();
+    assert.equal(await readStatus.getAttribute('aria-label'), 'Прочитано всеми участниками');
+    assert.equal((await readStatus.textContent()).replace(/\\s/g, ''), '✓✓', 'fully read message should show double check without progress');
     await page.getByRole('button', { name: 'Реакция 👍: 2' }).click();
     let events = JSON.parse(await page.getByTestId('events').textContent());
     assert.equal(events.at(-1).type, 'reaction');
