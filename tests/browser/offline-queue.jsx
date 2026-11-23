@@ -29,6 +29,19 @@ service.executeAction = async action => {
     }
 };
 
+// Capture lock acquisition and durable state in this fixture so a
+// cross-tab regression explains which tab entered the critical section.
+const lockTrace = [];
+const originalWithQueueLock = service.withQueueLock.bind(service);
+service.withQueueLock = callback => originalWithQueueLock(async () => {
+    lockTrace.push({ event: 'lock-acquired', before: localStorage.getItem('offlineQueue') });
+    try {
+        return await callback();
+    } finally {
+        lockTrace.push({ event: 'lock-released', after: localStorage.getItem('offlineQueue') });
+    }
+});
+
 service.init();
 
 window.offlineQueueQA = {
@@ -47,6 +60,7 @@ window.offlineQueueQA = {
             isOnline: service.isOnline,
             activeUid: service.activeUid,
             hasWebLocks: Boolean(service.locks?.request),
+            lockTrace: [...lockTrace],
             deliveryAttempts: Number(localStorage.getItem('vortex.browserTest.deliveryAttempts') || 0),
             queue: service.getQueue(),
             remoteMessages: JSON.parse(localStorage.getItem('vortex.browserTest.remoteMessages') || '[]')

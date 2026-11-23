@@ -103,3 +103,23 @@
 - Documentation-only follow-up is on `main` SHA `4edb87f09e3111801f6f8d1ec4684609f505cb4e`; Quality checks #45134623882 and GitHub Pages deployment #45134623777 both completed successfully.
 - No open PRs remain. `main` is still reported as unprotected; branch protection/required checks must be configured in GitHub Settings by a repository admin.
 - Scope Freeze remains open by explicit owner decision: the 139 merged-PR branch cleanup candidates are prepared but not deleted; the 16 historical refs remain preserved for now.
+
+
+### Дополнение — PR #155 и авторизованный ChatScreen E2E (23.11.2026)
+
+- PR #155 объединён в `main` squash-коммитом `7150ce23f92d7a3b05190390ad61160fdbdc2d24`; полный PR Quality CI #45137389471 прошёл на точном head `5fc56b0defbc849589b2f34ce2b2cedbc3240612` (unit, browser, Rules Emulator, Auth Emulator, build).
+- Добавлена реальная browser regression coverage для `ChatHeader`: 320/360/375/390/768/769/1024/1440 CSS px, mobile group menu, keyboard navigation, Escape focus restoration и action handlers.
+- После merge новый Quality CI на `main` (#45137847388) упал в browser regression test конкурентного enqueue Offline Queue: после двух параллельных вызовов из двух вкладок durable `localStorage` содержал только запись вкладки A. Это подтверждённый сбой сценария теста; первопричина ещё не установлена, поэтому пока нельзя утверждать, что в production уже доказана потеря реальных сообщений. Проверку не отключаем и не ослабляем; требуется воспроизвести и локализовать причину.
+- PR #156 открыт: добавляет opt-in Firebase Emulator wiring, ограниченный explicit demo staging config и настоящий `App`/ `ChatScreen` E2E с двумя независимыми Chromium Auth sessions. Сценарий проверяет регистрацию, поиск пользователя, создание DM, двусторонний realtime обмен, mobile sidebar/chat/back, breakpoint resize и account switch. Production Firebase не используется.
+- В PR #156 также добавлена диагностика lock acquisition в offline browser fixture. После одного невоспроизведённого повторно сбоя конкурентного enqueue следующий полный Quality CI #45139550262 на head `a1449c1dafd47a4c0f470805768839af239f23e2` завершился PASS: browser suite (включая concurrent same-account enqueue), Rules, Auth, authenticated two-user ChatScreen E2E и production build. Это подтверждает прохождение regression-сценария в повторном запуске, но не устанавливает первопричину единичного сбоя и не доказывает наличие production data loss. PR #156 допускается к merge при условии, что его head и успешный CI остаются актуальными.
+- `docs/PRODUCTION_ACCEPTANCE.md` остаётся отдельной ручной матрицей: Emulator E2E не переводит реальные Production сценарии из NOT RUN в PASS.
+
+
+### Обновление диагностики PR #156 (23.11.2026)
+
+- Первый запуск authenticated ChatScreen E2E (#45138605160) дошёл до реальной формы регистрации, но остановился из-за неоднозначного Playwright locator `getByLabel('Пароль')`: он совпадал с input и кнопкой показа пароля. Приложение и Firebase Emulator на этом шаге не были причиной сбоя.
+- Селектор исправлен на точный существующий input ID `#vortex-auth-password` для регистрации и входа (commit `0efa53165d679901b615a7d4e94e378d928098d3`). Повторный Quality CI #45139179562 запущен; на последней проверке job находился на `npm ci`, итог ещё не получен.
+- В Offline Queue browser fixture добавлена трассировка входа/выхода из Web Lock и снимок durable storage для следующего воспроизведения; диагностический код не меняет production-логику очереди.
+- До получения логов повторного browser test не менять реализацию OfflineService наугад. PR #156 остаётся открытым и не готов к merge.
+
+- Повторный запуск #45139179562 после исправления password locator прошёл unit, browser (включая Offline Queue concurrency), Firestore/Storage Rules и Auth Emulator. Новый E2E дошёл до обмена сообщениями, затем остановился на неоднозначном `getByText`: текст сообщения одновременно отображается в bubble и Sidebar preview. Исправлено скоупированием проверки на `.vortex-message-text` (commit `4e338307352807ae13ea6243af7e57495702bb8f`). Ожидается следующий полный CI.
