@@ -1450,3 +1450,13 @@ Vortex 1.0 завершён, только когда одновременно:
 - [ ] Manual keyboard-only and screen-reader acceptance remain NOT RUN.
 - [ ] Post-merge checks after PR #161 are running again on the latest documentation commit; verify latest main Quality CI and Pages before release acceptance.
 - [ ] Offline Queue concurrency root cause remains an open RC blocker despite successful PR #161 CI; retain all 16-message assertions and use compact trace instrumentation to diagnose any recurrence.
+
+
+### Chat dialog keyboard E2E — PR #162 validation update (23.11.2026)
+
+- [x] PR #162 authenticated ChatScreen E2E passed: real ChatInfoDialog and MediaGallery initial focus, forward/reverse Tab boundary, Escape dismissal, and opener focus restoration.
+- [x] PR CI #45160673459: npm ci, unit tests, browser suite, Firestore/Storage Rules Emulator, Auth Emulator and authenticated ChatScreen E2E all PASS.
+- [ ] Production build is currently running; do not merge until it completes successfully.
+- [ ] Post-merge main Quality CI and Pages workflows from PR #161 documentation/merge commits have newer runs; verify final outcomes separately.
+- [ ] Manual screen-reader and keyboard-only acceptance remain NOT RUN.
+- [ ] Offline Queue concurrency root cause remains an open RC blocker; keep the 16-message assertion unchanged.
