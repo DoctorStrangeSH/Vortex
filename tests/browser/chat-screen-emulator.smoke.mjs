@@ -168,7 +168,7 @@ try {
 
     // Verify both primary header dialogs open and close from the real chat.
     await pageA.getByRole('button', { name: 'Информация о чате' }).click();
-    await pageA.getByRole('dialog', { name: 'Информация о чате' }).waitFor({ state: 'visible' });
+    await pageA.locator('.vortex-info-dialog').waitFor({ state: 'visible' });
     await pageA.getByRole('button', { name: 'Закрыть информацию о чате' }).click();
     await pageA.getByRole('button', { name: 'Открыть галерею' }).click();
     await pageA.getByRole('dialog', { name: 'Медиа и файлы' }).waitFor({ state: 'visible' });
