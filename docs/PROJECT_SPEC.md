@@ -1533,3 +1533,13 @@ Vortex 1.0 завершён, только когда одновременно:
 - [ ] Rules/Auth/E2E/Build skipped after browser failure.
 - [ ] Production `OfflineService` unchanged. PR #164 remains OPEN and unmerged.
 - [ ] Next diagnostic step: explicitly capture each tab's enqueue promise result/rejection and per-round completion marker, and capture both tab traces in separate bounded log sections. Do not change production queue code until the missing tab's exact path is established.
+
+
+### Offline Queue — latest 100-round diagnostic (23.11.2026)
+
+- [x] PR #164 CI #45172347723 ran on head `c093fa9316f28e3e95a3cdccdb2c982f117a199f`: Unit Tests PASS; browser stress test failed at round 37 with 73 durable messages instead of 74.
+- [x] Both concurrent enqueue promises fulfilled; each tab's immediate snapshot contained its own round-37 message, while the final shared queue contained only one. This confirms a lost update despite successful promise settlement.
+- [x] Trace shows the two Web Lock callbacks in sequence and records cross-tab storage events. The available trace suggests a stale durable snapshot / state propagation issue, but does not yet prove the exact root cause.
+- [x] New PR #164 head `b0dd36981a70def2fb3e1ac08b3aef763c6be255` adds exact `offlineQueue` getItem read traces (count/tail/IDs), in-memory queue snapshots after refresh, and queue contents at lock acquisition.
+- [ ] CI #45172877436 for the new head is queued; inspect exact in-lock read values before touching production code.
+- [ ] Production `OfflineService` remains unchanged; PR #164 remains open and unmerged. Release gate remains 200/200 durable and exactly-once reconnect delivery.
