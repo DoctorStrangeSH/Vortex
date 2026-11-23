@@ -171,3 +171,13 @@ The recovery form may reuse an existing username claim only when both its UID an
 - PR #138 добавил Emulator-регрессию production-shaped атомарной транзакции: создание сообщения и обновление `lastMessage`, `lastMessageId`, `lastMessageTime`; проверяется чтение обоими участниками и отказ постороннему. PR объединён в main (commit `37e534165cf77816d1800b1c6921ee13612d0da2`). Quality CI #783 прошёл полностью: unit, browser, Firestore/Storage Rules Emulator, Auth Emulator, production build.
 - Production отправка: **RESOLVED** по подтверждению владельца. Отдельная staging/двухаккаунтная приёмка на реальных тестовых аккаунтах остаётся частью общего RC checklist, но не блокирует устранённый инцидент.
 - Операционное требование: при изменении `firestore.rules` публиковать соответствующие правила в Firebase Console для правильного проекта и после публикации проверять успешный сценарий отправки. CI Emulator не публикует Production Rules автоматически.
+
+
+## Read receipt identity integrity — PR #154 (23.11.2026)
+
+- [x] Firestore Rules require a read receipt append to preserve the previous list, append only the authenticated participant UID, and keep the resulting `readBy` list unique (`after.toSet().size() == after.size()`).
+- [x] Same-participant second-session acknowledgement remains idempotent only when the list is unchanged and already contains that participant UID.
+- [x] Rules Emulator regression rejects a duplicated UID in one write, rejects another participant's UID, rejects receipt removal/replacement, and rejects authors marking their own messages as read.
+- [x] PR #154 merged as `f647e8ac9f8e1cbc9c568062de71027280dc8c67`; full Quality CI #45134260984 passed on exact PR head `60ef6efe25e19bbeea04efc490705e7c3894fe98` (unit, Chromium, Firestore/Storage Rules Emulator, Auth Emulator, build).
+- [ ] Publish reviewed Rules to Production only through the owner's normal controlled process; this PR did not deploy or modify Production Rules.
+- [ ] Complete two-account manual read receipt acceptance; Emulator coverage is not a substitute for real client sync.
