@@ -414,6 +414,10 @@ test('read receipts are append-only and bound to the authenticated participant U
     assert.deepEqual((await assertSucceeds(getDoc(aliceMessage))).data().readBy, ['bob']);
 
     // A participant cannot append duplicate reader IDs in one update.
+    const duplicateReceiptMessage = doc(alice, 'chats/chat-a/messages/duplicate-reader-receipt');
+    await assertSucceeds(setDoc(duplicateReceiptMessage, {
+        senderId: 'alice', text: 'Проверка уникальности читателей', readBy: []
+    }));
     await assertFails(updateDoc(doc(bob, 'chats/chat-a/messages/duplicate-reader-receipt'), {
         readBy: ['bob', 'bob']
     }));
