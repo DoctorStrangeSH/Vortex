@@ -120,11 +120,20 @@ try {
         sharedTabA.evaluate(() => window.offlineQueueQA.enqueue('shared-account-user', 'Сообщение из вкладки A')),
         sharedTabB.evaluate(() => window.offlineQueueQA.enqueue('shared-account-user', 'Сообщение из вкладки B'))
     ]);
-    await Promise.all([
-        sharedTabA.waitForFunction(() => window.offlineQueueQA.snapshot().queue.length === 2),
-        sharedTabB.waitForFunction(() => window.offlineQueueQA.snapshot().queue.length === 2)
-    ]);
+    assert.equal(
+        await sharedTabA.evaluate(() => window.offlineQueueQA.snapshot().hasWebLocks),
+        true,
+        'the shared-account race scenario requires browser Web Locks support'
+    );
+    // localStorage is the durable cross-tab source of truth. Poll it directly
+    // instead of waiting for each tab's in-memory queue notification to settle.
+    await sharedTabA.waitForFunction(() => {
+        const queue = JSON.parse(localStorage.getItem('offlineQueue') || '[]');
+        return queue.length === 2;
+    });
     const queuedFromBothTabs = await sharedTabA.evaluate(() => window.offlineQueueQA.snapshot());
+    const queuedFromSecondTab = await sharedTabB.evaluate(() => window.offlineQueueQA.snapshot());
+    assert.equal(queuedFromSecondTab.queue.length, 2, 'both tabs must read the same durable queue');
     assert.deepEqual(
         queuedFromBothTabs.queue.map(item => item.text).sort(),
         ['Сообщение из вкладки A', 'Сообщение из вкладки B'].sort(),
