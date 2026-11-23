@@ -60,7 +60,8 @@
 ## Текущий статус — 23.11.2026
 
 - **PR #151:** объединён в `main` (squash commit `aaa0ba5aec01f00a1ddfd1f750b5363437c3c442`). Quality checks run #813 успешно прошёл на точном head `a564ea9fad5c686c31b2e1cbde24821b7f911d70`: `npm ci`, unit, Chromium browser, Firestore/Storage Rules Emulator, Auth Emulator и production build. Тестовая фикстура создаёт валидный owner document до негативных попыток записи, поэтому отказы проверяют запрещённые поля, а не отсутствующую зависимость.
-- **Staging runbook:** добавлен `docs/STAGING_ACCEPTANCE.md`. Это подготовленная матрица ручной приёмки; все сценарии имеют статус NOT RUN. Реальный staging Firebase не создан и не проверен.
+- **Staging:** по решению владельца отложен; отдельный Firebase-проект пока не создаём. `docs/STAGING_ACCEPTANCE.md` сохранён как будущий изолированный тестовый план, все сценарии NOT RUN.
+- **Production acceptance:** добавлен `docs/PRODUCTION_ACCEPTANCE.md` для безопасной проверки с коллегами в текущем `vortex-messenger-4ea97`. Все сценарии NOT RUN до фактического подтверждения; рабочие переписки и пользовательские данные не использовать для тестов.
 - **Границы безопасности:** production Firebase, тариф, Storage enablement и пользовательские данные не менялись.
-- **Следующий шаг:** владелец создаёт отдельный Firebase staging project на Spark и передаёт web-конфигурацию для локального staging build. Затем выполняется двухаккаунтная матрица из `docs/STAGING_ACCEPTANCE.md`. До этого RC gate остаётся открытым.
+- **Следующий шаг:** продолжить контролируемую Production acceptance с владельцем и согласившимися коллегами по `docs/PRODUCTION_ACCEPTANCE.md`; фиксировать реальные результаты и исправлять дефекты через отдельные ветки, CI и Emulator. Destructive operations, миграции и изменения Production Rules остаются заблокированы без отдельного плана. До завершения приёмки RC gate остаётся открытым.
 
