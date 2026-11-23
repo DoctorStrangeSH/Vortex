@@ -324,3 +324,14 @@
 - [ ] Latest PR #164 head `1d62fd9020a626caf86bcf8ab1e87bafbf65575b` has no associated workflow run yet. The last failed stress run #45166073892 tested an earlier head, so current 100-round/assertion/trace edits are NOT CI-validated.
 - [ ] Do not infer a production root cause from the current evidence. Keep production queue implementation unchanged until a deterministic failing trace or isolated regression test proves the cause.
 - [ ] Release remains blocked until 100 concurrent rounds persist 200 messages and reconnect delivers each exactly once.
+
+
+### Offline Queue 100-round validation — latest rebased PR run (23.11.2026)
+
+- [x] Current `main` Quality CI #45168869398 passed; its browser suite still exercises only the existing 8-round / 16-message same-account scenario.
+- [x] Rebased PR #164 head `e1b29f86e2c691df39df1cf3a0a29d73b95de466` received a fresh CI run #45169996585.
+- [x] Unit tests PASS on that exact PR head.
+- [ ] Browser suite FAILS again at concurrent enqueue round 5: durable queue remains at 9 entries rather than expected 10; the captured tab-B trace shows it refreshed 8 entries then wrote 9. Browser logs show no held or pending Web Locks at final snapshot. This alone does not prove why tab A's enqueue did not persist; inspect both tab traces and enqueue promise outcomes before asserting a root cause.
+- [ ] Rules/Auth/E2E/Build skipped after browser failure.
+- [ ] Production `OfflineService` unchanged. PR #164 remains OPEN and unmerged.
+- [ ] Next diagnostic step: explicitly capture each tab's enqueue promise result/rejection and per-round completion marker, and capture both tab traces in separate bounded log sections. Do not change production queue code until the missing tab's exact path is established.
