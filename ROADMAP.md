@@ -363,3 +363,12 @@
 - [x] PR #164 head `ec81f35f54843e70067451b3aa82b2cdafe7ee18` adds per-round offline assertions, zero remote-delivery assertions, delivery counters, and round-correlated traces to distinguish queue loss from unexpected processing.
 - [ ] CI #45176888948 is queued for this exact head.
 - [ ] Production OfflineService unchanged; PR #164 open and unmerged. Release gate remains 200/200 persisted while offline and exactly-once reconnect delivery.
+
+
+### Offline Queue root-cause and storage redesign — 23.11.2026
+
+- [x] CI #45177483420 trace proves the two tabs acquire the same exclusive Web Lock sequentially, but the second renderer reads the pre-write `localStorage` array (40 entries) after the first tab successfully wrote its own 41-entry snapshot and released the lock. The second then writes a 41-entry snapshot containing only its own new message. This is a cross-tab stale-snapshot failure of the single-array read/modify/write design; Web Locks alone do not make the localStorage snapshot authoritative across renderer contexts.
+- [x] PR #164 replaces the shared array write path with one durable localStorage record per message ID (`offlineQueue:item:<id>`). Enqueue writes a unique key instead of replacing a shared array; cross-tab `storage` events add/update/remove individual records. Existing `offlineQueue` array data is migrated by preserving message IDs.
+- [x] Added unit coverage for 200 concurrent independent records and legacy queue migration; browser stress coverage remains 100 rounds / 200 messages, reconnect exactly-once and no-Web-Locks fallback.
+- [ ] CI #45179161905 validates commit `e1f9b3d297edc328935f807f19f897d6188cae6a`; release remains blocked until the complete workflow passes.
+- [ ] PR #164 remains open and unmerged. No production Firebase configuration, Security Rules or production data changed.
