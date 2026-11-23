@@ -11,7 +11,8 @@
         "test:rules": "firebase emulators:exec --project demo-vortex --only firestore,storage \"node --test tests/firebaseRules.test.js\"",
         "preview": "vite preview",
         "deploy": "vite build && gh-pages -d dist",
-        "test:auth": "firebase emulators:exec --project demo-vortex --only auth \"node --test tests/authEmulator.test.js\""
+        "test:auth": "firebase emulators:exec --project demo-vortex --only auth \"node --test tests/authEmulator.test.js\"",
+        "test:e2e:chat": "firebase emulators:exec --project demo-vortex --only auth,firestore,storage \"node tests/browser/chat-screen-emulator.smoke.mjs\""
     },
     "dependencies": {
         "firebase": "^10.7.0",
