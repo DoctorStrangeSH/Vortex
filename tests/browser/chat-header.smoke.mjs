@@ -96,12 +96,12 @@ try {
     const menuItems = page.getByRole('menuitem');
     await menuItems.first().waitFor();
     assert.equal(await menuItems.count(), 4, 'group menu must expose members, theme, status and export');
-    assert.equal(await page.evaluate(() => document.activeElement?.textContent?.trim()), 'Участники группы');
+    assert.equal(await focusedMenuLabel(), 'Участники группы');
 
     await page.keyboard.press('ArrowDown');
-    assert.equal(await page.evaluate(() => document.activeElement?.textContent?.trim()), 'Оформление');
+    assert.equal(await focusedMenuLabel(), 'Оформление');
     await page.keyboard.press('End');
-    assert.equal(await page.evaluate(() => document.activeElement?.textContent?.trim()), 'Экспорт переписки');
+    assert.equal(await focusedMenuLabel(), 'Экспорт переписки');
     await page.keyboard.press('ArrowDown');
     assert.equal(await page.evaluate(() => document.activeElement?.textContent?.trim()), 'Участники группы');
     await page.keyboard.press('Escape');
