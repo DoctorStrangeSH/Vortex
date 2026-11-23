@@ -145,60 +145,75 @@ try {
     await sharedTabA.waitForFunction(() => localStorage.getItem('vortex.browserTest.lockProbe') === 'B-entered');
     await sharedTabA.evaluate(() => localStorage.removeItem('vortex.browserTest.lockProbe'));
 
-    await Promise.all([
-        sharedTabA.evaluate(() => window.offlineQueueQA.enqueue('shared-account-user', 'Сообщение из вкладки A')),
-        sharedTabB.evaluate(() => window.offlineQueueQA.enqueue('shared-account-user', 'Сообщение из вкладки B'))
-    ]);
     assert.equal(
         await sharedTabA.evaluate(() => window.offlineQueueQA.snapshot().hasWebLocks),
         true,
         'the shared-account race scenario requires browser Web Locks support'
     );
-    // localStorage is the durable cross-tab source of truth. Poll it directly
-    // instead of waiting for each tab's in-memory queue notification to settle.
-    try {
-        await sharedTabA.waitForFunction(() => {
-            const queue = JSON.parse(localStorage.getItem('offlineQueue') || '[]');
-            return queue.length === 2;
-        }, { timeout: 10000 });
-    } catch (error) {
-        const diagnostics = await Promise.all([
-            sharedTabA.evaluate(async () => ({
-                durableQueue: localStorage.getItem('offlineQueue'),
-                tabState: window.offlineQueueQA.snapshot(),
-                locks: navigator.locks?.query ? await navigator.locks.query() : null
-            })),
-            sharedTabB.evaluate(async () => ({
-                durableQueue: localStorage.getItem('offlineQueue'),
-                tabState: window.offlineQueueQA.snapshot(),
-                locks: navigator.locks?.query ? await navigator.locks.query() : null
-            }))
+
+    // Stress the same-account read-modify-write race repeatedly. Each round
+    // starts two independent enqueue calls in separate tabs at the same time.
+    // localStorage is the durable source of truth; wait for both writes before
+    // starting the next round so failures are attributable to that exact race.
+    const expectedConcurrentMessages = [];
+    for (let round = 0; round < 8; round++) {
+        const messageA = `Раунд ${round + 1}: сообщение из вкладки A`;
+        const messageB = `Раунд ${round + 1}: сообщение из вкладки B`;
+        expectedConcurrentMessages.push(messageA, messageB);
+        await Promise.all([
+            sharedTabA.evaluate(text => window.offlineQueueQA.enqueue('shared-account-user', text), messageA),
+            sharedTabB.evaluate(text => window.offlineQueueQA.enqueue('shared-account-user', text), messageB)
         ]);
-        throw new Error(`Concurrent same-account enqueue did not persist both messages. Diagnostics: ${JSON.stringify(diagnostics)}`, { cause: error });
+
+        const expectedCount = (round + 1) * 2;
+        try {
+            await sharedTabA.waitForFunction(count => {
+                const queue = JSON.parse(localStorage.getItem('offlineQueue') || '[]');
+                return queue.length === count;
+            }, expectedCount, { timeout: 10000 });
+        } catch (error) {
+            const diagnostics = await Promise.all([
+                sharedTabA.evaluate(async () => ({
+                    durableQueue: localStorage.getItem('offlineQueue'),
+                    tabState: window.offlineQueueQA.snapshot(),
+                    locks: navigator.locks?.query ? await navigator.locks.query() : null
+                })),
+                sharedTabB.evaluate(async () => ({
+                    durableQueue: localStorage.getItem('offlineQueue'),
+                    tabState: window.offlineQueueQA.snapshot(),
+                    locks: navigator.locks?.query ? await navigator.locks.query() : null
+                }))
+            ]);
+            throw new Error(`Concurrent same-account enqueue round ${round + 1} did not persist both messages. Diagnostics: ${JSON.stringify(diagnostics)}`, { cause: error });
+        }
     }
+
     const queuedFromBothTabs = await sharedTabA.evaluate(() => window.offlineQueueQA.snapshot());
     const queuedFromSecondTab = await sharedTabB.evaluate(() => window.offlineQueueQA.snapshot());
-    assert.equal(queuedFromSecondTab.queue.length, 2, 'both tabs must read the same durable queue');
+    assert.equal(queuedFromBothTabs.queue.length, 16, 'all 16 concurrent enqueues must be durable');
+    assert.equal(queuedFromSecondTab.queue.length, 16, 'both tabs must read the same durable queue');
     assert.deepEqual(
         queuedFromBothTabs.queue.map(item => item.text).sort(),
-        ['Сообщение из вкладки A', 'Сообщение из вкладки B'].sort(),
-        'concurrent same-account enqueues must both remain durable'
+        expectedConcurrentMessages.sort(),
+        'all concurrent same-account enqueues must remain durable'
     );
+
     await sharedAccountContext.setOffline(false);
     await sharedTabA.waitForFunction(() => {
         const state = window.offlineQueueQA.snapshot();
-        return state.queue.length === 0 && state.remoteMessages.length === 2;
+        return state.queue.length === 0 && state.remoteMessages.length === 16;
     });
     await sharedTabB.waitForFunction(() => window.offlineQueueQA.snapshot().queue.length === 0);
     const sharedAccountDelivered = await sharedTabA.evaluate(() => window.offlineQueueQA.snapshot());
     assert.deepEqual(
         sharedAccountDelivered.remoteMessages.map(item => item.text).sort(),
-        ['Сообщение из вкладки A', 'Сообщение из вкладки B'].sort(),
-        'both concurrently queued messages must be delivered exactly once'
+        expectedConcurrentMessages.sort(),
+        'all concurrently queued messages must be delivered exactly once'
     );
-    assert.equal(new Set(sharedAccountDelivered.remoteMessages.map(item => item.id)).size, 2);
+    assert.equal(new Set(sharedAccountDelivered.remoteMessages.map(item => item.id)).size, 16);
     await sharedAccountContext.close();
-    console.log('Concurrent same-account multi-tab queue test passed:', {
+    console.log('Concurrent same-account multi-tab queue stress test passed:', {
+        rounds: 8,
         queuedCount: queuedFromBothTabs.queue.length,
         deliveredCount: sharedAccountDelivered.remoteMessages.length
     });
