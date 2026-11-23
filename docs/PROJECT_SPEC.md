@@ -1489,3 +1489,15 @@ Vortex 1.0 завершён, только когда одновременно:
 - [x] Updated the fixture to include epoch-based `Date.now()` timestamps plus monotonic timestamps, and to log lock-requested separately from lock-acquired.
 - [ ] Await a fresh CI run on the latest PR head `a7c3c0a811bc332a7764b5cf235e8be1737cac2a`; the earlier run predates this clock correction.
 - [ ] Root cause still unproven; no production OfflineService change made. Keep the concurrency assertion unchanged.
+
+
+### Poll keyboard accessibility — PR #163 merged (23.11.2026)
+
+- [x] Poll options are native `button` elements instead of pointer-only clickable containers.
+- [x] Selected state is exposed with `aria-pressed`; accessible labels include option, percentage, and vote count.
+- [x] Chromium component smoke verifies initial vote state and voting via Space and Enter.
+- [x] Full PR Quality CI #45164690391 PASS on head `121a5b154703bcfb17da847203887b8110a967c8`: unit, browser, Firestore/Storage Rules, Auth, authenticated ChatScreen E2E, production build.
+- [x] PR #163 squash-merged to `main` as `bca07585eeadcd5312adabd3acec8f5af2f737b2`.
+- [ ] Post-merge main Quality CI #45165919202 and Pages build #45165919183 were queued/running at documentation update; verify final outcomes.
+- [ ] Offline Queue same-account multi-tab race remains an open reliability investigation. The corrected diagnostic run passed, but no production OfflineService fix has been made and the earlier intermittent failure is not considered resolved. Keep the 16-message assertion.
+- [ ] Screen Reader manual acceptance and full accessible-name audit remain NOT DONE.
