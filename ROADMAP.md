@@ -205,3 +205,12 @@
 - [ ] Firestore/Storage Rules Emulator currently running; Auth Emulator, authenticated ChatScreen E2E and production build have not yet completed.
 - [ ] PR remains open and unmerged pending full Quality CI.
 - [ ] Manual keyboard-only and screen-reader acceptance remain NOT RUN.
+
+
+### ChatScreen authenticated E2E follow-up — PR #161 (23.11.2026)
+
+- [x] PR Quality CI #45154820637 passed unit tests, complete browser suite, Firestore/Storage Rules Emulator and Auth Emulator.
+- [x] The same run reached authenticated ChatScreen E2E and failed at message context-menu Escape dismissal. Log shows the menu mounted, but the test sent Escape before the ContextMenu focus effect had focused its first menu item; the component handles Escape from its focused menu subtree.
+- [x] Added an explicit browser wait for the active element to be a menuitem inside the message context menu before pressing Escape. Test-only change in `tests/browser/chat-screen-emulator.smoke.mjs`; no runtime, Firebase or production changes.
+- [ ] New full Quality CI for head `df00b1c4b85425cd1df53cc6bed50b7cb4784ade` is pending/awaiting GitHub Actions start; not yet validated.
+- [ ] Production build and final PR merge remain blocked until full CI PASS.
