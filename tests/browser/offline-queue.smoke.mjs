@@ -127,10 +127,26 @@ try {
     );
     // localStorage is the durable cross-tab source of truth. Poll it directly
     // instead of waiting for each tab's in-memory queue notification to settle.
-    await sharedTabA.waitForFunction(() => {
-        const queue = JSON.parse(localStorage.getItem('offlineQueue') || '[]');
-        return queue.length === 2;
-    });
+    try {
+        await sharedTabA.waitForFunction(() => {
+            const queue = JSON.parse(localStorage.getItem('offlineQueue') || '[]');
+            return queue.length === 2;
+        }, { timeout: 10000 });
+    } catch (error) {
+        const diagnostics = await Promise.all([
+            sharedTabA.evaluate(async () => ({
+                durableQueue: localStorage.getItem('offlineQueue'),
+                tabState: window.offlineQueueQA.snapshot(),
+                locks: navigator.locks?.query ? await navigator.locks.query() : null
+            })),
+            sharedTabB.evaluate(async () => ({
+                durableQueue: localStorage.getItem('offlineQueue'),
+                tabState: window.offlineQueueQA.snapshot(),
+                locks: navigator.locks?.query ? await navigator.locks.query() : null
+            }))
+        ]);
+        throw new Error(`Concurrent same-account enqueue did not persist both messages. Diagnostics: ${JSON.stringify(diagnostics)}`, { cause: error });
+    }
     const queuedFromBothTabs = await sharedTabA.evaluate(() => window.offlineQueueQA.snapshot());
     const queuedFromSecondTab = await sharedTabB.evaluate(() => window.offlineQueueQA.snapshot());
     assert.equal(queuedFromSecondTab.queue.length, 2, 'both tabs must read the same durable queue');

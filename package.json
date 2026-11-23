@@ -7,7 +7,7 @@
         "dev": "vite",
         "build": "vite build",
         "test": "node --test",
-        "test:browser": "node tests/browser/virtual-feed.smoke.mjs && node tests/browser/offline-queue.smoke.mjs && node tests/browser/dialog-focus.smoke.mjs && node tests/browser/responsive-auth.smoke.mjs && node tests/browser/responsive-chat.smoke.mjs && node tests/browser/profile-dialog-compact.smoke.mjs && node tests/browser/responsive-dialogs.smoke.mjs && node tests/browser/composer.smoke.mjs && node tests/browser/message-bubble.smoke.mjs",
+        "test:browser": "node tests/browser/virtual-feed.smoke.mjs && node tests/browser/offline-queue.smoke.mjs && node tests/browser/dialog-focus.smoke.mjs && node tests/browser/responsive-auth.smoke.mjs && node tests/browser/responsive-chat.smoke.mjs && node tests/browser/profile-dialog-compact.smoke.mjs && node tests/browser/responsive-dialogs.smoke.mjs && node tests/browser/composer.smoke.mjs && node tests/browser/message-bubble.smoke.mjs && node tests/browser/chat-header.smoke.mjs",
         "test:rules": "firebase emulators:exec --project demo-vortex --only firestore,storage \"node --test tests/firebaseRules.test.js\"",
         "preview": "vite preview",
         "deploy": "vite build && gh-pages -d dist",
