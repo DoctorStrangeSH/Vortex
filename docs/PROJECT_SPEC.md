@@ -1364,3 +1364,13 @@ Vortex 1.0 завершён, только когда одновременно:
 - [x] Opened PR #159 with the same responsive authenticated ChatScreen checks on current main: 320/375/390/768/769/1024/1440 CSS px, long Unicode message wrapping, mobile keyboard menu/focus restoration, chat info/gallery, desktop header actions and message context menu.
 - [ ] Await full Quality CI #45142850877 on exact PR #159 head before merge.
 - [ ] Offline Queue cross-tab concurrent enqueue intermittent failure remains under investigation. The explicit Web Locks probe passes, but it does not yet explain the intermittent lost-entry result. Keep the regression assertion enabled and RC gate open.
+
+
+### 13.46. Responsive ChatScreen mobile geometry and menu focus — 23.11.2026
+
+- [x] E2E reproduced and identified actual 320px horizontal overflow (369px rendered header/composer).
+- [x] PR #159 constrains ChatWindow root width/min-width, ChatHeader flex sizing, and MessageInput container width; earlier E2E progressed past the 320px shell and long-message geometry checks.
+- [x] E2E reproduced a timing race between menu visibility and the ChatHeader focus effect; test now waits for focus to enter a role=menuitem before ArrowDown.
+- [ ] Run full Quality CI on exact PR head `a9a34c9b843ef5b96ae401938e6060198a4cbd4a` and resolve any remaining real failures.
+- [ ] Merge PR #159 only after full PASS. Production Firebase remains untouched.
+- [ ] Offline Queue concurrent enqueue intermittent failure remains a separate unresolved RC gate.
