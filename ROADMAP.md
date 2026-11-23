@@ -162,3 +162,12 @@
 - The same E2E run then failed because the test sent ArrowDown immediately after menu visibility, before ChatHeader's post-render focus effect had moved focus into the first menu item. The test now waits for the active element to become a menu item before sending the key; no accessibility assertion was removed.
 - New PR head `a9a34c9b843ef5b96ae401938e6060198a4cbd4a`; its Quality CI is pending at the time of this update. Do not merge until full Quality CI passes on this exact head.
 - PR #159 remains open; production Firebase and deployed main are unchanged. Offline Queue investigation remains a separate open RC gate.
+
+
+### Responsive ChatScreen — PR #159 merged (23.11.2026)
+
+- PR #159 успешно объединён в `main` squash-коммитом `369381928b6c37ab5038eeaaaa1b876e78845c8b`.
+- Quality CI #45150147297 завершился PASS на точном PR head `a9a34c9b843ef5b96ae401938e6060198a4cbd4a`.
+- В main вошли исправления ширины ChatWindow, ChatHeader и MessageInput, а также authenticated E2E-проверки 320/375/390/768/769/1024/1440 px, длинных Unicode-сообщений, мобильного меню/фокуса, информации о чате, галереи, desktop header actions и message context menu.
+- Новый main commit: `369381928b6c37ab5038eeaaaa1b876e78845c8b`. Post-merge Quality CI #45151865724 и Pages workflow #45151865667 выполняются; дождаться результатов.
+- Offline Queue intermittent concurrent enqueue failure остаётся отдельным незакрытым RC gate; PR #159 его не затрагивал и не ослаблял.
