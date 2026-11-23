@@ -12,7 +12,7 @@ Preact · Vite · Firebase Authentication · Cloud Firestore
 
 [![Quality checks](https://github.com/DoctorStrangeSH/Vortex/actions/workflows/quality.yml/badge.svg?branch=main)](https://github.com/DoctorStrangeSH/Vortex/actions/workflows/quality.yml)
 [![Deploy to GitHub Pages](https://github.com/DoctorStrangeSH/Vortex/actions/workflows/pages.yml/badge.svg?branch=main)](https://github.com/DoctorStrangeSH/Vortex/actions/workflows/pages.yml)
-![Status](https://img.shields.io/badge/status-pre--1.0-8b7cf6)
+![Status](https://img.shields.io/badge/status-RC%20validation-8b7cf6)
 ![Node.js](https://img.shields.io/badge/Node.js-22-43853d?logo=node.js&logoColor=white)
 
 </div>
@@ -31,11 +31,11 @@ Vortex — адаптивный браузерный мессенджер с р�
 |---|---|
 | Вход, регистрация и профиль | Реализация и автоматические проверки в репозитории |
 | Личная переписка и отправка текста | Работает; владелец подтвердил восстановление Production-отправки после синхронизации Firestore Rules |
-| Офлайн-очередь | Реализация и unit/browser regression tests |
+| Офлайн-очередь | Исправлена; 100 раундов / 200 сообщений и recovery сценарии прошли CI |
 | Сообщения и реакции | Реализация; основные browser/unit проверки добавлены |
 | Firestore Security Rules | Синхронизированы владельцем с актуальным firestore.rules; Emulator tests проходят в CI |
 | GitHub Pages | Автоматическая публикация из main |
-| Полная приёмка Vortex 1.0 | Не завершена; staging и двухаккаунтная RC-матрица остаются обязательными |
+| Полная приёмка Vortex 1.0 | Не завершена; ручная двухаккаунтная smoke-проверка и RC-матрица обязательны |
 
 > **Важно:** зелёный CI подтверждает проверки кода и эмуляторов, но не заменяет staging-приёмку с двумя независимыми аккаунтами. До завершения релизной проверки не используйте Vortex для чувствительной переписки. Обычные сообщения не имеют end-to-end encryption.
 
