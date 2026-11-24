@@ -16,6 +16,13 @@
 
 > Эти проверки не означают, что staging, реальные legacy accounts, production Security Rules и ручная доступность приняты.
 
+## A.1. Повторная проверка после обновления runbook
+
+| ID | Проверка | Результат | Доказательство |
+| --- | --- | --- | --- |
+| AUTO-07 | Quality CI на актуальном main с RC runbook | **PASS** | [#45241337818](https://github.com/DoctorStrangeSH/Vortex/actions/runs/45241337818), SHA `68a597ecd9892dabdf82beb1364ec1ef361b4d20` |
+| AUTO-08 | GitHub Pages build/deploy на том же SHA | **PASS** | [#45241337712](https://github.com/DoctorStrangeSH/Vortex/actions/runs/45241337712) |
+
 ## B. Разрешённая ручная smoke-проверка на текущем Production
 
 **Граница безопасности:** только два добровольных тестовых аккаунта и специально созданные временные тестовые чаты; без чувствительных данных. Не выполнять нагрузочные тесты, миграции, чужие access-denial проверки, mass deletion, изменение Firebase Rules/тарифа/Storage. Для security-negative, destructive и migration test используйте Firebase Emulator/отдельный staging.
