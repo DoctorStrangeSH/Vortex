@@ -47,6 +47,10 @@
 - **Attachment validation/retry fix (24.11):** локальные ошибки размера/MIME/формата помечаются invalid-argument; автоматический retry разрешён только для явно известных временных ошибок, неизвестные и uncertain-commit ошибки требуют ручной проверки. FileReader failure классифицирован отдельно. Добавлены регрессионные unit tests.
 - **Quality CI (24.11):** прогон #45352444131 выявил одну регистрозависимую проверку в attachmentErrors; исправлено в PR #165 коммитом `31376cb`. Финальный PR run #45354538194 — PASS: unit, browser, Firebase Rules, auth, chat E2E и build.
 - **PR #165:** MERGED в `main` (squash), merge commit `2c16a7f`. Исправления retry policy и RC-документации теперь в основной ветке.
+- **PR #166:** MERGED в `main` (squash), merge commit `82559b6`. Добавлена test-only диагностика регистрации: при повторном сбое E2E отчёт сохранит исходную ошибку Auth и результат записи профиля. Production auth/profile logic и Firebase Rules не менялись.
+- **Quality PR #166:** [run #45356599939](https://github.com/DoctorStrangeSH/Vortex/actions/runs/45356599939) — PASS по всем шагам: unit, browser, Rules, Auth, двухаккаунтный Chat E2E и build. Предыдущий сбой регистрации не воспроизвёлся.
+- **Post-merge Pages:** [run #45357132913](https://github.com/DoctorStrangeSH/Vortex/actions/runs/45357132913) — build и deploy PASS на main SHA `82559b68cd0fa2723d2ad65486a33e777a317465`. Post-merge Quality [#45357132903](https://github.com/DoctorStrangeSH/Vortex/actions/runs/45357132903) на момент аудита ещё QUEUED; не считать его PASS до завершения.
+- **Branch audit (24.11):** 158 refs: 139 веток связаны с merged PR, 13 — с закрытыми без merge PR, 4 — без соответствующего PR, отдельно `main` и `gh-pages`. Автоудаление head branch после merge проверено на PR #166; исторические ветки пока сохранены до безопасной проверки.
 
 ## Следующие задачи — без расширения scope
 
@@ -63,7 +67,7 @@
 - Firebase Storage выключен до отдельной staging-проверки.
 - Серверные push, MFA, звонки и E2EE исключены из 1.0.
 - Production ручная проверка разрешена только в изолированных временных тестовых чатах, без чувствительных данных и без destructive actions.
-- Ветка main чистая по PR #164; исторические ветки требуют отдельной безопасной очистки. Текущий GitHub-инструмент не предоставляет удаление branch refs, поэтому ветки не удалялись.
+- Исторические ветки требуют отдельной безопасной очистки: на 24.11 обнаружено 139 refs после merged PR, 13 refs от закрытых без merge PR и 4 refs без связанного PR. Автоудаление новых head branches после merge включено и проверено; исторические refs не удалялись, поскольку доступный GitHub workflow не поддерживает удаление branch refs.
 
 ## Definition of Done
 Vortex 1.0 закрывается только после выполнения P0, проверки оставленных P1, отсутствия критических/высоких security-дефектов, прохождения staging/ручной двухаккаунтной матрицы, доступности на мобильном и desktop, воспроизводимого CI/build и явного принятия Release Candidate владельцем.
