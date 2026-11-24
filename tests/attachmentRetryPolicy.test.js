@@ -39,3 +39,15 @@ test('network and retry-limit failures remain eligible for a controlled retry', 
     assert.equal(mayRetryAttachment({ code: 'storage/network-request-failed' }), true);
     assert.equal(mayRetryAttachment({ code: 'storage/retry-limit-exceeded' }), true);
 });
+
+
+test('invalid file validation errors never offer a retry and explain the correction', () => {
+    const error = Object.assign(new Error('File too large'), { code: 'invalid-argument' });
+    assert.equal(mayRetryAttachment(error), false);
+    assert.match(attachmentRetryNotice('large.mov', error, 0, 1), /проверьте размер и формат/);
+});
+
+test('storage invalid-format errors are non-retryable', () => {
+    assert.equal(mayRetryAttachment({ code: 'storage/invalid-format' }), false);
+    assert.equal(mayRetryAttachment({ code: 'storage/invalid-argument' }), false);
+});
