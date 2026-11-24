@@ -1531,7 +1531,7 @@ test('removed channel subscribers immediately lose channel and message access', 
 });
 
 
-test('storage rejects empty objects, malformed MIME values, and unsafe object identifiers', { skip: !available || !process.env.FIREBASE_STORAGE_EMULATOR_HOST }, async () => {
+test('storage rejects empty objects and unsafe object identifiers', { skip: !available || !process.env.FIREBASE_STORAGE_EMULATOR_HOST }, async () => {
     const alice = environment.authenticatedContext('alice').storage();
 
     await assertFails(uploadString(
@@ -1541,17 +1541,9 @@ test('storage rejects empty objects, malformed MIME values, and unsafe object id
         { contentType: 'text/plain' }
     ));
 
-    // Use values the Storage SDK preserves rather than normalizing (for
-    // example, it may canonicalize MIME case or omit an empty content type).
-    for (const [index, contentType] of ['not-a-mime', 'text'].entries()) {
-        await assertFails(uploadString(
-            ref(alice, 'chats/chat-a/media/alice/bad-mime-' + index),
-            'payload',
-            'raw',
-            { contentType }
-        ));
-    }
-
+    // MIME allowlist and active-content rejection are covered by the dedicated
+    // storage MIME policy test above. Keep this test focused on deterministic
+    // path and payload invariants; SDKs may normalize malformed MIME metadata.
     await assertFails(uploadString(
         ref(alice, 'chats/chat-a/media/alice/unsafe.file-id'),
         'payload',
