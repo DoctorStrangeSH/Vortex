@@ -3,7 +3,7 @@
 > Краткая операционная сводка. Полные требования — в [PROJECT_SPEC.md](docs/PROJECT_SPEC.md), матрица проверки — в [RELEASE_CANDIDATE_CHECKLIST.md](docs/RELEASE_CANDIDATE_CHECKLIST.md), история — в [PROJECT_HISTORY.md](docs/PROJECT_HISTORY.md).
 
 **Версия:** 1.0  
-**Дата статуса:** 23.11.2026  
+**Дата статуса:** 24.11.2026  
 **Релиз:** Release Candidate ещё не принят — решение NO-GO до ручной приёмки.
 
 ## Принципы
@@ -36,6 +36,7 @@
 - **CI #45195181299:** PASS на main SHA `bbbb9a3569416baf0c917c95f28a05ad595b4c9d`.
 - **GitHub Pages #45195181874:** build и deploy PASS на том же SHA.
 - **RC checklist:** создан [docs/RELEASE_CANDIDATE_CHECKLIST.md](docs/RELEASE_CANDIDATE_CHECKLIST.md); ручные и staging-gates пока NOT TESTED.
+- **RC runbooks (24.11):** добавлены подробные инструкции для offline/reconnect/multi-tab/account switching (RC-P07–P10), responsive/keyboard/screen reader (RC-P11–P13) и staging-only legacy registration/profile recovery (RC-S03). Это документация процедуры, а не подтверждение прохождения тестов; все соответствующие статусы остаются NOT TESTED.
 - **PR:** открытых PR нет на момент проверки.
 
 ## Следующие задачи — без расширения scope
