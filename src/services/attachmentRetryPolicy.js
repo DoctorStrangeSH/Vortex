@@ -6,6 +6,11 @@ const PERMANENT_ATTACHMENT_ERRORS = new Set([
     'storage/quota-exceeded'
 ]);
 
+const TRANSIENT_ATTACHMENT_ERRORS = new Set([
+    'storage/network-request-failed', 'storage/retry-limit-exceeded',
+    'unavailable', 'deadline-exceeded', 'aborted', 'attachment/read-failed'
+]);
+
 const INVALID_ATTACHMENT_ERRORS = new Set([
     'invalid-argument', 'storage/invalid-format', 'storage/invalid-argument'
 ]);
@@ -15,7 +20,8 @@ export function attachmentRetryKind(error) {
     if (error?.code === 'storage/quota-exceeded') return 'quota';
     if (INVALID_ATTACHMENT_ERRORS.has(error?.code)) return 'invalid';
     if (PERMANENT_ATTACHMENT_ERRORS.has(error?.code)) return 'blocked';
-    return 'retry';
+    if (TRANSIENT_ATTACHMENT_ERRORS.has(error?.code)) return 'retry';
+    return 'manual';
 }
 
 export function mayRetryAttachment(error) {
@@ -36,6 +42,9 @@ export function attachmentRetryNotice(fileName, error, sentCount, totalCount) {
     }
     if (kind === 'blocked') {
         return `${progress}Не удалось отправить «${fileName}»: нет доступа или неверные параметры. Проверьте авторизацию и разрешения чата.`;
+    }
+    if (kind === 'manual') {
+        return `${progress}Не удалось безопасно определить причину ошибки файла «${fileName}». Повтор отключён; проверьте файл и соединение перед новой отправкой.`;
     }
     return `${progress}Ошибка «${fileName}»: ${error?.message || 'Не удалось отправить файл'}. Можно повторить оставшиеся файлы.`;
 }

@@ -9,7 +9,7 @@ test('attachment errors show a distinct access message', () => {
 
 test('missing files and transient failures have useful messages', () => {
     assert.match(attachmentErrorText('storage/object-not-found'), /не найден/);
-    assert.match(attachmentErrorText('storage/retry-limit-exceeded'), /соединение/);
+    assert.match(attachmentErrorText('storage/retry-limit-exceeded'), /соединение/i);
     assert.match(attachmentErrorText(undefined), /Не удалось/);
 });
 

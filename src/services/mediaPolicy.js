@@ -41,7 +41,7 @@ export function validateLegacyMediaFile(file) {
     }
     const mimeType = typeof file.type === 'string' ? file.type.toLowerCase().split(';', 1)[0].trim() : '';
     if (BLOCKED_ACTIVE_CONTENT_MIME.has(mimeType)) {
-        throw new Error('Файлы с активным веб-содержимым нельзя отправлять');
+        throw invalidMediaError('Файлы с активным веб-содержимым нельзя отправлять');
     }
     return file;
 }

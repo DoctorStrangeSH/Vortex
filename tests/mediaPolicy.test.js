@@ -28,7 +28,10 @@ test('legacy Firestore fallback rejects active web content without rejecting ord
     assert.doesNotThrow(() => validateLegacyMediaFile({ size: 12, type: '' }));
     assert.throws(() => validateLegacyMediaFile({ size: MAX_LEGACY_MEDIA_FILE_BYTES + 1, type: 'image/png' }), /350 КБ/);
     for (const type of ['text/html', 'image/svg+xml', 'application/javascript', 'text/javascript', 'application/x-javascript', 'application/xhtml+xml', 'application/xml', 'text/xml', 'TEXT/HTML; charset=utf-8']) {
-        assert.throws(() => validateLegacyMediaFile({ size: 12, type }), /активным веб-содержимым/);
+        assert.throws(
+            () => validateLegacyMediaFile({ size: 12, type }),
+            error => error.code === 'invalid-argument' && /активным веб-содержимым/.test(error.message)
+        );
     }
 });
 
