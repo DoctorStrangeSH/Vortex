@@ -25,8 +25,9 @@
 | AUTO-09 | Диагностика регистрации и двухаккаунтный Chat E2E на PR #166 | **PASS** | [#45356599939](https://github.com/DoctorStrangeSH/Vortex/actions/runs/45356599939): unit, browser, Rules, Auth, Chat E2E и build PASS |
 | AUTO-10 | Диагностические тесты объединены в main | **MERGED** | [PR #166](https://github.com/DoctorStrangeSH/Vortex/pull/166), squash `82559b68cd0fa2723d2ad65486a33e777a317465` |
 | AUTO-11 | GitHub Pages build/deploy после PR #166 | **PASS** | [#45357132913](https://github.com/DoctorStrangeSH/Vortex/actions/runs/45357132913), main SHA `82559b68cd0fa2723d2ad65486a33e777a317465` |
+| AUTO-12 | Post-merge Quality CI на main после PR #166 | **PASS** | [#45357132903](https://github.com/DoctorStrangeSH/Vortex/actions/runs/45357132903), unit, browser, Rules, Auth, Chat E2E и build PASS |
 
-> Post-merge Quality workflow [#45357132903](https://github.com/DoctorStrangeSH/Vortex/actions/runs/45357132903) на момент обновления был QUEUED. AUTO-09 подтверждает успешный PR run, но не заменяет post-merge main run и ручную приёмку.
+> Post-merge Quality workflow [#45357132903](https://github.com/DoctorStrangeSH/Vortex/actions/runs/45357132903) также завершился PASS. AUTO-09–AUTO-12 подтверждают только автоматические проверки и публикацию; ручная/staging приёмка остаётся обязательной.
 
 ## B. Разрешённая ручная smoke-проверка на текущем Production
 
