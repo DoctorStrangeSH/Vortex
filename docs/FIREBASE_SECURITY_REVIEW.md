@@ -42,10 +42,11 @@
 
 ### Дополнительные Storage negative tests (24.11.2026)
 
-В tests/firebaseRules.test.js добавлен Storage Emulator regression test для отказа в следующих случаях:
-- загрузка пустого объекта;
-- MIME с неверным регистром, параметрами/некорректным форматом или пустое значение;
-- идентификатор объекта с точками, не входящими в разрешённый allowlist.
+В tests/firebaseRules.test.js добавлены/уточнены Storage Emulator regression checks:
+- отказ загрузки пустого объекта;
+- отказ object ID с символами вне разрешённого allowlist.
+
+MIME allowlist и блокировка active-content типов уже проверяются отдельным тестом storage MIME policy. Попытки передавать искусственно malformed MIME из Node SDK оказались ненадёжными как отрицательный fixture: клиент/эмулятор может нормализовать metadata до запроса правил. Поэтому эти fixture удалены, а проверка MIME не считается расширенной этим тестом.
 
 Проверки ожидают актуальный Quality CI и не заменяют staging browser acceptance: реальные CORS origins, авторизованная загрузка/чтение, удаление, поведение после исключения и legacy token URL проверяются отдельно. Storage в Production остаётся выключенным.
 
