@@ -553,7 +553,7 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
         const dataUrl = await new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.onload = () => resolve(reader.result);
-            reader.onerror = () => reject(new Error('Не удалось прочитать файл'));
+            reader.onerror = () => reject(Object.assign(new Error('Не удалось прочитать файл'), { code: 'attachment/read-failed' }));
             reader.readAsDataURL(file);
         });
         // Reading a large file may finish after the user leaves this conversation.
