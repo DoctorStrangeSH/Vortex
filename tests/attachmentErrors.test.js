@@ -12,3 +12,10 @@ test('missing files and transient failures have useful messages', () => {
     assert.match(attachmentErrorText('storage/retry-limit-exceeded'), /соединение/);
     assert.match(attachmentErrorText(undefined), /Не удалось/);
 });
+
+
+test('quota and network errors explain the next safe action', () => {
+    assert.match(attachmentErrorText('storage/quota-exceeded'), /квота хранилища/);
+    assert.match(attachmentErrorText('storage/network-request-failed'), /Соединение прервано/);
+    assert.match(attachmentErrorText('storage/retry-limit-exceeded'), /Соединение прервано/);
+});
