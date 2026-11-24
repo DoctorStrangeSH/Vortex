@@ -1,13 +1,19 @@
 // Never offer a new upload while the previous Firestore commit is uncertain.
 // Permanent authorization errors also need action from the user, not a retry.
 const PERMANENT_ATTACHMENT_ERRORS = new Set([
-    'permission-denied', 'unauthenticated', 'invalid-argument',
+    'permission-denied', 'unauthenticated',
     'storage/unauthorized', 'storage/unauthenticated',
-    'storage/invalid-format', 'storage/invalid-argument', 'storage/quota-exceeded'
+    'storage/quota-exceeded'
+]);
+
+const INVALID_ATTACHMENT_ERRORS = new Set([
+    'invalid-argument', 'storage/invalid-format', 'storage/invalid-argument'
 ]);
 
 export function attachmentRetryKind(error) {
     if (error?.attachmentCommitUnknown) return 'unknown';
+    if (error?.code === 'storage/quota-exceeded') return 'quota';
+    if (INVALID_ATTACHMENT_ERRORS.has(error?.code)) return 'invalid';
     if (PERMANENT_ATTACHMENT_ERRORS.has(error?.code)) return 'blocked';
     return 'retry';
 }
@@ -22,8 +28,11 @@ export function attachmentRetryNotice(fileName, error, sentCount, totalCount) {
     if (kind === 'unknown') {
         return `${progress}Не удалось подтвердить отправку «${fileName}». Проверьте переписку после восстановления связи — повторная отправка может создать дубликат.`;
     }
-    if (error?.code === 'storage/quota-exceeded') {
+    if (kind === 'quota') {
         return `${progress}Не удалось отправить «${fileName}»: исчерпана доступная квота хранилища. Автоматический повтор отключён; попробуйте позже или обратитесь к администратору.`;
+    }
+    if (kind === 'invalid') {
+        return `${progress}Файл «${fileName}» нельзя отправить: проверьте размер и формат.`;
     }
     if (kind === 'blocked') {
         return `${progress}Не удалось отправить «${fileName}»: нет доступа или неверные параметры. Проверьте авторизацию и разрешения чата.`;
