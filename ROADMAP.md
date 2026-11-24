@@ -49,7 +49,7 @@
 - **PR #165:** MERGED в `main` (squash), merge commit `2c16a7f`. Исправления retry policy и RC-документации теперь в основной ветке.
 - **PR #166:** MERGED в `main` (squash), merge commit `82559b6`. Добавлена test-only диагностика регистрации: при повторном сбое E2E отчёт сохранит исходную ошибку Auth и результат записи профиля. Production auth/profile logic и Firebase Rules не менялись.
 - **Quality PR #166:** [run #45356599939](https://github.com/DoctorStrangeSH/Vortex/actions/runs/45356599939) — PASS по всем шагам: unit, browser, Rules, Auth, двухаккаунтный Chat E2E и build. Предыдущий сбой регистрации не воспроизвёлся.
-- **Post-merge Pages:** [run #45357132913](https://github.com/DoctorStrangeSH/Vortex/actions/runs/45357132913) — build и deploy PASS на main SHA `82559b68cd0fa2723d2ad65486a33e777a317465`. Post-merge Quality [#45357132903](https://github.com/DoctorStrangeSH/Vortex/actions/runs/45357132903) на момент аудита ещё QUEUED; не считать его PASS до завершения.
+- **Post-merge main verification:** Quality [#45357132903](https://github.com/DoctorStrangeSH/Vortex/actions/runs/45357132903) — PASS; unit, browser, Rules, Auth, Chat E2E и build прошли на SHA `82559b68cd0fa2723d2ad65486a33e777a317465`. GitHub Pages [#45357132913](https://github.com/DoctorStrangeSH/Vortex/actions/runs/45357132913) — build и deploy PASS на том же SHA.
 - **Branch audit (24.11):** 158 refs: 139 веток связаны с merged PR, 13 — с закрытыми без merge PR, 4 — без соответствующего PR, отдельно `main` и `gh-pages`. Автоудаление head branch после merge проверено на PR #166; исторические ветки пока сохранены до безопасной проверки.
 
 ## Следующие задачи — без расширения scope
