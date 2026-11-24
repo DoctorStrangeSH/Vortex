@@ -38,7 +38,7 @@
 | AUTO-15 | Документация PROJECT_SPEC синхронизирована с актуальным RC/branch audit | **MERGED** | [PR #169](https://github.com/DoctorStrangeSH/Vortex/pull/169), squash `e79a8467213d9bac32c8ad4598675e87692776cb` |
 | AUTO-16 | Quality CI для PR #169 | **PASS** | [#45360820955](https://github.com/DoctorStrangeSH/Vortex/actions/runs/45360820955): unit, browser, Rules, Auth, Chat E2E и build PASS |
 
-> AUTO-13–AUTO-16 подтверждают состояние кода/документации и автоматические проверки. После merge PR #169 на новом main SHA `e79a8467213d9bac32c8ad4598675e87692776cb` запущена отдельная post-merge Quality CI [#45361234527](https://github.com/DoctorStrangeSH/Vortex/actions/runs/45361234527) и Pages workflow [#45361234528](https://github.com/DoctorStrangeSH/Vortex/actions/runs/45361234528); на момент этой записи их итог ещё не зафиксирован. Они не заменяют ручную/staging приёмку.
+> AUTO-13–AUTO-16 подтверждают состояние кода/документации и автоматические проверки. Post-merge Quality CI [#45361234527](https://github.com/DoctorStrangeSH/Vortex/actions/runs/45361234527) и Pages workflow [#45361234528](https://github.com/DoctorStrangeSH/Vortex/actions/runs/45361234528) завершились PASS на SHA `e79a8467213d9bac32c8ad4598675e87692776cb`. Они не заменяют ручную/staging приёмку.
 
 ## B. Разрешённая ручная smoke-проверка на текущем Production
 
