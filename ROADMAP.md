@@ -19,7 +19,7 @@
 |---|---|---|
 | Scope freeze | **DONE** | Scope 1.0 зафиксирован в PROJECT_SPEC |
 | Регистрация и безопасность | Автотесты PASS; ручная проверка открыта | Два независимых аккаунта, legacy account и Production Rules review |
-| Личная переписка | Автотесты PASS; ручная проверка открыта | Realtime, история, edit/delete, read receipts, offline/reconnect |
+| Личная переписка | Автотесты PASS; базовая двухаккаунтная smoke-проверка RC-P01–P06 подтверждена владельцем | Offline/reconnect, multi-tab, account switching и оставшиеся RC/staging gates |
 | Offline Queue | **DONE** | 100 раундов / 200 сообщений, restart recovery, no-Web-Locks fallback |
 | Группы и каналы | Emulator coverage PASS; ручная проверка открыта | Роли, членство, публикации и выход на двух аккаунтах |
 | UI и доступность | Browser regression PASS; ручная проверка открыта | Телефон, desktop, клавиатура и screen reader |
@@ -55,7 +55,7 @@
 - **PR #166:** добавлена test-only диагностика частичной регистрации для Chat E2E; Production Auth/Profile и Rules не менялись. Объединён в main.
 - **PR #167–#168:** branch inventory и классификация исторических refs обновлены; автоудаление новых merged head branches проверено. 158 refs описаны в [docs/BRANCH_CLEANUP_AUDIT.md](docs/BRANCH_CLEANUP_AUDIT.md); 3 callable prototype refs сохранены как архив из-за Spark/Cloud Functions blocker. Старые refs физически не удалены — нужен GitHub UI или отдельный авторизованный workflow.
 - **PR #169:** `PROJECT_SPEC.md` синхронизирован с фактическим RC состоянием и ручными/staging gates; merge commit `e79a846`.
-- **PR #171:** обновлены RC evidence и ROADMAP после PR #168–#169; PR CI проходит. Ни один RC-P/RC-S не переведён в PASS.
+- **PR #171:** обновлены RC evidence и ROADMAP после PR #168–#169; добавлено подтверждение владельца от 24.11.2026 для базовой двухаккаунтной smoke-проверки RC-P01–P06. RC-P07–P14 и RC-S01–S09 остаются открытыми.
 - **Main verification before PR #170:** Quality CI [#45360217395](https://github.com/DoctorStrangeSH/Vortex/actions/runs/45360217395) — PASS; Pages [#45360215911](https://github.com/DoctorStrangeSH/Vortex/actions/runs/45360215911) — PASS на SHA `4760269f03b6414616794a6f6cd277c8d76a476f`.
 - **Post-merge verification after PR #169:** Quality [#45361234527](https://github.com/DoctorStrangeSH/Vortex/actions/runs/45361234527) — PASS; unit, browser, Rules, Auth, Chat E2E и build завершились успешно. GitHub Pages [#45361234528](https://github.com/DoctorStrangeSH/Vortex/actions/runs/45361234528) — build/deploy PASS на SHA `e79a8467213d9bac32c8ad4598675e87692776cb`.
 
