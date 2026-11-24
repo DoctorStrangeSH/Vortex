@@ -40,6 +40,15 @@
 
 Эти проверки подтверждают именно ожидаемую модель доступа в Emulator Suite. Статус PASS не выставляется до завершения CI. Реальные Production Rules и cross-service Storage остаются отдельными gates.
 
+### Дополнительные Storage negative tests (24.11.2026)
+
+В tests/firebaseRules.test.js добавлен Storage Emulator regression test для отказа в следующих случаях:
+- загрузка пустого объекта;
+- MIME с неверным регистром, параметрами/некорректным форматом или пустое значение;
+- идентификатор объекта с точками, не входящими в разрешённый allowlist.
+
+Проверки ожидают актуальный Quality CI и не заменяют staging browser acceptance: реальные CORS origins, авторизованная загрузка/чтение, удаление, поведение после исключения и legacy token URL проверяются отдельно. Storage в Production остаётся выключенным.
+
 ### Открытые security-gates — без изменения статусов
 
 1. Сопоставить опубликованные Production Firestore Rules с точным firestore.rules из main через Firebase Console (read-only); не публиковать правила в рамках этого аудита.
