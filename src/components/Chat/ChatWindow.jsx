@@ -540,7 +540,7 @@ export function ChatWindow({ chat, user, onBack, isMobile }) {
         const targetChatId = chat?.id;
         if (!targetChatId || activeSubscriptionRef.current !== expectedSubscription) return false;
         const maximum = STORAGE_UPLOADS_ENABLED ? MAX_STORAGE_FILE_BYTES : MAX_LEGACY_ATTACHMENT_BYTES;
-        if (file.size > maximum) throw new Error(`Файл слишком большой (максимум ${STORAGE_UPLOADS_ENABLED ? '25 МБ' : '350 КБ'})`);
+        if (file.size > maximum) throw Object.assign(new Error(`Файл слишком большой (максимум ${STORAGE_UPLOADS_ENABLED ? '25 МБ' : '350 КБ'})`), { code: 'invalid-argument' });
         const type = file.type.startsWith('image/') ? 'image' :
             file.type.startsWith('video/') ? 'video' :
             file.type.startsWith('audio/') ? 'audio' : 'file';
