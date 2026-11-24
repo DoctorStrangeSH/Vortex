@@ -18,7 +18,7 @@ test('uncertain commit must not offer a duplicate upload', () => {
     assert.match(attachmentRetryNotice('photo.png', error, 0, 2), /создать дубликат/);
 });
 test('retry notice describes already sent files', () => {
-    const text = attachmentRetryNotice('video.mp4', new Error('timeout'), 2, 3);
+    const text = attachmentRetryNotice('video.mp4', Object.assign(new Error('timeout'), { code: 'storage/retry-limit-exceeded' }), 2, 3);
     assert.match(text, /Отправлено 2 из 3/);
     assert.match(text, /повторить оставшиеся файлы/);
 });
