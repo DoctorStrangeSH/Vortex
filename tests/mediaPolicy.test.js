@@ -31,3 +31,19 @@ test('legacy Firestore fallback rejects active web content without rejecting ord
         assert.throws(() => validateLegacyMediaFile({ size: 12, type }), /активным веб-содержимым/);
     }
 });
+
+
+test('invalid media metadata carries a non-retryable validation code', () => {
+    for (const file of [
+        { size: 0, type: 'image/png' },
+        { size: MAX_STORAGE_FILE_BYTES + 1, type: 'image/png' },
+        { size: 10, type: 'not-a-mime' },
+        { size: 10, type: 'image/svg+xml' }
+    ]) {
+        assert.throws(() => validateMediaFile(file), error => error.code === 'invalid-argument');
+    }
+    assert.throws(
+        () => validateLegacyMediaFile({ size: MAX_LEGACY_MEDIA_FILE_BYTES + 1, type: 'image/png' }),
+        error => error.code === 'invalid-argument'
+    );
+});
