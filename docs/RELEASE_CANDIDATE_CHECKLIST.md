@@ -40,6 +40,15 @@
 
 > AUTO-13–AUTO-16 подтверждают состояние кода/документации и автоматические проверки. Post-merge Quality CI [#45361234527](https://github.com/DoctorStrangeSH/Vortex/actions/runs/45361234527) и Pages workflow [#45361234528](https://github.com/DoctorStrangeSH/Vortex/actions/runs/45361234528) завершились PASS на SHA `e79a8467213d9bac32c8ad4598675e87692776cb`. Они не заменяют ручную/staging приёмку.
 
+## A.3. Актуальный main после PR #171 — Offline Queue browser coverage (24.11.2026)
+
+| ID | Проверка | Результат | Доказательство |
+| --- | --- | --- | --- |
+| AUTO-17 | Offline Queue browser smoke: offline → online, duplicate retry, account ownership, same-account multi-tab concurrency, no-Web-Locks fallback, tab reopen и полный Chromium process restart | **PASS** | [Quality CI #45364704535](https://github.com/DoctorStrangeSH/Vortex/actions/runs/45364704535), main SHA `731d3500b0ecb6d39b1d16569517227ee9e66e35`; шаг `npm run test:browser` PASS; сценарий `tests/browser/offline-queue.smoke.mjs` |
+| AUTO-18 | Post-merge GitHub Pages build/deploy после PR #171 | **PASS** | [#45364704586](https://github.com/DoctorStrangeSH/Vortex/actions/runs/45364704586), main SHA `731d3500b0ecb6d39b1d16569517227ee9e66e35` |
+
+> **Ограничение AUTO-17:** Playwright использует browser offline emulation и тестовый idempotent sink в localStorage; это подтверждает клиентскую очередь, persistence, ownership и retry logic в browser fixture, но не реальную доставку через Firebase/Production. Поэтому RC-P07–P10 остаются NOT TESTED до ручного Production smoke, а RC-S04/RC-S05 — до отдельного контролируемого staging/Emulator acceptance.
+
 ## B. Разрешённая ручная smoke-проверка на текущем Production
 
 **Граница безопасности:** только два добровольных тестовых аккаунта и специально созданные временные тестовые чаты; без чувствительных данных. Не выполнять нагрузочные тесты, миграции, чужие access-denial проверки, mass deletion, изменение Firebase Rules/тарифа/Storage. Для security-negative, destructive и migration test используйте Firebase Emulator/отдельный staging.
