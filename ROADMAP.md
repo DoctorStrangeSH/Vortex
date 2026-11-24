@@ -40,6 +40,7 @@
 - **Security source review (24.11):** выполнен read-only просмотр firestore.rules, storage.rules, firebase.json и .env.example; ключевые ограничения доступа зафиксированы в [docs/FIREBASE_SECURITY_REVIEW.md](docs/FIREBASE_SECURITY_REVIEW.md). Production Rules, legacy-данные и Storage lifecycle не подтверждены; security gate остаётся NOT TESTED/BLOCKED до owner read-only comparison и отдельного staging.
 - **Security regression coverage (24.11):** добавлены Emulator tests на owner-only private profile, public profile field allowlist и ownership/immutability username claim. Тесты ожидают CI; это не production/staging acceptance.
 - **Group/channel revocation tests (24.11):** добавлены Emulator cases на немедленный отзыв доступа после исключения из группы/отписки от канала, запрет чтения старых сообщений и новых записей бывшим участником, а также защиту ownerId и subscriberCount. Ожидают CI; Production/staging gates не закрыты.
+- **RC-S07:** в RELEASE_CANDIDATE_CHECKLIST.md добавлен отдельный staging acceptance для ролей групп/каналов, защиты владельца, атомарности подписчиков и немедленного отзыва доступа после исключения/отписки. Статус NOT TESTED.
 - **PR:** открытых PR нет на момент проверки.
 
 ## Следующие задачи — без расширения scope
