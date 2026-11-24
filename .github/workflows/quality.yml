@@ -8,6 +8,12 @@ on:
 permissions:
   contents: read
 
+# Keep only the newest quality run for a branch; rapid documentation commits
+# must not leave a long queue of stale checks ahead of the current main SHA.
+concurrency:
+  group: quality-checks-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test-build:
     runs-on: ubuntu-latest
