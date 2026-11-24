@@ -2,8 +2,15 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { attachmentRetryNotice, mayRetryAttachment } from '../src/services/attachmentRetryPolicy.js';
 
-test('confirmed failure can be retried', () => {
-    assert.equal(mayRetryAttachment(new Error('network')), true);
+test('known transient failures can be retried', () => {
+    assert.equal(mayRetryAttachment({ code: 'storage/network-request-failed' }), true);
+    assert.equal(mayRetryAttachment({ code: 'attachment/read-failed' }), true);
+});
+
+test('unclassified failures are not retried automatically', () => {
+    const error = new Error('unexpected failure');
+    assert.equal(mayRetryAttachment(error), false);
+    assert.match(attachmentRetryNotice('unknown.bin', error, 0, 1), /Повтор отключён/);
 });
 test('uncertain commit must not offer a duplicate upload', () => {
     const error = Object.assign(new Error('offline'), { attachmentCommitUnknown: true });
