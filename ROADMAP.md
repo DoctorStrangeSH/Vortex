@@ -38,6 +38,7 @@
 - **RC checklist:** создан [docs/RELEASE_CANDIDATE_CHECKLIST.md](docs/RELEASE_CANDIDATE_CHECKLIST.md); ручные и staging-gates пока NOT TESTED.
 - **RC runbooks (24.11):** добавлены подробные инструкции для offline/reconnect/multi-tab/account switching (RC-P07–P10), responsive/keyboard/screen reader (RC-P11–P13) и staging-only legacy registration/profile recovery (RC-S03). Это документация процедуры, а не подтверждение прохождения тестов; все соответствующие статусы остаются NOT TESTED.
 - **Security source review (24.11):** выполнен read-only просмотр firestore.rules, storage.rules, firebase.json и .env.example; ключевые ограничения доступа зафиксированы в [docs/FIREBASE_SECURITY_REVIEW.md](docs/FIREBASE_SECURITY_REVIEW.md). Production Rules, legacy-данные и Storage lifecycle не подтверждены; security gate остаётся NOT TESTED/BLOCKED до owner read-only comparison и отдельного staging.
+- **Security regression coverage (24.11):** добавлены Emulator tests на owner-only private profile, public profile field allowlist и ownership/immutability username claim. Тесты ожидают CI; это не production/staging acceptance.
 - **PR:** открытых PR нет на момент проверки.
 
 ## Следующие задачи — без расширения scope
