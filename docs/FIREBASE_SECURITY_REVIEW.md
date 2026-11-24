@@ -2,6 +2,39 @@
 
 > **Текущее состояние на 22.11.2026:** владелец подтвердил, что Production Firestore Rules были синхронизированы с актуальным `firestore.rules` из `main`; после публикации правил отправка сообщений восстановилась. Это закрывает инцидент отправки, но не заменяет staging-приёмку, проверку legacy-данных, read receipts и rollback. Firebase Storage остаётся выключенным до отдельной staging-проверки.
 
+## Текущая read-only сверка исходных правил (24.11.2026)
+
+Проверены файлы firestore.rules, storage.rules, firebase.json и .env.example в текущем main. Это **статический просмотр исходников репозитория**, не penetration test, не запуск Emulator и не чтение опубликованных правил Firebase Console.
+
+### Наблюдения по Firestore Rules
+
+- Default-deny присутствует в catch-all match.
+- Приватные users/{uid} доступны только владельцу; публичная карточка отделена в publicProfiles.
+- Чаты и сообщения требуют членства; sender UID при создании сообщения сверяется с Auth UID.
+- Обновление сообщения ограничено отдельными путями edit/read receipt/reaction; создание канального сообщения ограничено администраторами.
+- Username claim создаётся от имени UID и сверяется с профилем через getAfter().
+- Legacy private chat имеет отдельную узкую ветку обновления preview; это сохраняет совместимость, но требует проверки на обезличенной staging-копии старых документов.
+- Публичный список username исключает документы с legacy-полем email; реальные legacy-записи и запросы клиента необходимо проверить в staging.
+
+### Наблюдения по Storage Rules
+
+- Catch-all запрещает прочие чтения/записи.
+- Загрузка ограничена членом чата, собственным UID-путём, размером до 25 MiB и проверкой MIME; overwrite запрещён.
+- Чтение зависит от Firestore membership lookup, удаление — от отсутствия соответствующего message document.
+- Эти правила не являются основанием включать Storage: реальный cross-service permission/IAM, CORS, upload/read/revocation и rollback ещё не проверены на отдельном staging.
+- VITE_USE_FIREBASE_STORAGE=false в .env.example; Production flag и bucket settings из репозитория не видны.
+
+### Открытые security-gates — без изменения статусов
+
+1. Сопоставить опубликованные Production Firestore Rules с точным firestore.rules из main через Firebase Console (read-only); не публиковать правила в рамках этого аудита.
+2. Проверить Production project ID и дату публикации; не копировать секреты/токены в issue или чат.
+3. На отдельном staging пройти положительные и отрицательные правила для приватного профиля, username claim, личного чата, группы, канала, сообщений, реакций и read receipts.
+4. На staging проверить Storage cross-service lookup, CORS, upload/read/revocation, orphan cleanup и rollback; Storage остаётся выключенным.
+5. Проверить legacy documents и claims на staging snapshot, не выполнять production migration.
+6. Подтвердить отсутствие секретов в клиентском bundle и git history отдельным автоматизированным secret scan; этот статический просмотр не заменяет scan.
+
+**Вердикт:** исходники содержат несколько важных ограничений доступа, но Production Rules, реальные legacy-данные и Storage lifecycle не подтверждены. RC security gate остаётся **NOT TESTED / BLOCKED до staging и read-only сверки владельцем**. Никакие Firebase Rules, тарифы, данные или Production settings этим изменением не менялись.
+
 ## Как читать этот документ
 
 Ниже сохранена история security-аудитов и диагностики. Формулировки в исторических разделах отражают состояние на дату соответствующего аудита и не должны восприниматься как текущее состояние Production. Актуальный статус и release gates ведутся в [PROJECT_SPEC.md](PROJECT_SPEC.md) и [ROADMAP.md](../ROADMAP.md).
