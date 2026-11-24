@@ -44,6 +44,7 @@
 - **Storage negative regression (24.11):** добавлены Emulator tests на отказ пустых объектов и небезопасных object ID. MIME allowlist/active-content покрыты отдельным тестом; malformed MIME fixtures удалены, поскольку SDK нормализует часть значений. Первый прогон выявил нестабильный fixture, он скорректирован; актуальный CI ещё не завершён. CORS/браузерные проверки и Storage Production gate остаются NOT TESTED/BLOCKED.
 - **RC-S08:** добавлен staging-only Storage attachment lifecycle gate: upload/read/delete, CORS, MIME/size, access revocation, orphan cleanup и legacy token URL inventory. Production Storage остаётся выключенным; статус NOT TESTED.
 - **Attachment recovery (RC-S09):** добавлен staging/Emulator acceptance для quota, permission-denied, network interruption, uncertain Firestore commit, ограниченного retry, partial batch и cleanup queue. Добавлена отдельная quota error copy; quota-exceeded блокирует автоматический повтор. Статус NOT TESTED.
+- **Attachment validation retry fix (24.11):** локальные ошибки размера/MIME/формата теперь помечаются invalid-argument и не предлагают повторную загрузку того же некорректного файла; retry notice объясняет, что нужно исправить. Добавлены unit tests и уточнён RC-S09. Ожидает Quality CI.
 - **PR:** открытых PR нет на момент проверки.
 
 ## Следующие задачи — без расширения scope
