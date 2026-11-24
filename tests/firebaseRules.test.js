@@ -1372,3 +1372,60 @@ test('public profile creation cannot copy private email or unknown fields into t
         internalFlags: ['staff']
     }));
 });
+
+test('private profiles stay owner-only while public profiles expose only approved fields', { skip: !available }, async () => {
+    const alice = environment.authenticatedContext('alice').firestore();
+    const bob = environment.authenticatedContext('bob').firestore();
+    const guest = environment.unauthenticatedContext().firestore();
+
+    await seedDocument('users/alice', {
+        uid: { stringValue: 'alice' },
+        username: { stringValue: 'alice' },
+        email: { stringValue: 'alice@example.test' },
+        privateNote: { stringValue: 'must remain private' }
+    });
+    await seedDocument('publicProfiles/alice', {
+        uid: { stringValue: 'alice' },
+        username: { stringValue: 'alice' },
+        displayName: { stringValue: 'Alice' },
+        bio: { stringValue: 'Test profile' }
+    });
+
+    assert.equal((await assertSucceeds(getDoc(doc(alice, 'users/alice')))).data().email, 'alice@example.test');
+    await assertFails(getDoc(doc(bob, 'users/alice')));
+    await assertFails(getDoc(doc(guest, 'users/alice')));
+
+    assert.equal((await assertSucceeds(getDoc(doc(bob, 'publicProfiles/alice')))).data().displayName, 'Alice');
+    await assertFails(getDoc(doc(guest, 'publicProfiles/alice')));
+
+    // Public profile documents cannot be expanded with private fields by their owner.
+    await assertFails(updateDoc(doc(alice, 'publicProfiles/alice'), { email: 'alice@example.test' }));
+    await assertFails(updateDoc(doc(alice, 'publicProfiles/alice'), { privateNote: 'leak' }));
+});
+
+test('username claims are atomically bound to their owner and cannot be stolen or deleted', { skip: !available }, async () => {
+    const alice = environment.authenticatedContext('alice').firestore();
+    const bob = environment.authenticatedContext('bob').firestore();
+
+    const batch = writeBatch(alice);
+    batch.set(doc(alice, 'users/alice'), { uid: 'alice', username: 'alice' });
+    batch.set(doc(alice, 'publicProfiles/alice'), {
+        uid: 'alice', username: 'alice', displayName: 'Alice'
+    });
+    batch.set(doc(alice, 'usernames/alice'), { uid: 'alice', username: 'alice' });
+    await assertSucceeds(batch.commit());
+
+    assert.equal((await assertSucceeds(getDoc(doc(bob, 'usernames/alice')))).data().uid, 'alice');
+
+    const steal = writeBatch(bob);
+    steal.set(doc(bob, 'users/bob'), { uid: 'bob', username: 'alice' });
+    steal.set(doc(bob, 'publicProfiles/bob'), {
+        uid: 'bob', username: 'alice', displayName: 'Bob'
+    });
+    steal.set(doc(bob, 'usernames/alice'), { uid: 'bob', username: 'alice' });
+    await assertFails(steal.commit());
+
+    await assertFails(deleteDoc(doc(alice, 'usernames/alice')));
+    await assertFails(updateDoc(doc(alice, 'usernames/alice'), { uid: 'bob' }));
+    assert.equal((await assertSucceeds(getDoc(doc(alice, 'usernames/alice')))).data().uid, 'alice');
+});
