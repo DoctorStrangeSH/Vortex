@@ -1,6 +1,6 @@
 # Vortex 1.0 — Release Candidate Acceptance Checklist
 
-> **Статус:** RC NOT ACCEPTED · **Дата:** 23.11.2026  
+> **Статус:** RC NOT ACCEPTED · **Дата:** 24.11.2026  
 > Единственный scope: [PROJECT_SPEC.md](PROJECT_SPEC.md). Операционный статус: [ROADMAP.md](../ROADMAP.md). Этот чек-лист разделяет факты CI, ручную проверку и решения владельца. Никакой пункт не закрывается «по умолчанию».
 
 ## A. Автоматические доказательства — выполнено
@@ -22,6 +22,11 @@
 | --- | --- | --- | --- |
 | AUTO-07 | Quality CI на актуальном main с RC runbook | **PASS** | [#45241337818](https://github.com/DoctorStrangeSH/Vortex/actions/runs/45241337818), SHA `68a597ecd9892dabdf82beb1364ec1ef361b4d20` |
 | AUTO-08 | GitHub Pages build/deploy на том же SHA | **PASS** | [#45241337712](https://github.com/DoctorStrangeSH/Vortex/actions/runs/45241337712) |
+| AUTO-09 | Диагностика регистрации и двухаккаунтный Chat E2E на PR #166 | **PASS** | [#45356599939](https://github.com/DoctorStrangeSH/Vortex/actions/runs/45356599939): unit, browser, Rules, Auth, Chat E2E и build PASS |
+| AUTO-10 | Диагностические тесты объединены в main | **MERGED** | [PR #166](https://github.com/DoctorStrangeSH/Vortex/pull/166), squash `82559b68cd0fa2723d2ad65486a33e777a317465` |
+| AUTO-11 | GitHub Pages build/deploy после PR #166 | **PASS** | [#45357132913](https://github.com/DoctorStrangeSH/Vortex/actions/runs/45357132913), main SHA `82559b68cd0fa2723d2ad65486a33e777a317465` |
+
+> Post-merge Quality workflow [#45357132903](https://github.com/DoctorStrangeSH/Vortex/actions/runs/45357132903) на момент обновления был QUEUED. AUTO-09 подтверждает успешный PR run, но не заменяет post-merge main run и ручную приёмку.
 
 ## B. Разрешённая ручная smoke-проверка на текущем Production
 
