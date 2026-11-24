@@ -26,3 +26,16 @@ test('storage authorization errors also disable retry', () => {
     assert.equal(mayRetryAttachment({ code: 'storage/unauthorized' }), false);
     assert.equal(mayRetryAttachment({ code: 'storage/unauthenticated' }), false);
 });
+
+
+test('quota exhaustion is not retried automatically and gives a clear notice', () => {
+    const error = Object.assign(new Error('quota exceeded'), { code: 'storage/quota-exceeded' });
+    assert.equal(mayRetryAttachment(error), false);
+    assert.match(attachmentRetryNotice('archive.zip', error, 1, 2), /квота хранилища/);
+    assert.match(attachmentRetryNotice('archive.zip', error, 1, 2), /Автоматический повтор отключён/);
+});
+
+test('network and retry-limit failures remain eligible for a controlled retry', () => {
+    assert.equal(mayRetryAttachment({ code: 'storage/network-request-failed' }), true);
+    assert.equal(mayRetryAttachment({ code: 'storage/retry-limit-exceeded' }), true);
+});
