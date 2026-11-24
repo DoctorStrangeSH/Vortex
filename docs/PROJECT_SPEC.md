@@ -372,7 +372,7 @@ Storage выключен до положительного staging-теста up
 | --- | --- | --- |
 | 0. Scope freeze | Scope зафиксирован; новых функций до 1.0 не добавлять. Инвентаризация 158 branch refs, карта закрытых PR и безопасные кандидаты/архивы зафиксированы в `docs/BRANCH_CLEANUP_AUDIT.md`; автоудаление новых merged head branches подтверждено | Исторические refs физически не удалены: используемый GitHub connector не предоставляет delete-ref action; 3 callable-ветки сохранены как архив из-за Spark/Cloud Functions blocker |
 | 1. Безопасность и регистрация | Legacy DM, private-profile owner-only, public-profile allowlist, username-claim ownership и group/channel access revocation покрыты unit/Emulator tests; владелец ранее подтвердил восстановление отправки после синхронизации Production Rules | Полная read-only сверка опубликованных Rules, отдельный staging, реальные legacy accounts, rollback и live read-receipt/privacy acceptance ещё не пройдены |
-| 2. Личная переписка | Стабильный DM, текст, история, scroll position, offline queue и восстановление после полного browser-process restart покрыты тестами; concurrent same-ID/different-ID отправки и preview защищены Emulator tests; авторизованный two-user ChatScreen E2E проходит в Emulator | Полная Production/staging RC-матрица, edits/deletes/read receipts и offline recovery на реальных сессиях не завершены |
+| 2. Личная переписка | Стабильный DM, текст, история, scroll position, offline queue и восстановление после полного browser-process restart покрыты тестами; concurrent same-ID/different-ID отправки и preview защищены Emulator tests; авторизованный two-user ChatScreen E2E проходит в Emulator | Владелец подтвердил успешную базовую двухаккаунтную smoke-проверку RC-P01–P06 24.11.2026; RC-P07–P14 (offline/reconnect, multi-tab, account switching, mobile/accessibility и P1 groups) и отдельная staging-приёмка остаются открытыми |
 | 3. Группы и каналы | Spark-совместимые membership/admin/channel Rules, защита owner и Emulator tests немедленного отзыва доступа после удаления/отписки находятся в main; UI self-leave исправлен PR #89 | Staging и двухаккаунтная проверка не пройдены; журнал действий отложен за пределы 1.0 |
 | 4. Интерфейс и вложения | Obsidian Iris; responsive auth/chat/dialog/profile smoke coverage; keyboard/focus improvements; Storage Rules Emulator и attachment retry/error handling покрыты тестами | Полная ручная мобильная матрица 320–1440 CSS px, keyboard/screen-reader и реальный Storage staging не пройдены; Storage в Production выключен |
 | 5–6. RC и выпуск | RC checklist и runbooks подготовлены; Quality CI и Pages проходят на актуальном main; RC не объявлен | Все ручные и staging release gates остаются открытыми |
@@ -403,9 +403,9 @@ Storage выключен до положительного staging-теста up
 - [x] Пагинация и сохранение scroll position — код и регрессионные тесты в main.
 - [x] Offline queue и идемпотентная доставка — unit/browser tests, две вкладки, tab restart и полный Chromium process restart с persistent profile; реальный Firestore staging остаётся отдельной проверкой.
 - [x] Read receipts: UID-bound append-only правила и Emulator coverage в main (PR #86).
-- [ ] Ручная проверка синхронизации отметок прочтения между двумя реальными аккаунтами/браузерами.
+- [x] Ручная проверка синхронизации отметок прочтения между двумя реальными аккаунтами/браузерами — подтверждена владельцем в составе RC-P01–P06 24.11.2026.
 - [x] Базовая Production отправка текста подтверждена владельцем после синхронизации Rules; PR #138 добавил production-shaped Emulator transaction regression, Quality CI #783 прошёл.
-- [ ] Полная реальная двухаккаунтная RC-приёмка: realtime, edits/deletes, read receipts, offline queue recovery и staging.
+- [ ] Базовая реальная двухаккаунтная RC-приёмка (RC-P01–P06) подтверждена владельцем 24.11.2026; остаются offline queue recovery, multi-tab/account switching, mobile/accessibility и отдельная staging-приёмка.
 
 **Выход:** надёжная личная переписка при нормальной сети и временных сбоях.
 
@@ -540,7 +540,7 @@ Backlog не активируется автоматически. Для вер�
 
 ### 13.5. Release gates — 24.11.2026
 
-- Все RC-P01–P14 (Production smoke, два аккаунта, offline/reconnect, мобильная доступность и базовые группы/каналы) остаются NOT TESTED до фактической ручной приёмки.
+- RC-P01–P06: PASS по подтверждению владельца от 24.11.2026 (базовая двухаккаунтная smoke-проверка). RC-P07–P14 (offline/reconnect, multi-tab, account switching, mobile/accessibility и базовые группы/каналы) остаются NOT TESTED до отдельной ручной приёмки.
 - Все RC-S01–S09 (staging, privacy/security-negative, legacy recovery, Rules comparison, group/channel revocation, Storage lifecycle и attachment recovery) остаются NOT TESTED/BLOCKED до отдельного staging/Emulator acceptance по соответствующим runbooks.
 - Владелец ранее подтвердил, что после синхронизации Production Firestore Rules с репозиторием отправка сообщений восстановилась. Полная read-only сверка опубликованного ruleset, legacy-data compatibility и rollback остаются отдельными gates.
 - Firebase Storage в Production выключен. Успех Emulator/CI не является разрешением включать его в Production.

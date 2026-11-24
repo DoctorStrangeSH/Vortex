@@ -19,7 +19,7 @@
 |---|---|---|
 | Scope freeze | **DONE** | Scope 1.0 зафиксирован в PROJECT_SPEC |
 | Регистрация и безопасность | Автотесты PASS; ручная проверка открыта | Два независимых аккаунта, legacy account и Production Rules review |
-| Личная переписка | Автотесты PASS; ручная проверка открыта | Realtime, история, edit/delete, read receipts, offline/reconnect |
+| Личная переписка | Автотесты PASS; базовая двухаккаунтная smoke-проверка RC-P01–P06 подтверждена владельцем | Offline/reconnect, multi-tab, account switching и оставшиеся RC/staging gates |
 | Offline Queue | **DONE** | 100 раундов / 200 сообщений, restart recovery, no-Web-Locks fallback |
 | Группы и каналы | Emulator coverage PASS; ручная проверка открыта | Роли, членство, публикации и выход на двух аккаунтах |
 | UI и доступность | Browser regression PASS; ручная проверка открыта | Телефон, desktop, клавиатура и screen reader |
@@ -51,7 +51,13 @@
 - **PR #166:** MERGED в `main` (squash), merge commit `82559b6`. Добавлена test-only диагностика регистрации: при повторном сбое E2E отчёт сохранит исходную ошибку Auth и результат записи профиля. Production auth/profile logic и Firebase Rules не менялись.
 - **Quality PR #166:** [run #45356599939](https://github.com/DoctorStrangeSH/Vortex/actions/runs/45356599939) — PASS по всем шагам: unit, browser, Rules, Auth, двухаккаунтный Chat E2E и build. Предыдущий сбой регистрации не воспроизвёлся.
 - **Post-merge main verification:** Quality [#45357132903](https://github.com/DoctorStrangeSH/Vortex/actions/runs/45357132903) — PASS; unit, browser, Rules, Auth, Chat E2E и build прошли на SHA `82559b68cd0fa2723d2ad65486a33e777a317465`. GitHub Pages [#45357132913](https://github.com/DoctorStrangeSH/Vortex/actions/runs/45357132913) — build и deploy PASS на том же SHA.
-- **Branch cleanup audit (24.11):** 158 refs классифицированы в [docs/BRANCH_CLEANUP_AUDIT.md](docs/BRANCH_CLEANUP_AUDIT.md): 139 refs merged PR, 13 refs закрытых без merge PR, 4 refs без PR, плюс `main`/`gh-pages`. Выделены 14 подтверждённых кандидатов из 17 неоднозначных refs и 3 архивные Spark-blocked callable refs; для 139 merged refs требуется head-SHA check. Автоудаление новых merged head branches подтверждено на PR #166/#167. Исторические refs не удалялись: текущий GitHub connector не предоставляет delete-ref action.
+- **PR #165:** исправлена retry policy для блокированных/небезопасных legacy media MIME; неизвестные и uncertain-commit ошибки не повторяются автоматически. Объединён в main.
+- **PR #166:** добавлена test-only диагностика частичной регистрации для Chat E2E; Production Auth/Profile и Rules не менялись. Объединён в main.
+- **PR #167–#168:** branch inventory и классификация исторических refs обновлены; автоудаление новых merged head branches проверено. 158 refs описаны в [docs/BRANCH_CLEANUP_AUDIT.md](docs/BRANCH_CLEANUP_AUDIT.md); 3 callable prototype refs сохранены как архив из-за Spark/Cloud Functions blocker. Старые refs физически не удалены — нужен GitHub UI или отдельный авторизованный workflow.
+- **PR #169:** `PROJECT_SPEC.md` синхронизирован с фактическим RC состоянием и ручными/staging gates; merge commit `e79a846`.
+- **PR #171:** обновлены RC evidence и ROADMAP после PR #168–#169; добавлено подтверждение владельца от 24.11.2026 для базовой двухаккаунтной smoke-проверки RC-P01–P06. RC-P07–P14 и RC-S01–S09 остаются открытыми.
+- **Main verification before PR #170:** Quality CI [#45360217395](https://github.com/DoctorStrangeSH/Vortex/actions/runs/45360217395) — PASS; Pages [#45360215911](https://github.com/DoctorStrangeSH/Vortex/actions/runs/45360215911) — PASS на SHA `4760269f03b6414616794a6f6cd277c8d76a476f`.
+- **Post-merge verification after PR #169:** Quality [#45361234527](https://github.com/DoctorStrangeSH/Vortex/actions/runs/45361234527) — PASS; unit, browser, Rules, Auth, Chat E2E и build завершились успешно. GitHub Pages [#45361234528](https://github.com/DoctorStrangeSH/Vortex/actions/runs/45361234528) — build/deploy PASS на SHA `e79a8467213d9bac32c8ad4598675e87692776cb`.
 
 ## Следующие задачи — без расширения scope
 
