@@ -29,6 +29,17 @@
 
 > Post-merge Quality workflow [#45357132903](https://github.com/DoctorStrangeSH/Vortex/actions/runs/45357132903) также завершился PASS. AUTO-09–AUTO-12 подтверждают только автоматические проверки и публикацию; ручная/staging приёмка остаётся обязательной.
 
+## A.2. Актуальные доказательства после PR #165–#169 (24.11.2026)
+
+| ID | Проверка | Результат | Доказательство |
+| --- | --- | --- | --- |
+| AUTO-13 | Quality CI на main после branch audit PR #168 | **PASS** | [#45360217395](https://github.com/DoctorStrangeSH/Vortex/actions/runs/45360217395), SHA `4760269f03b6414616794a6f6cd277c8d76a476f`: unit, browser, Rules, Auth, Chat E2E и build PASS |
+| AUTO-14 | GitHub Pages build/deploy после PR #168 | **PASS** | [#45360215911](https://github.com/DoctorStrangeSH/Vortex/actions/runs/45360215911), main SHA `4760269f03b6414616794a6f6cd277c8d76a476f` |
+| AUTO-15 | Документация PROJECT_SPEC синхронизирована с актуальным RC/branch audit | **MERGED** | [PR #169](https://github.com/DoctorStrangeSH/Vortex/pull/169), squash `e79a8467213d9bac32c8ad4598675e87692776cb` |
+| AUTO-16 | Quality CI для PR #169 | **PASS** | [#45360820955](https://github.com/DoctorStrangeSH/Vortex/actions/runs/45360820955): unit, browser, Rules, Auth, Chat E2E и build PASS |
+
+> AUTO-13–AUTO-16 подтверждают состояние кода/документации и автоматические проверки. После merge PR #169 на новом main SHA `e79a8467213d9bac32c8ad4598675e87692776cb` запущена отдельная post-merge Quality CI [#45361234527](https://github.com/DoctorStrangeSH/Vortex/actions/runs/45361234527) и Pages workflow [#45361234528](https://github.com/DoctorStrangeSH/Vortex/actions/runs/45361234528); на момент этой записи их итог ещё не зафиксирован. Они не заменяют ручную/staging приёмку.
+
 ## B. Разрешённая ручная smoke-проверка на текущем Production
 
 **Граница безопасности:** только два добровольных тестовых аккаунта и специально созданные временные тестовые чаты; без чувствительных данных. Не выполнять нагрузочные тесты, миграции, чужие access-denial проверки, mass deletion, изменение Firebase Rules/тарифа/Storage. Для security-negative, destructive и migration test используйте Firebase Emulator/отдельный staging.
@@ -209,7 +220,7 @@
 - [ ] Владелец явно принимает RC.
 - [ ] Только после принятия RC — тег v1.0.0 и post-deploy smoke.
 
-**Вердикт на 23.11.2026: NO-GO.** Автоматические ворота пройдены, ручные и staging/аудитные ворота остаются открытыми.
+**Вердикт на 24.11.2026: NO-GO.** Автоматические ворота пройдены, ручные и staging/аудитные ворота остаются открытыми.
 
 ## E. Шаблон записи наблюдения
 
