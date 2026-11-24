@@ -98,6 +98,7 @@
 | RC-S06 | Финальная сверка утверждённых Production Rules с versioned rules (только чтение; без публикации) | NOT TESTED |
 | RC-S07 | Group/channel roles, owner protection, subscriberCount invariants and immediate access revocation after removal/unsubscribe | NOT TESTED |
 | RC-S08 | Storage upload/read/delete lifecycle, MIME/size boundaries, CORS, membership revocation and legacy token-link inventory | NOT TESTED |
+| RC-S09 | Attachment failure recovery: quota, permission denial, network interruption, uncertain commit, bounded retry and no duplicate/lost message | NOT TESTED |
 
 ### C.2. Group / channel roles and access revocation (RC-S07) — staging only
 
@@ -127,6 +128,21 @@
 7. Составить инвентаризацию legacy download URLs без вывода самих токенов; не отзывать и не переписывать их массово. Любая миграция — отдельный согласованный план с резервной копией и rollback.
 
 **PASS:** все позитивные/негативные операции воспроизводимы на staging в двух независимых профилях, CORS работает только для согласованных origins, исключённый пользователь теряет доступ, удаление не ломает живые сообщения, legacy URLs инвентаризированы без destructive изменений. При любом сбое — FAIL/BLOCKED и откат только staging-флага.
+
+### C.4. Attachment failure recovery (RC-S09) — Emulator / staging
+
+Использовать отдельный staging/Emulator и временные тестовые аккаунты. Не создавать искусственные quota incidents в Production и не удалять пользовательские данные.
+
+1. **Permission denied:** отозвать доступ тестовому аккаунту; убедиться, что интерфейс сообщает об отсутствии доступа и не предлагает бесконечный retry.
+2. **Quota exceeded:** смоделировать код ошибки на уровне сервиса/теста; убедиться, что показано отдельное сообщение о квоте и автоматическая повторная загрузка отключена.
+3. **Network interruption:** оборвать соединение до завершения Storage upload; файл остаётся в состоянии ошибки, повтор доступен только после восстановления связи.
+4. **Unknown Firestore commit:** оборвать подтверждение после возможной записи сообщения; приложение не удаляет потенциально используемый Storage object и не предлагает слепую повторную отправку.
+5. **Confirmed absent commit:** если lookup однозначно подтвердил отсутствие сообщения, допускается одна повторная запись с тем же message ID; бесконечный цикл запрещён.
+6. **Partial batch:** при ошибке второго/третьего файла ранее отправленные не дублируются; пользователь видит число успешных отправок и повторяет только оставшиеся файлы.
+7. **Cleanup failure:** при временной ошибке удаления путь остаётся в локальной очереди; object-not-found считается уже очищенным; повреждённая очередь не перезаписывается без восстановления.
+8. **Recovery:** после возврата сети повторить допустимые операции; сверить Firestore message IDs и Storage object paths, убедиться в отсутствии дублей, orphan leaks и потерянных сообщений.
+
+**PASS:** ошибки классифицированы правильно, quota/permission не запускают retry, сетевые ошибки повторяются ограниченно, uncertain commit не создаёт дубль и не удаляет потенциально привязанный файл, очередь очистки сохраняет данные до подтверждённого результата. Все сценарии должны быть зафиксированы на staging/Emulator.
 
 ## B.3. Ручная проверка адаптивности и доступности (RC-P11–RC-P13)
 
