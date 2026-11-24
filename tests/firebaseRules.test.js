@@ -1429,3 +1429,103 @@ test('username claims are atomically bound to their owner and cannot be stolen o
     await assertFails(updateDoc(doc(alice, 'usernames/alice'), { uid: 'bob' }));
     assert.equal((await assertSucceeds(getDoc(doc(alice, 'usernames/alice')))).data().uid, 'alice');
 });
+
+
+test('removed group members immediately lose chat, message, and write access', { skip: !available }, async () => {
+    const alice = environment.authenticatedContext('alice').firestore();
+    const bob = environment.authenticatedContext('bob').firestore();
+    const charlie = environment.authenticatedContext('charlie').firestore();
+    const groupId = 'group-access-revocation';
+    const groupAlice = doc(alice, 'chats', groupId);
+    const groupCharlie = doc(charlie, 'chats', groupId);
+    const messageAlice = doc(alice, 'chats', groupId, 'messages', 'before-removal');
+    const messageCharlie = doc(charlie, 'chats', groupId, 'messages', 'before-removal');
+
+    await assertSucceeds(setDoc(groupAlice, {
+        type: 'group',
+        name: 'Тестовая группа',
+        createdBy: 'alice',
+        participants: ['alice', 'bob', 'charlie'],
+        admins: ['alice']
+    }));
+    await assertSucceeds(setDoc(messageAlice, {
+        senderId: 'alice',
+        senderName: 'Alice',
+        text: 'Тест доступа после исключения',
+        type: 'text',
+        readBy: []
+    }));
+
+    // The owner removes Charlie; this must revoke access immediately.
+    await assertSucceeds(updateDoc(groupAlice, {
+        participants: arrayRemove('charlie')
+    }));
+
+    await assertFails(getDoc(groupCharlie));
+    await assertFails(getDoc(messageCharlie));
+    await assertFails(setDoc(doc(charlie, 'chats', groupId, 'messages', 'after-removal'), {
+        senderId: 'charlie',
+        text: 'Не должно отправиться',
+        type: 'text',
+        readBy: []
+    }));
+    await assertFails(updateDoc(messageCharlie, { text: 'Подмена после исключения' }));
+
+    assert.equal((await assertSucceeds(getDoc(doc(bob, 'chats', groupId)))).exists(), true);
+    assert.equal((await assertSucceeds(getDoc(messageAlice))).data().text, 'Тест доступа после исключения');
+});
+
+test('removed channel subscribers immediately lose channel and message access', { skip: !available }, async () => {
+    const alice = environment.authenticatedContext('alice').firestore();
+    const bob = environment.authenticatedContext('bob').firestore();
+    const channelId = 'channel-access-revocation';
+    const channelAlice = doc(alice, 'chats', channelId);
+    const channelBob = doc(bob, 'chats', channelId);
+    const messageAlice = doc(alice, 'chats', channelId, 'messages', 'announcement-before-leave');
+    const messageBob = doc(bob, 'chats', channelId, 'messages', 'announcement-before-leave');
+
+    await assertSucceeds(setDoc(channelAlice, {
+        type: 'channel',
+        name: 'Тестовый канал',
+        createdBy: 'alice',
+        ownerId: 'alice',
+        admins: ['alice'],
+        participants: ['alice', 'bob'],
+        subscribers: ['alice', 'bob'],
+        subscriberCount: 2
+    }));
+    await assertSucceeds(setDoc(messageAlice, {
+        senderId: 'alice',
+        senderName: 'Alice',
+        text: 'Тестовое объявление',
+        type: 'text',
+        readBy: []
+    }));
+
+    // Subscribers cannot forge the owner or the subscriber projection.
+    await assertFails(updateDoc(channelBob, { ownerId: 'bob' }));
+    await assertFails(updateDoc(channelBob, { subscriberCount: 99 }));
+    await assertFails(updateDoc(channelBob, {
+        participants: arrayRemove('alice'),
+        subscribers: arrayRemove('alice'),
+        subscriberCount: increment(-1)
+    }));
+
+    // Bob may remove only his own subscription, atomically across all projections.
+    await assertSucceeds(updateDoc(channelBob, {
+        participants: arrayRemove('bob'),
+        subscribers: arrayRemove('bob'),
+        subscriberCount: increment(-1)
+    }));
+
+    await assertFails(getDoc(channelBob));
+    await assertFails(getDoc(messageBob));
+    await assertFails(setDoc(doc(bob, 'chats', channelId, 'messages', 'after-leave'), {
+        senderId: 'bob',
+        text: 'Не должно отправиться',
+        type: 'text',
+        readBy: []
+    }));
+    assert.equal((await assertSucceeds(getDoc(channelAlice))).data().subscriberCount, 1);
+    assert.equal((await assertSucceeds(getDoc(messageAlice))).exists(), true);
+});
