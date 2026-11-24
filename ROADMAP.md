@@ -41,6 +41,7 @@
 - **Security regression coverage (24.11):** добавлены Emulator tests на owner-only private profile, public profile field allowlist и ownership/immutability username claim. Тесты ожидают CI; это не production/staging acceptance.
 - **Group/channel revocation tests (24.11):** добавлены Emulator cases на немедленный отзыв доступа после исключения из группы/отписки от канала, запрет чтения старых сообщений и новых записей бывшим участником, а также защиту ownerId и subscriberCount. Ожидают CI; Production/staging gates не закрыты.
 - **RC-S07:** в RELEASE_CANDIDATE_CHECKLIST.md добавлен отдельный staging acceptance для ролей групп/каналов, защиты владельца, атомарности подписчиков и немедленного отзыва доступа после исключения/отписки. Статус NOT TESTED.
+- **Storage negative regression (24.11):** добавлены Emulator tests на отказ пустых объектов, malformed MIME и небезопасных object ID. Ожидают CI; реальные CORS/браузерные проверки и Storage Production gate остаются NOT TESTED/BLOCKED.
 - **PR:** открытых PR нет на момент проверки.
 
 ## Следующие задачи — без расширения scope
