@@ -367,21 +367,22 @@ Storage выключен до положительного staging-теста up
 
 **Правило статусов:** галочка означает, что требование реализовано и покрыто доступными автоматическими проверками в репозитории. Она не означает production/staging-приёмку. Все ручные и внешние проверки отмечаются отдельными пунктами и остаются открытыми до фактического выполнения.
 
-**Сводка на 23.11.2026 (актуализирована после PR #155–#156):**
+**Сводка на 24.11.2026 (актуализирована после PR #165–#168):**
 | Этап | Реализация в репозитории | Внешняя/ручная приёмка |
 | --- | --- | --- |
-| 0. Scope freeze | Зафиксирован; новые функции до выпуска 1.0 не добавлять; PR #133 закрыт как superseded, PR #134–#139 объединены | Инвентаризация исторических refs и безопасная очистка веток не завершены |
-| 1. Безопасность и регистрация | Legacy DM, public profile sanitization, username claims и access Rules покрыты unit/Emulator tests; Production Firestore Rules синхронизированы владельцем с `main`, после публикации владелец подтвердил восстановление отправки | Staging, реальные legacy accounts, rollback и полная проверка приватных полей/read receipts ещё не пройдены |
-| 2. Личная переписка | Стабильный DM, текст, история, scroll position, offline queue/restart покрыты тестами; PR #138 добавил production-shaped атомарную send+preview регрессию; PR #156 добавил авторизованный two-user ChatScreen E2E через Firebase Emulator; Quality CI #45139952610 полностью зелёный | Полная Production/staging RC-матрица, edits/deletes/read receipts и offline recovery на реальных сессиях не завершены |
-| 3. Группы и каналы | Spark-совместимые membership/admin/channel rules и schema Emulator tests в main; UI self-leave исправлен PR #89 | Staging и двухаккаунтная проверка не пройдены; журнал действий отложен |
-| 4. Интерфейс и вложения | Obsidian Iris; responsive auth/chat/dialog/profile smoke coverage; Storage Rules Emulator покрывает доступ/отзыв; PR #99–#112 добавили keyboard/focus improvements | Полная ручная мобильная матрица, keyboard/screen-reader и реальный Storage staging не пройдены |
-| 5–6. RC и выпуск | Подготовительные тесты и документация продолжаются; RC не объявлен | Release gates остаются открытыми |
+| 0. Scope freeze | Scope зафиксирован; новых функций до 1.0 не добавлять. Инвентаризация 158 branch refs, карта закрытых PR и безопасные кандидаты/архивы зафиксированы в `docs/BRANCH_CLEANUP_AUDIT.md`; автоудаление новых merged head branches подтверждено | Исторические refs физически не удалены: используемый GitHub connector не предоставляет delete-ref action; 3 callable-ветки сохранены как архив из-за Spark/Cloud Functions blocker |
+| 1. Безопасность и регистрация | Legacy DM, private-profile owner-only, public-profile allowlist, username-claim ownership и group/channel access revocation покрыты unit/Emulator tests; владелец ранее подтвердил восстановление отправки после синхронизации Production Rules | Полная read-only сверка опубликованных Rules, отдельный staging, реальные legacy accounts, rollback и live read-receipt/privacy acceptance ещё не пройдены |
+| 2. Личная переписка | Стабильный DM, текст, история, scroll position, offline queue и восстановление после полного browser-process restart покрыты тестами; concurrent same-ID/different-ID отправки и preview защищены Emulator tests; авторизованный two-user ChatScreen E2E проходит в Emulator | Полная Production/staging RC-матрица, edits/deletes/read receipts и offline recovery на реальных сессиях не завершены |
+| 3. Группы и каналы | Spark-совместимые membership/admin/channel Rules, защита owner и Emulator tests немедленного отзыва доступа после удаления/отписки находятся в main; UI self-leave исправлен PR #89 | Staging и двухаккаунтная проверка не пройдены; журнал действий отложен за пределы 1.0 |
+| 4. Интерфейс и вложения | Obsidian Iris; responsive auth/chat/dialog/profile smoke coverage; keyboard/focus improvements; Storage Rules Emulator и attachment retry/error handling покрыты тестами | Полная ручная мобильная матрица 320–1440 CSS px, keyboard/screen-reader и реальный Storage staging не пройдены; Storage в Production выключен |
+| 5–6. RC и выпуск | RC checklist и runbooks подготовлены; Quality CI и Pages проходят на актуальном main; RC не объявлен | Все ручные и staging release gates остаются открытыми |
 
 
 ### Этап 0 — Scope freeze
 - [x] Утвердить этот документ как единый scope Vortex 1.0.
 - [x] README ссылается на него как на единственный продуктовый scope.
-- [ ] Завершить инвентаризацию исторических веток и привязать каждую актуальную ветку/открытый PR к требованию или явно закрыть как устаревшую. PR #32 закрыт без merge из-за Spark/Cloud Functions зависимости; PR #89 исправляет найденный UI-дефект GROUP-04. Физическое удаление refs-кандидатов пока недоступно через используемый GitHub connector.
+- [x] Завершить инвентаризацию исторических refs и классифицировать кандидатов/архивы: `docs/BRANCH_CLEANUP_AUDIT.md` (PR #168). PR #32 закрыт без merge из-за Spark/Cloud Functions зависимости; PR #89 исправляет UI-дефект GROUP-04. Автоудаление новых merged head branches проверено; открытых PR после #168 нет.
+- [ ] Физически удалить подтверждённые исторические refs-кандидаты после доступной административной операции. Текущий GitHub connector не предоставляет delete-ref action; `main`, `gh-pages` и три Spark-blocked callable refs сохраняются.
 - [x] Разделить релизные задачи и post-1.0 backlog. Новые функции по умолчанию вынесены за пределы 1.0.
 
 **Выход:** утверждённый scope и список блокеров.
@@ -526,13 +527,25 @@ Backlog не активируется автоматически. Для вер�
 - Сверить Production Rules с проверенной версией и зафиксировать результат без автоматического изменения Production.
 - Сформировать RC checklist и получить явное принятие владельца.
 
-### 13.4. Состояние веток и PR
-- PR #164 объединён в `main` squash-коммитом `a2936bd4f9224a2420c4527eca2f475d11284dcd`.
-- Post-merge Quality CI #45182788336 прошёл полностью на merge commit.
-- Последующий Quality CI #45182857956 прошёл на актуальном main commit `b2c0d6dbe3af9d979be4ca5446bb9692c74ef0f3`.
-- GitHub Pages build/deploy #45182857974 завершился успешно.
-- Открытых PR на момент актуализации нет.
-- В репозитории остаётся много исторических branch refs. Их удаление требует отдельной сверки ancestry/diff и административной операции; текущий доступный GitHub интерфейс позволяет читать и перемещать refs, но не удалять branch refs. Не считать их безопасными к удалению только по возрасту или имени.
+### 13.4. Состояние веток, PR и актуального CI — 24.11.2026
+
+- PR #165 `fix(media): disable retry for blocked legacy MIME types` объединён в main; неизвестные/небезопасные legacy media errors не запускают автоматический retry.
+- PR #166 `test(e2e): diagnose incomplete registration in chat smoke test` объединён; добавлена test-only диагностика Auth/profile setup, Production auth/profile logic не менялась.
+- PR #167 `docs: update RC evidence and branch cleanup audit` объединён; обновлены RC evidence и branch inventory.
+- PR #168 `docs: classify historical branch cleanup candidates` объединён в main squash-коммитом `4760269f03b6414616794a6f6cd277c8d76a476f`; полный Quality CI и GitHub Pages build/deploy прошли.
+- На актуальном main SHA `4760269f03b6414616794a6f6cd277c8d76a476f`: Quality workflow #45360217395 — PASS (unit, browser, Firestore Rules, Auth, Chat E2E, production build); Pages workflow #45360215911 — PASS.
+- После merge PR #168 открытых PR нет.
+- Branch inventory: 158 refs — 139 refs от merged PR, 13 refs от закрытых без merge PR, 4 refs без связанного PR, плюс защищённые `main` и `gh-pages`. Точные кандидаты и причины сохранения перечислены в [docs/BRANCH_CLEANUP_AUDIT.md](BRANCH_CLEANUP_AUDIT.md).
+- Автоудаление head branch после merge подтверждено на PR #166–#168. Исторические refs не удалялись: текущий GitHub connector не предоставляет операцию удаления branch refs. Три callable prototype refs остаются архивными из-за Firebase Spark/Cloud Functions blocker; код не переносить и не развёртывать без отдельного решения владельца.
+
+### 13.5. Release gates — 24.11.2026
+
+- Все RC-P01–P14 (Production smoke, два аккаунта, offline/reconnect, мобильная доступность и базовые группы/каналы) остаются NOT TESTED до фактической ручной приёмки.
+- Все RC-S01–S09 (staging, privacy/security-negative, legacy recovery, Rules comparison, group/channel revocation, Storage lifecycle и attachment recovery) остаются NOT TESTED/BLOCKED до отдельного staging/Emulator acceptance по соответствующим runbooks.
+- Владелец ранее подтвердил, что после синхронизации Production Firestore Rules с репозиторием отправка сообщений восстановилась. Полная read-only сверка опубликованного ruleset, legacy-data compatibility и rollback остаются отдельными gates.
+- Firebase Storage в Production выключен. Успех Emulator/CI не является разрешением включать его в Production.
+- Firebase Spark остаётся ограничением 1.0; callable-backed group membership journal отложен за пределы релиза.
+- Не объявлять Release Candidate и не менять Production Rules, тариф, Storage или пользовательские данные без отдельного согласованного staging/rollout шага.
 
 ## 14. Когда проект считается законченным
 
