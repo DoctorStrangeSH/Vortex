@@ -3,7 +3,7 @@
 const PERMANENT_ATTACHMENT_ERRORS = new Set([
     'permission-denied', 'unauthenticated', 'invalid-argument',
     'storage/unauthorized', 'storage/unauthenticated',
-    'storage/invalid-format', 'storage/invalid-argument'
+    'storage/invalid-format', 'storage/invalid-argument', 'storage/quota-exceeded'
 ]);
 
 export function attachmentRetryKind(error) {
@@ -21,6 +21,9 @@ export function attachmentRetryNotice(fileName, error, sentCount, totalCount) {
     const kind = attachmentRetryKind(error);
     if (kind === 'unknown') {
         return `${progress}Не удалось подтвердить отправку «${fileName}». Проверьте переписку после восстановления связи — повторная отправка может создать дубликат.`;
+    }
+    if (error?.code === 'storage/quota-exceeded') {
+        return `${progress}Не удалось отправить «${fileName}»: исчерпана доступная квота хранилища. Автоматический повтор отключён; попробуйте позже или обратитесь к администратору.`;
     }
     if (kind === 'blocked') {
         return `${progress}Не удалось отправить «${fileName}»: нет доступа или неверные параметры. Проверьте авторизацию и разрешения чата.`;
