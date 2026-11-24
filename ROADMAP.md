@@ -28,6 +28,7 @@
 
 ## Последние подтверждённые изменения
 - **PR #164:** исправлена потеря сообщений между вкладками. Общий массив заменён независимыми durable records. PR объединён в main.
+- **PR #147:** добавлен Firestore Emulator regression на конкурентный повтор отправки с одинаковым стабильным message ID; тест проверяет одну запись и согласованный preview. Текущий `tests/firebaseRules.test.js` также покрывает гонку разных message ID и выбор последнего committed preview. Это Emulator/CI evidence, не live Production acceptance.
 - **CI #45181260085:** полный Quality workflow прошёл на PR head: 296 unit PASS, 57 intentional skips, 55 Rules PASS, 2 Auth PASS, browser/E2E/build PASS.
 - **Browser stress:** 100 конкурентных раундов, 200/200 сообщений сохранены и доставлены; подтверждены no-Web-Locks fallback, tab reopen и полный browser-context restart.
 - **Post-merge CI #45182788336:** PASS на merge commit.
@@ -50,7 +51,7 @@
 - **PR #166:** MERGED в `main` (squash), merge commit `82559b6`. Добавлена test-only диагностика регистрации: при повторном сбое E2E отчёт сохранит исходную ошибку Auth и результат записи профиля. Production auth/profile logic и Firebase Rules не менялись.
 - **Quality PR #166:** [run #45356599939](https://github.com/DoctorStrangeSH/Vortex/actions/runs/45356599939) — PASS по всем шагам: unit, browser, Rules, Auth, двухаккаунтный Chat E2E и build. Предыдущий сбой регистрации не воспроизвёлся.
 - **Post-merge main verification:** Quality [#45357132903](https://github.com/DoctorStrangeSH/Vortex/actions/runs/45357132903) — PASS; unit, browser, Rules, Auth, Chat E2E и build прошли на SHA `82559b68cd0fa2723d2ad65486a33e777a317465`. GitHub Pages [#45357132913](https://github.com/DoctorStrangeSH/Vortex/actions/runs/45357132913) — build и deploy PASS на том же SHA.
-- **Branch audit (24.11):** 158 refs: 139 веток связаны с merged PR, 13 — с закрытыми без merge PR, 4 — без соответствующего PR, отдельно `main` и `gh-pages`. Автоудаление head branch после merge проверено на PR #166; исторические ветки пока сохранены до безопасной проверки.
+- **Branch cleanup audit (24.11):** 158 refs классифицированы в [docs/BRANCH_CLEANUP_AUDIT.md](docs/BRANCH_CLEANUP_AUDIT.md): 139 refs merged PR, 13 refs закрытых без merge PR, 4 refs без PR, плюс `main`/`gh-pages`. Выделены 14 подтверждённых кандидатов из 17 неоднозначных refs и 3 архивные Spark-blocked callable refs; для 139 merged refs требуется head-SHA check. Автоудаление новых merged head branches подтверждено на PR #166/#167. Исторические refs не удалялись: текущий GitHub connector не предоставляет delete-ref action.
 
 ## Следующие задачи — без расширения scope
 
@@ -67,7 +68,7 @@
 - Firebase Storage выключен до отдельной staging-проверки.
 - Серверные push, MFA, звонки и E2EE исключены из 1.0.
 - Production ручная проверка разрешена только в изолированных временных тестовых чатах, без чувствительных данных и без destructive actions.
-- Исторические ветки требуют отдельной безопасной очистки: на 24.11 обнаружено 139 refs после merged PR, 13 refs от закрытых без merge PR и 4 refs без связанного PR. Автоудаление новых head branches после merge включено и проверено; исторические refs не удалялись, поскольку доступный GitHub workflow не поддерживает удаление branch refs.
+- Исторические ветки классифицированы в [docs/BRANCH_CLEANUP_AUDIT.md](docs/BRANCH_CLEANUP_AUDIT.md). Автоудаление новых head branches после merge включено и проверено; старые refs ещё не удалялись, поскольку доступный GitHub connector не предоставляет операцию удаления refs.
 
 ## Definition of Done
 Vortex 1.0 закрывается только после выполнения P0, проверки оставленных P1, отсутствия критических/высоких security-дефектов, прохождения staging/ручной двухаккаунтной матрицы, доступности на мобильном и desktop, воспроизводимого CI/build и явного принятия Release Candidate владельцем.
