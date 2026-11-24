@@ -55,9 +55,9 @@
 - **PR #166:** добавлена test-only диагностика частичной регистрации для Chat E2E; Production Auth/Profile и Rules не менялись. Объединён в main.
 - **PR #167–#168:** branch inventory и классификация исторических refs обновлены; автоудаление новых merged head branches проверено. 158 refs описаны в [docs/BRANCH_CLEANUP_AUDIT.md](docs/BRANCH_CLEANUP_AUDIT.md); 3 callable prototype refs сохранены как архив из-за Spark/Cloud Functions blocker. Старые refs физически не удалены — нужен GitHub UI или отдельный авторизованный workflow.
 - **PR #169:** `PROJECT_SPEC.md` синхронизирован с фактическим RC состоянием и ручными/staging gates; merge commit `e79a846`.
-- **PR #170:** обновляется RC evidence после PR #168–#169; CI проверка документации выполняется. Ни один RC-P/RC-S не переведён в PASS.
+- **PR #171:** обновлены RC evidence и ROADMAP после PR #168–#169; PR CI проходит. Ни один RC-P/RC-S не переведён в PASS.
 - **Main verification before PR #170:** Quality CI [#45360217395](https://github.com/DoctorStrangeSH/Vortex/actions/runs/45360217395) — PASS; Pages [#45360215911](https://github.com/DoctorStrangeSH/Vortex/actions/runs/45360215911) — PASS на SHA `4760269f03b6414616794a6f6cd277c8d76a476f`.
-- **Post-merge verification after PR #169:** Quality [#45361234527](https://github.com/DoctorStrangeSH/Vortex/actions/runs/45361234527) и Pages [#45361234528](https://github.com/DoctorStrangeSH/Vortex/actions/runs/45361234528) запущены на SHA `e79a8467213d9bac32c8ad4598675e87692776cb`; итог ожидался на момент обновления.
+- **Post-merge verification after PR #169:** Quality [#45361234527](https://github.com/DoctorStrangeSH/Vortex/actions/runs/45361234527) — PASS; unit, browser, Rules, Auth, Chat E2E и build завершились успешно. GitHub Pages [#45361234528](https://github.com/DoctorStrangeSH/Vortex/actions/runs/45361234528) — build/deploy PASS на SHA `e79a8467213d9bac32c8ad4598675e87692776cb`.
 
 ## Следующие задачи — без расширения scope
 
