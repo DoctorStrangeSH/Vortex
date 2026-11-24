@@ -24,6 +24,14 @@
 - Эти правила не являются основанием включать Storage: реальный cross-service permission/IAM, CORS, upload/read/revocation и rollback ещё не проверены на отдельном staging.
 - VITE_USE_FIREBASE_STORAGE=false в .env.example; Production flag и bucket settings из репозитория не видны.
 
+### Дополнительные Emulator regression tests (24.11.2026)
+
+В tests/firebaseRules.test.js добавлены два regression-сценария:
+- приватный users/{uid} доступен владельцу, но не другому аккаунту/гостю; publicProfiles доступен авторизованному пользователю, но не гостю; попытки добавить email/private fields в public profile отклоняются;
+- username claim создаётся атомарно вместе с private/public profile, читается по разрешённому сценарию, не может быть перехвачен другим UID, изменён на чужой UID или удалён владельцем через клиент.
+
+Это новые тесты исходников; до завершения Quality CI они не отмечаются PASS. Даже успешный Emulator run не подтверждает Production Rules и не закрывает staging gate.
+
 ### Открытые security-gates — без изменения статусов
 
 1. Сопоставить опубликованные Production Firestore Rules с точным firestore.rules из main через Firebase Console (read-only); не публиковать правила в рамках этого аудита.
