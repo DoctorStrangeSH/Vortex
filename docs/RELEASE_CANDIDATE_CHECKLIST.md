@@ -97,6 +97,7 @@
 | RC-S05 | Quota/permission-denied/storage-failure, recoverability, rollback и проверка отсутствия потери данных | NOT TESTED |
 | RC-S06 | Финальная сверка утверждённых Production Rules с versioned rules (только чтение; без публикации) | NOT TESTED |
 | RC-S07 | Group/channel roles, owner protection, subscriberCount invariants and immediate access revocation after removal/unsubscribe | NOT TESTED |
+| RC-S08 | Storage upload/read/delete lifecycle, MIME/size boundaries, CORS, membership revocation and legacy token-link inventory | NOT TESTED |
 
 ### C.2. Group / channel roles and access revocation (RC-S07) — staging only
 
@@ -112,6 +113,20 @@
 **PASS:** все положительные и отрицательные сценарии воспроизводимы на staging, после удаления/отписки доступ отзывается немедленно, счётчик соответствует subscribers.size(), владелец остаётся защищён. При любом несоответствии — FAIL/BLOCKED; не ослаблять Rules для обхода.
 
 Если отдельного staging нет, эти пункты остаются **BLOCKED**, а не автоматически закрываются успешным Production smoke или Emulator CI.
+
+### C.3. Storage attachment lifecycle (RC-S08) — staging only
+
+Подробная инструкция и браузерная матрица: [docs/STORAGE_STAGING_CHECKLIST.md](STORAGE_STAGING_CHECKLIST.md). Использовать только отдельный staging Firebase project/bucket и два временных тестовых аккаунта. Не включать Storage в Production и не менять Production CORS/Rules.
+
+1. Проверить точные staging project ID, bucket, опубликованные Storage/Firestore Rules, CORS origins и backup/rollback перед тестом.
+2. Отправить PNG и обычный файл из A в B; подтвердить, что Firestore хранит `storagePath` и пустой `fileData`, а не постоянный download token URL. B должен получить байты после reload.
+3. Проверить отказ пустой загрузки, неверного MIME, запрещённых активных типов, неверного владельца пути, неучастника, повторной загрузки поверх существующего объекта и превышения согласованного лимита.
+4. Удаление сообщения и удаление объекта проверить раздельно: живое сообщение не должно остаться без вложения; orphan cleanup доступен только владельцу объекта, в том числе после выхода из чата.
+5. После исключения B из группы повторить metadata/read/download из старой вкладки и после reload — доступ должен быть отклонён. Оставшийся участник сохраняет чтение.
+6. Проверить реальные браузерные CORS GET-запросы, ошибки сети/quota/permission-denied, повторную попытку, отсутствие зависшего индикатора и отсутствие утечки токенов в Firestore/логи.
+7. Составить инвентаризацию legacy download URLs без вывода самих токенов; не отзывать и не переписывать их массово. Любая миграция — отдельный согласованный план с резервной копией и rollback.
+
+**PASS:** все позитивные/негативные операции воспроизводимы на staging в двух независимых профилях, CORS работает только для согласованных origins, исключённый пользователь теряет доступ, удаление не ломает живые сообщения, legacy URLs инвентаризированы без destructive изменений. При любом сбое — FAIL/BLOCKED и откат только staging-флага.
 
 ## B.3. Ручная проверка адаптивности и доступности (RC-P11–RC-P13)
 
