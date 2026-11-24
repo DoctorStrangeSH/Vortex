@@ -54,7 +54,8 @@ async function register(page, user) {
             alert: document.querySelector('[role="alert"]')?.textContent?.trim() || null,
             status: document.querySelector('[role="status"]')?.textContent?.trim() || null,
             body: document.body.innerText.slice(0, 1600),
-            localUser: localStorage.getItem('vortex-user')
+            localUser: localStorage.getItem('vortex-user'),
+            diagnostics: window.__vortexTestDiagnostics || null
         }));
         throw new Error(`Registration did not reach ChatScreen: ${JSON.stringify(state)}`);
     }
