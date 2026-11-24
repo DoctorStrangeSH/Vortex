@@ -1529,3 +1529,37 @@ test('removed channel subscribers immediately lose channel and message access', 
     assert.equal((await assertSucceeds(getDoc(channelAlice))).data().subscriberCount, 1);
     assert.equal((await assertSucceeds(getDoc(messageAlice))).exists(), true);
 });
+
+
+test('storage rejects empty objects, malformed MIME values, and unsafe object identifiers', { skip: !available || !process.env.FIREBASE_STORAGE_EMULATOR_HOST }, async () => {
+    const alice = environment.authenticatedContext('alice').storage();
+
+    await assertFails(uploadString(
+        ref(alice, 'chats/chat-a/media/alice/empty-object'),
+        '',
+        'raw',
+        { contentType: 'text/plain' }
+    ));
+
+    for (const [index, contentType] of ['Text/Plain', 'text/plain; charset=utf-8', 'not-a-mime', ''].entries()) {
+        await assertFails(uploadString(
+            ref(alice, 'chats/chat-a/media/alice/bad-mime-' + index),
+            'payload',
+            'raw',
+            { contentType }
+        ));
+    }
+
+    await assertFails(uploadString(
+        ref(alice, 'chats/chat-a/media/alice/unsafe.file-id'),
+        'payload',
+        'raw',
+        { contentType: 'text/plain' }
+    ));
+    await assertFails(uploadString(
+        ref(alice, 'chats/chat-a/media/alice/unsafe..segment'),
+        'payload',
+        'raw',
+        { contentType: 'text/plain' }
+    ));
+});
